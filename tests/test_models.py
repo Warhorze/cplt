@@ -1,0 +1,73 @@
+"""Tests for csvplot.models."""
+
+from __future__ import annotations
+
+from datetime import datetime
+
+from csvplot.models import Marker, PlotSpec, Segment
+
+
+class TestSegment:
+    def test_creation(self) -> None:
+        seg = Segment(
+            layer=0,
+            y_label="task1",
+            start=datetime(2024, 1, 1),
+            end=datetime(2024, 1, 10),
+            color_key="red",
+        )
+        assert seg.layer == 0
+        assert seg.y_label == "task1"
+        assert seg.color_key == "red"
+
+    def test_frozen(self) -> None:
+        seg = Segment(
+            layer=0,
+            y_label="task1",
+            start=datetime(2024, 1, 1),
+            end=datetime(2024, 1, 10),
+        )
+        import pytest
+
+        with pytest.raises(AttributeError):
+            seg.y_label = "changed"  # type: ignore[misc]
+
+    def test_default_color_key(self) -> None:
+        seg = Segment(
+            layer=1,
+            y_label="task1",
+            start=datetime(2024, 1, 1),
+            end=datetime(2024, 1, 10),
+        )
+        assert seg.color_key == ""
+
+    def test_layer_supports_arbitrary_int(self) -> None:
+        seg = Segment(
+            layer=3,
+            y_label="task1",
+            start=datetime(2024, 1, 1),
+            end=datetime(2024, 1, 10),
+        )
+        assert seg.layer == 3
+
+
+class TestPlotSpec:
+    def test_defaults(self) -> None:
+        spec = PlotSpec()
+        assert spec.segments == []
+        assert spec.markers == []
+        assert spec.view_start is None
+        assert spec.view_end is None
+
+    def test_with_data(self) -> None:
+        seg = Segment(
+            layer=0,
+            y_label="A",
+            start=datetime(2024, 1, 1),
+            end=datetime(2024, 2, 1),
+        )
+        marker = Marker(date=datetime(2024, 1, 15), label="midpoint")
+        spec = PlotSpec(segments=[seg], markers=[marker])
+        assert len(spec.segments) == 1
+        assert len(spec.markers) == 1
+        assert spec.markers[0].label == "midpoint"
