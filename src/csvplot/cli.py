@@ -8,6 +8,7 @@ from typing import Annotated, Optional
 
 import typer
 from rich import print as rprint
+from rich.table import Table
 
 from csvplot.completions import complete_column, complete_date_column
 from csvplot.models import Marker, PlotSpec
@@ -19,6 +20,7 @@ from csvplot.reader import (
     parse_where,
 )
 from csvplot.renderer import render, render_bar, render_line
+from csvplot.summarise import summarise_csv
 
 app = typer.Typer(
     name="csvplot",
@@ -431,3 +433,108 @@ def line(
         raise typer.Exit(0)
 
     render_line(spec)
+
+
+@app.command()
+def summarise(
+    file: Annotated[
+        Path,
+        typer.Option("--file", "-f", help="Path to CSV file", exists=True, dir_okay=False),
+    ],
+    head: Annotated[
+        Optional[int],
+        typer.Option("--head", min=1, help="Only read the first N CSV rows"),
+    ] = None,
+    sample: Annotated[
+        Optional[int],
+        typer.Option("--sample", min=1, help="Show N random sample rows as preview"),
+    ] = None,
+    where: Annotated[
+        Optional[list[str]],
+        typer.Option("--where", help="Filter rows: COL=value (case-insensitive)"),
+    ] = None,
+    where_not: Annotated[
+        Optional[list[str]],
+        typer.Option("--where-not", help="Exclude rows: COL=value (case-insensitive)"),
+    ] = None,
+) -> None:
+    """Print a summary of a CSV file — column types, counts, nulls, top values."""
+    # Parse --where / --where-not expressions
+    wheres: list[tuple[str, str]] = []
+    where_nots: list[tuple[str, str]] = []
+    try:
+        for expr in where or []:
+            wheres.append(parse_where(expr))
+        for expr in where_not or []:
+            where_nots.append(parse_where(expr))
+    except ValueError as e:
+        rprint(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
+
+    try:
+        if sample:
+            summaries, sample_rows = summarise_csv(
+                path=file,
+                wheres=wheres or None,
+                where_nots=where_nots or None,
+                max_rows=head,
+                sample_n=sample,
+                return_sample=True,
+            )
+        else:
+            summaries = summarise_csv(
+                path=file,
+                wheres=wheres or None,
+                where_nots=where_nots or None,
+                max_rows=head,
+            )
+            sample_rows = []
+    except KeyError as e:
+        rprint(f"[red]Error:[/red] Column not found in CSV: {e}")
+        raise typer.Exit(1)
+
+    if not summaries:
+        rprint("[yellow]Warning:[/yellow] No columns found in CSV.")
+        raise typer.Exit(0)
+
+    # Render summary table
+    table = Table(title=f"Summary: {file.name}")
+    table.add_column("Column", style="bold")
+    table.add_column("Type")
+    table.add_column("Rows", justify="right")
+    table.add_column("Non-null", justify="right")
+    table.add_column("Unique", justify="right")
+    table.add_column("Min")
+    table.add_column("Max")
+    table.add_column("Top Values")
+
+    for s in summaries:
+        top_str = ""
+        if s.high_cardinality:
+            top_str = "[dim]>10K unique[/dim]"
+        elif s.top_values:
+            top_str = ", ".join(f"{v}({c})" for v, c in s.top_values[:5])
+
+        table.add_row(
+            s.name,
+            s.detected_type,
+            str(s.row_count),
+            str(s.non_null_count),
+            str(s.unique_count),
+            s.min_val or "-",
+            s.max_val or "-",
+            top_str or "-",
+        )
+
+    rprint(table)
+
+    # Render sample table if requested
+    if sample_rows:
+        rprint()
+        sample_table = Table(title=f"Sample ({len(sample_rows)} random rows)")
+        cols = list(sample_rows[0].keys())
+        for col in cols:
+            sample_table.add_column(col)
+        for row in sample_rows:
+            sample_table.add_row(*(row[c] for c in cols))
+        rprint(sample_table)
