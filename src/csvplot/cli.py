@@ -11,7 +11,13 @@ from rich import print as rprint
 
 from csvplot.completions import complete_column, complete_date_column
 from csvplot.models import Marker, PlotSpec
-from csvplot.reader import load_bar_data, load_line_data, load_segments, parse_datetime
+from csvplot.reader import (
+    load_bar_data,
+    load_line_data,
+    load_segments,
+    parse_datetime,
+    parse_where,
+)
 from csvplot.renderer import render, render_bar, render_line
 
 app = typer.Typer(
@@ -134,6 +140,22 @@ def timeline(
             rich_help_panel="Formatting",
         ),
     ] = None,
+    where: Annotated[
+        Optional[list[str]],
+        typer.Option(
+            "--where",
+            help="Filter rows: COL=value (case-insensitive, repeat for OR/AND)",
+            rich_help_panel="Filtering",
+        ),
+    ] = None,
+    where_not: Annotated[
+        Optional[list[str]],
+        typer.Option(
+            "--where-not",
+            help="Exclude rows: COL=value (case-insensitive)",
+            rich_help_panel="Filtering",
+        ),
+    ] = None,
 ) -> None:
     """Plot timeline/Gantt-style ranges from a CSV file."""
     # Validate --x: need at least 2 values, and an even count
@@ -145,6 +167,18 @@ def timeline(
         raise typer.Exit(1)
     if len(y) < 1:
         rprint("[red]Error:[/red] --y requires at least 1 value.")
+        raise typer.Exit(1)
+
+    # Parse --where / --where-not expressions
+    wheres: list[tuple[str, str]] = []
+    where_nots: list[tuple[str, str]] = []
+    try:
+        for expr in where or []:
+            wheres.append(parse_where(expr))
+        for expr in where_not or []:
+            where_nots.append(parse_where(expr))
+    except ValueError as e:
+        rprint(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
 
     # Chunk --x values into pairs
@@ -164,6 +198,8 @@ def timeline(
             y_detail_col=y_detail,
             open_end=open_end_dt,
             max_rows=head,
+            wheres=wheres or None,
+            where_nots=where_nots or None,
         )
     except KeyError as e:
         rprint(f"[red]Error:[/red] Column not found in CSV: {e}")
@@ -258,10 +294,30 @@ def bar(
         Optional[str],
         typer.Option("--title", help="Chart title (defaults to filename)"),
     ] = None,
+    where: Annotated[
+        Optional[list[str]],
+        typer.Option("--where", help="Filter rows: COL=value (case-insensitive)"),
+    ] = None,
+    where_not: Annotated[
+        Optional[list[str]],
+        typer.Option("--where-not", help="Exclude rows: COL=value (case-insensitive)"),
+    ] = None,
 ) -> None:
     """Plot a bar chart of value counts from a CSV column."""
     if sort not in ("value", "label", "none"):
         rprint(f"[red]Error:[/red] --sort must be 'value', 'label', or 'none', got {sort!r}")
+        raise typer.Exit(1)
+
+    # Parse --where / --where-not expressions
+    wheres: list[tuple[str, str]] = []
+    where_nots: list[tuple[str, str]] = []
+    try:
+        for expr in where or []:
+            wheres.append(parse_where(expr))
+        for expr in where_not or []:
+            where_nots.append(parse_where(expr))
+    except ValueError as e:
+        rprint(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
 
     chart_title = title if title else file.stem
@@ -275,6 +331,8 @@ def bar(
             max_rows=head,
             title=chart_title,
             horizontal=horizontal,
+            wheres=wheres or None,
+            where_nots=where_nots or None,
         )
     except KeyError as e:
         rprint(f"[red]Error:[/red] Column not found in CSV: {e}")
@@ -325,10 +383,30 @@ def line(
         Optional[str],
         typer.Option("--title", help="Chart title (defaults to filename)"),
     ] = None,
+    where: Annotated[
+        Optional[list[str]],
+        typer.Option("--where", help="Filter rows: COL=value (case-insensitive)"),
+    ] = None,
+    where_not: Annotated[
+        Optional[list[str]],
+        typer.Option("--where-not", help="Exclude rows: COL=value (case-insensitive)"),
+    ] = None,
 ) -> None:
     """Plot a line chart from CSV columns."""
     if len(y) < 1:
         rprint("[red]Error:[/red] --y requires at least 1 value.")
+        raise typer.Exit(1)
+
+    # Parse --where / --where-not expressions
+    wheres: list[tuple[str, str]] = []
+    where_nots: list[tuple[str, str]] = []
+    try:
+        for expr in where or []:
+            wheres.append(parse_where(expr))
+        for expr in where_not or []:
+            where_nots.append(parse_where(expr))
+    except ValueError as e:
+        rprint(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
 
     chart_title = title if title else file.stem
@@ -341,6 +419,8 @@ def line(
             color_col=color,
             max_rows=head,
             title=chart_title,
+            wheres=wheres or None,
+            where_nots=where_nots or None,
         )
     except KeyError as e:
         rprint(f"[red]Error:[/red] Column not found in CSV: {e}")

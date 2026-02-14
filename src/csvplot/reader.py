@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import csv
+from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
+from typing import Iterator
 
 from rich import print as rprint
 
@@ -109,6 +111,84 @@ def parse_datetime(value: str) -> datetime | None:
     return None
 
 
+def parse_where(expr: str) -> tuple[str, str]:
+    """Parse a 'COL=val' expression into (column, value).
+
+    Raises ValueError if the format is invalid.
+    """
+    if "=" not in expr:
+        raise ValueError(f"Expected format COL=value, got {expr!r}")
+    col, val = expr.split("=", 1)
+    if not col:
+        raise ValueError(f"Empty column name in {expr!r}")
+    return col, val
+
+
+def filter_rows(
+    rows: Iterator[dict[str, str]],
+    *,
+    wheres: list[tuple[str, str]] | None = None,
+    where_nots: list[tuple[str, str]] | None = None,
+    case_sensitive: bool = False,
+) -> Iterator[dict[str, str]]:
+    """Filter CSV rows by where/where-not conditions.
+
+    - Same column repeated in wheres = OR (match any value)
+    - Different columns in wheres = AND (all must match)
+    - where_nots = exclude rows matching any condition
+    - Case-insensitive by default.
+    """
+    wheres = wheres or []
+    where_nots = where_nots or []
+
+    if not wheres and not where_nots:
+        yield from rows
+        return
+
+    # Group where conditions by column: {col: [val1, val2]} (OR within column)
+    where_groups: dict[str, list[str]] = defaultdict(list)
+    for col, val in wheres:
+        where_groups[col].append(val if case_sensitive else val.lower())
+
+    # Group where-not conditions by column
+    where_not_groups: dict[str, list[str]] = defaultdict(list)
+    for col, val in where_nots:
+        where_not_groups[col].append(val if case_sensitive else val.lower())
+
+    first = True
+    for row in rows:
+        # Validate column names on first row
+        if first:
+            first = False
+            for col in list(where_groups) + list(where_not_groups):
+                if col not in row:
+                    raise KeyError(
+                        f"Column {col!r} not found. Available: {', '.join(sorted(row.keys()))}"
+                    )
+
+        # Check where conditions (AND across columns, OR within same column)
+        match = True
+        for col, vals in where_groups.items():
+            row_val = row[col] if case_sensitive else row[col].lower()
+            if row_val not in vals:
+                match = False
+                break
+
+        if not match:
+            continue
+
+        # Check where-not conditions (exclude if ANY matches)
+        excluded = False
+        for col, vals in where_not_groups.items():
+            row_val = row[col] if case_sensitive else row[col].lower()
+            if row_val in vals:
+                excluded = True
+                break
+
+        if not excluded:
+            yield row
+
+
 def load_segments(
     path: str | Path,
     x_pairs: list[tuple[str, str]],
@@ -119,6 +199,9 @@ def load_segments(
     y_detail_col: str | None = None,
     open_end: datetime | None = None,
     max_rows: int | None = None,
+    wheres: list[tuple[str, str]] | None = None,
+    where_nots: list[tuple[str, str]] | None = None,
+    case_sensitive: bool = False,
 ) -> list[Segment]:
     """Load CSV rows into Segment objects.
 
@@ -137,7 +220,12 @@ def load_segments(
 
     with open(path, newline="") as f:
         reader = csv.DictReader(f)
-        for row_index, row in enumerate(reader, start=1):
+        rows: Iterator[dict[str, str]] = reader
+        if wheres or where_nots:
+            rows = filter_rows(
+                rows, wheres=wheres, where_nots=where_nots, case_sensitive=case_sensitive
+            )
+        for row_index, row in enumerate(rows, start=1):
             if max_rows is not None and row_index > max_rows:
                 break
 
@@ -184,6 +272,9 @@ def load_bar_data(
     max_rows: int | None = None,
     title: str = "csvplot",
     horizontal: bool = False,
+    wheres: list[tuple[str, str]] | None = None,
+    where_nots: list[tuple[str, str]] | None = None,
+    case_sensitive: bool = False,
 ) -> BarSpec:
     """Count distinct values in a column and return a BarSpec.
 
@@ -201,7 +292,12 @@ def load_bar_data(
 
     with open(path, newline="") as f:
         reader = csv.DictReader(f)
-        for i, row in enumerate(reader, start=1):
+        rows: Iterator[dict[str, str]] = reader
+        if wheres or where_nots:
+            rows = filter_rows(
+                rows, wheres=wheres, where_nots=where_nots, case_sensitive=case_sensitive
+            )
+        for i, row in enumerate(rows, start=1):
             if max_rows is not None and i > max_rows:
                 break
             val = row[column]
@@ -234,6 +330,9 @@ def load_line_data(
     color_col: str | None = None,
     max_rows: int | None = None,
     title: str = "csvplot",
+    wheres: list[tuple[str, str]] | None = None,
+    where_nots: list[tuple[str, str]] | None = None,
+    case_sensitive: bool = False,
 ) -> LineSpec:
     """Extract x/y pairs for line plotting, optionally grouped by a color column.
 
@@ -249,7 +348,12 @@ def load_line_data(
 
     with open(path, newline="") as f:
         reader = csv.DictReader(f)
-        for i, row in enumerate(reader, start=1):
+        rows: Iterator[dict[str, str]] = reader
+        if wheres or where_nots:
+            rows = filter_rows(
+                rows, wheres=wheres, where_nots=where_nots, case_sensitive=case_sensitive
+            )
+        for i, row in enumerate(rows, start=1):
             if max_rows is not None and i > max_rows:
                 break
             raw_rows.append(row)
