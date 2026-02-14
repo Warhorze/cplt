@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import plotext as plt
 from rich import print as rprint
 
-from csvplot.models import PlotSpec, Segment
+from csvplot.models import BarSpec, LineSpec, PlotSpec, Segment
 
 # Rainbow-style color palette: base + bright variants for maximum variety
 PALETTE = [
@@ -33,20 +33,29 @@ PALETTE = [
 # Vertical spacing inside a y-label group.
 _SUB_ROW_HEIGHT = 1.0
 _LAYER_OFFSET = 0.45
-_LABEL_Y_OFFSETS = (0.20, 0.35)
-_LABEL_TRUNCATE = 15
 _Y_GROUP_GAP = 1.2
 
 
 def _build_color_map(segments: list[Segment]) -> dict[str, str]:
-    """Assign a color to each unique color_key."""
-    keys: list[str] = []
-    seen: set[str] = set()
-    for seg in segments:
-        if seg.color_key and seg.color_key not in seen:
-            keys.append(seg.color_key)
-            seen.add(seg.color_key)
-    return {key: PALETTE[i % len(PALETTE)] for i, key in enumerate(keys)}
+    """Assign a color to each unique color_key, or auto-color by y_label if no color_key."""
+    has_color_keys = any(seg.color_key for seg in segments)
+    if has_color_keys:
+        keys: list[str] = []
+        seen: set[str] = set()
+        for seg in segments:
+            if seg.color_key and seg.color_key not in seen:
+                keys.append(seg.color_key)
+                seen.add(seg.color_key)
+        return {key: PALETTE[i % len(PALETTE)] for i, key in enumerate(keys)}
+    else:
+        # Auto-color by y_label
+        labels: list[str] = []
+        seen_labels: set[str] = set()
+        for seg in segments:
+            if seg.y_label not in seen_labels:
+                labels.append(seg.y_label)
+                seen_labels.add(seg.y_label)
+        return {label: PALETTE[i % len(PALETTE)] for i, label in enumerate(labels)}
 
 
 def _dt_to_str(dt: datetime) -> str:
@@ -54,80 +63,22 @@ def _dt_to_str(dt: datetime) -> str:
     return dt.strftime("%Y-%m-%d %H:%M:%S")
 
 
-def _midpoint(start: datetime, end: datetime) -> datetime:
-    """Return the midpoint between two datetimes."""
-    return start + (end - start) / 2
-
-
 def _assign_sub_rows(segments: list[Segment]) -> dict[Segment, int]:
-    """Assign sub-rows per (y_label, layer) using greedy interval packing."""
-    groups: dict[tuple[str, int], list[Segment]] = defaultdict(list)
+    """Assign sub-rows by row identity: each CSV row gets its own line."""
+    groups: dict[str, list[Segment]] = defaultdict(list)
     for seg in segments:
-        groups[(seg.y_label, seg.layer)].append(seg)
+        groups[seg.y_label].append(seg)
 
     sub_row_map: dict[Segment, int] = {}
     for group_segments in groups.values():
-        group_segments.sort(key=lambda s: (s.start, s.end))
-        row_ends: list[datetime] = []
+        # Collect unique row_index values preserving first-seen order
+        seen: dict[int, int] = {}
         for seg in group_segments:
-            assigned = False
-            for idx, row_end in enumerate(row_ends):
-                if seg.start >= row_end:
-                    sub_row_map[seg] = idx
-                    row_ends[idx] = seg.end
-                    assigned = True
-                    break
-            if not assigned:
-                sub_row_map[seg] = len(row_ends)
-                row_ends.append(seg.end)
+            if seg.row_index not in seen:
+                seen[seg.row_index] = len(seen)
+        for seg in group_segments:
+            sub_row_map[seg] = seen[seg.row_index]
     return sub_row_map
-
-
-def _truncate_label(label: str) -> str:
-    if len(label) <= _LABEL_TRUNCATE:
-        return label
-    return f"{label[:_LABEL_TRUNCATE]}..."
-
-
-def _layout_text_labels(
-    labels: list[tuple[str, datetime, float, str]],
-    *,
-    x_min: datetime,
-    x_max: datetime,
-) -> list[tuple[str, str, float, str]]:
-    """Apply a basic collision-avoidance strategy for segment labels."""
-    if not labels:
-        return []
-
-    x_span = max((x_max - x_min).total_seconds(), 1.0)
-    min_x_distance = x_span * 0.05
-
-    sorted_labels = sorted(labels, key=lambda item: item[1])
-    placed: list[tuple[str, datetime, float, str]] = []
-    last_state_by_band: dict[int, tuple[datetime, int]] = {}
-
-    for raw_text, x_dt, y_base, color in sorted_labels:
-        band = int(round(y_base * 10))
-        offset_index = 0
-        previous_state = last_state_by_band.get(band)
-        if previous_state is not None:
-            prev_x, prev_offset_index = previous_state
-            if abs((x_dt - prev_x).total_seconds()) <= min_x_distance:
-                offset_index = 1 - prev_offset_index
-
-        y = y_base + _LABEL_Y_OFFSETS[offset_index]
-        overlaps = any(
-            abs(y - existing_y) < 1e-8
-            and abs((x_dt - existing_x).total_seconds()) <= min_x_distance
-            for _, existing_x, existing_y, _ in placed
-        )
-        if overlaps:
-            continue
-
-        placed.append((_truncate_label(raw_text), x_dt, y, color))
-        last_state_by_band[band] = (x_dt, offset_index)
-
-    return [(text, _dt_to_str(x_dt), y, color) for text, x_dt, y, color in placed]
 
 
 def render(spec: PlotSpec) -> None:
@@ -151,8 +102,18 @@ def render(spec: PlotSpec) -> None:
     for seg in spec.segments:
         segments_by_label[seg.y_label].append(seg)
 
+    # Collect txt labels per (y_label, sub_row) for y-axis display
+    has_txt = any(seg.txt_label for seg in spec.segments)
+    txt_by_sub_row: dict[tuple[str, int], str] = {}
+    if has_txt:
+        for seg in spec.segments:
+            key = (seg.y_label, sub_row_map[seg])
+            if key not in txt_by_sub_row and seg.txt_label:
+                txt_by_sub_row[key] = seg.txt_label
+
     y_base: dict[str, float] = {}
     y_ticks: list[float] = []
+    y_tick_labels: list[str] = []
     cursor = 0.0
     max_y = 0.0
     for label in y_labels:
@@ -162,7 +123,19 @@ def render(spec: PlotSpec) -> None:
         group_min = cursor
         group_max = cursor + max_sub_row * _SUB_ROW_HEIGHT + max_layer * _LAYER_OFFSET
         y_base[label] = cursor
-        y_ticks.append((group_min + group_max) / 2)
+
+        if has_txt and max_sub_row > 0:
+            # One tick per sub-row showing y_label + txt value
+            for sr in range(max_sub_row + 1):
+                tick_y = cursor + sr * _SUB_ROW_HEIGHT
+                txt = txt_by_sub_row.get((label, sr), "")
+                tick_label = f"{label} | {txt}" if txt else label
+                y_ticks.append(tick_y)
+                y_tick_labels.append(tick_label)
+        else:
+            y_ticks.append((group_min + group_max) / 2)
+            y_tick_labels.append(label)
+
         max_y = max(max_y, group_max)
         cursor = group_max + _Y_GROUP_GAP
 
@@ -170,61 +143,71 @@ def render(spec: PlotSpec) -> None:
     plot_height = max(12, int((max_y + _Y_GROUP_GAP) * 2.0) + 8)
     plt.plotsize(None, plot_height)
 
-    # Collect text labels to render after all segments
-    text_labels: list[tuple[str, datetime, float, str]] = []  # (label, x_dt, y, color)
+    has_color_keys = any(seg.color_key for seg in spec.segments)
+
     legend_seen: set[tuple[str, str]] = set()
     legend_entries: list[str] = []
+
+    # Build layer display names from x_pair_names
+    def _layer_display(layer: int) -> str:
+        if spec.x_pair_names and layer < len(spec.x_pair_names):
+            s, e = spec.x_pair_names[layer]
+            return f"{s} \u2013 {e}"
+        return f"layer {layer}" if layer > 0 else "primary"
+
+    def _color_display(color_key: str) -> str:
+        if color_key and spec.color_col_name:
+            return f"{spec.color_col_name}: {color_key}"
+        return color_key
+
+    def _resolve_color(seg: Segment, default: str) -> str:
+        if has_color_keys:
+            return color_map.get(seg.color_key, default)
+        return color_map.get(seg.y_label, default)
+
+    # Layer marker styles: visually distinct per layer
+    _LAYER_MARKERS = ["hd", "braille", "dot", "sd"]
 
     # Plot non-primary layers first (behind primary)
     for seg in spec.segments:
         if seg.layer == 0:
             continue
         y = y_base[seg.y_label] + sub_row_map[seg] * _SUB_ROW_HEIGHT + seg.layer * _LAYER_OFFSET
-        color = color_map.get(seg.color_key, "gray")
-        layer_name = f"layer {seg.layer}"
+        color = _resolve_color(seg, "gray")
+        layer_name = _layer_display(seg.layer)
         legend_key = (layer_name, seg.color_key)
-        legend_label = f"{layer_name} ({seg.color_key})" if seg.color_key else layer_name
+        legend_label = f"{layer_name} ({_color_display(seg.color_key)})" if seg.color_key else layer_name
         if legend_key not in legend_seen:
             legend_entries.append(legend_label)
+        marker_style = _LAYER_MARKERS[seg.layer % len(_LAYER_MARKERS)]
         plt.plot(
             [_dt_to_str(seg.start), _dt_to_str(seg.end)],
             [y, y],
-            marker="dot",
+            marker=marker_style,
             color=color,
             label=None,
         )
         legend_seen.add(legend_key)
-        if seg.txt_label:
-            mid = _midpoint(seg.start, seg.end)
-            text_labels.append((seg.txt_label, mid, y, color))
 
     # Plot primary segments (layer 0) on top
     for seg in spec.segments:
         if seg.layer != 0:
             continue
         y = y_base[seg.y_label] + sub_row_map[seg] * _SUB_ROW_HEIGHT
-        color = color_map.get(seg.color_key, "white")
-        legend_key = ("primary", seg.color_key)
-        legend_label = f"primary ({seg.color_key})" if seg.color_key else "primary"
+        color = _resolve_color(seg, "white")
+        layer_name = _layer_display(0)
+        legend_key = (layer_name, seg.color_key)
+        legend_label = f"{layer_name} ({_color_display(seg.color_key)})" if seg.color_key else layer_name
         if legend_key not in legend_seen:
             legend_entries.append(legend_label)
         plt.plot(
             [_dt_to_str(seg.start), _dt_to_str(seg.end)],
             [y, y],
-            marker="dot",
+            marker="hd",
             color=color,
             label=None,
         )
         legend_seen.add(legend_key)
-        if seg.txt_label:
-            mid = _midpoint(seg.start, seg.end)
-            text_labels.append((seg.txt_label, mid, y, color))
-
-    # Render text labels at segment midpoints
-    x_min = min((s.start for s in spec.segments), default=datetime.now())
-    x_max = max((s.end for s in spec.segments), default=x_min + timedelta(seconds=1))
-    for label, x_str, y, color in _layout_text_labels(text_labels, x_min=x_min, x_max=x_max):
-        plt.text(label, x=x_str, y=y, color=color)
 
     # Plot markers as vertical lines
     for marker in spec.markers:
@@ -239,9 +222,9 @@ def render(spec: PlotSpec) -> None:
             )
 
     # Configure axes
-    plt.yticks(y_ticks, y_labels)
+    plt.yticks(y_ticks, y_tick_labels)
     plt.xlabel("Date")
-    plt.title("csvplot")
+    plt.title(spec.title)
 
     # Apply view window if specified
     if spec.view_start:
@@ -254,3 +237,50 @@ def render(spec: PlotSpec) -> None:
         rprint("\nLegend")
         for label in legend_entries:
             rprint(f"- {label}")
+
+
+def render_bar(spec: BarSpec) -> None:
+    """Render a BarSpec as a bar chart."""
+    plt.clear_figure()
+    plt.theme("clear")
+
+    colors = [PALETTE[i % len(PALETTE)] for i in range(len(spec.labels))]
+
+    orientation = "horizontal" if spec.horizontal else "vertical"
+    plt.bar(spec.labels, spec.values, color=colors, orientation=orientation)
+
+    plt.title(spec.title)
+    plt.show()
+
+
+def render_line(spec: LineSpec) -> None:
+    """Render a LineSpec as a line chart."""
+    plt.clear_figure()
+    plt.theme("clear")
+
+    if spec.x_is_date:
+        plt.date_form("Y-m-d H:M:S")
+
+    # Normalize date strings to plotext's expected format (Y-m-d H:M:S)
+    x_display = spec.x_values
+    if spec.x_is_date:
+        from csvplot.reader import parse_datetime as _pd
+
+        x_display = [_dt_to_str(_pd(v)) if _pd(v) else v for v in spec.x_values]
+
+    for i, (series_name, y_vals) in enumerate(spec.y_series.items()):
+        color = PALETTE[i % len(PALETTE)]
+        if spec.x_is_date:
+            plt.plot(x_display, y_vals, marker="braille", color=color, label=series_name)
+        else:
+            plt.plot(
+                list(range(len(y_vals))),
+                y_vals,
+                marker="braille",
+                color=color,
+                label=series_name,
+            )
+            plt.xticks(list(range(len(spec.x_values))), spec.x_values)
+
+    plt.title(spec.title)
+    plt.show()
