@@ -10,6 +10,7 @@ import typer
 from rich import print as rprint
 from rich.table import Table
 
+from csvplot.bubble import load_bubble_data
 from csvplot.completions import complete_column, complete_date_column
 from csvplot.models import Marker, PlotSpec
 from csvplot.reader import (
@@ -538,3 +539,106 @@ def summarise(
         for row in sample_rows:
             sample_table.add_row(*(row[c] for c in cols))
         rprint(sample_table)
+
+
+@app.command()
+def bubble(
+    file: Annotated[
+        Path,
+        typer.Option("--file", "-f", help="Path to CSV file", exists=True, dir_okay=False),
+    ],
+    cols: Annotated[
+        list[str],
+        typer.Option(
+            "--cols",
+            help="Columns to check for presence/absence",
+            autocompletion=complete_column,
+        ),
+    ],
+    y: Annotated[
+        str,
+        typer.Option(
+            "--y",
+            help="Row label column",
+            autocompletion=complete_column,
+        ),
+    ],
+    color: Annotated[
+        Optional[str],
+        typer.Option(
+            "--color",
+            help="Color rows by this column",
+            autocompletion=complete_column,
+        ),
+    ] = None,
+    top: Annotated[
+        Optional[int],
+        typer.Option("--top", min=1, help="Show only top N columns by fill-rate"),
+    ] = None,
+    head: Annotated[
+        Optional[int],
+        typer.Option("--head", min=1, help="Only read the first N CSV rows"),
+    ] = None,
+    title: Annotated[
+        Optional[str],
+        typer.Option("--title", help="Chart title (defaults to filename)"),
+    ] = None,
+    where: Annotated[
+        Optional[list[str]],
+        typer.Option("--where", help="Filter rows: COL=value (case-insensitive)"),
+    ] = None,
+    where_not: Annotated[
+        Optional[list[str]],
+        typer.Option("--where-not", help="Exclude rows: COL=value (case-insensitive)"),
+    ] = None,
+) -> None:
+    """Plot a presence/absence dot matrix from CSV columns."""
+    if not cols:
+        rprint("[red]Error:[/red] --cols requires at least 1 column.")
+        raise typer.Exit(1)
+
+    # Parse --where / --where-not expressions
+    wheres: list[tuple[str, str]] = []
+    where_nots: list[tuple[str, str]] = []
+    try:
+        for expr in where or []:
+            wheres.append(parse_where(expr))
+        for expr in where_not or []:
+            where_nots.append(parse_where(expr))
+    except ValueError as e:
+        rprint(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
+
+    try:
+        spec = load_bubble_data(
+            path=file,
+            cols=cols,
+            y_col=y,
+            color_col=color,
+            max_rows=head,
+            top=top,
+            wheres=wheres or None,
+            where_nots=where_nots or None,
+        )
+    except KeyError as e:
+        rprint(f"[red]Error:[/red] Column not found in CSV: {e}")
+        raise typer.Exit(1)
+
+    if not spec.y_labels:
+        rprint("[yellow]Warning:[/yellow] No data found.")
+        raise typer.Exit(0)
+
+    # Render as Rich table with Unicode dots
+    chart_title = title if title else file.stem
+    table = Table(title=chart_title)
+    table.add_column("", style="bold")  # y-label column
+    for col_name in spec.col_names:
+        table.add_column(col_name, justify="center")
+
+    for row_idx, label in enumerate(spec.y_labels):
+        cells = []
+        for val in spec.matrix[row_idx]:
+            cells.append("[green]●[/green]" if val else "")
+        table.add_row(label, *cells)
+
+    rprint(table)
