@@ -6,7 +6,15 @@ from datetime import datetime
 
 import pytest
 
-from csvplot.reader import detect_date_columns, load_segments, parse_datetime, read_csv_header
+from csvplot.reader import (
+    detect_date_columns,
+    detect_numeric_columns,
+    load_bar_data,
+    load_line_data,
+    load_segments,
+    parse_datetime,
+    read_csv_header,
+)
 
 
 class TestParseDatetime:
@@ -157,3 +165,108 @@ class TestLoadSegments:
         assert len(segments) == 2
         assert segments[0].y_label == "A | task1"
         assert segments[1].y_label == "B | task2"
+
+
+class TestDetectNumericColumns:
+    def test_sample_csv(self, sample_csv) -> None:
+        num_cols = detect_numeric_columns(sample_csv)
+        # sample_csv has no numeric columns
+        assert "name" not in num_cols
+        assert "category" not in num_cols
+
+    def test_numeric_csv(self, numeric_csv) -> None:
+        num_cols = detect_numeric_columns(numeric_csv)
+        assert "score" in num_cols
+        assert "name" not in num_cols
+        assert "notes" not in num_cols
+
+    def test_line_csv(self, line_csv) -> None:
+        num_cols = detect_numeric_columns(line_csv)
+        assert "temperature" in num_cols
+        assert "humidity" in num_cols
+        assert "date" not in num_cols
+        assert "region" not in num_cols
+
+
+class TestLoadBarData:
+    def test_basic_counting(self, bar_csv) -> None:
+        spec = load_bar_data(bar_csv, column="status")
+        assert set(spec.labels) == {"open", "closed"}
+        # open=3, closed=2
+        idx_open = spec.labels.index("open")
+        idx_closed = spec.labels.index("closed")
+        assert spec.values[idx_open] == 3.0
+        assert spec.values[idx_closed] == 2.0
+
+    def test_sort_by_value(self, bar_csv) -> None:
+        spec = load_bar_data(bar_csv, column="status", sort_by="value")
+        assert spec.labels[0] == "open"  # 3 > 2
+
+    def test_sort_by_label(self, bar_csv) -> None:
+        spec = load_bar_data(bar_csv, column="status", sort_by="label")
+        assert spec.labels == ["closed", "open"]
+
+    def test_sort_none(self, bar_csv) -> None:
+        spec = load_bar_data(bar_csv, column="status", sort_by="none")
+        assert spec.labels[0] == "open"  # first in CSV
+
+    def test_top_limits(self, bar_csv) -> None:
+        spec = load_bar_data(bar_csv, column="assignee", sort_by="value", top=2)
+        assert len(spec.labels) == 2
+
+    def test_head_limits_rows(self, bar_csv) -> None:
+        spec = load_bar_data(bar_csv, column="status", max_rows=2)
+        # Only first 2 rows: open, closed
+        assert sum(spec.values) == 2.0
+
+    def test_missing_column(self, bar_csv) -> None:
+        with pytest.raises(KeyError):
+            load_bar_data(bar_csv, column="nonexistent")
+
+    def test_horizontal(self, bar_csv) -> None:
+        spec = load_bar_data(bar_csv, column="status", horizontal=True)
+        assert spec.horizontal is True
+
+
+class TestLoadLineData:
+    def test_basic_loading(self, line_csv) -> None:
+        spec = load_line_data(line_csv, x_col="date", y_cols=["temperature"])
+        assert len(spec.x_values) == 6
+        assert "temperature" in spec.y_series
+        assert len(spec.y_series["temperature"]) == 6
+        assert spec.x_is_date is True
+
+    def test_multiple_y_columns(self, line_csv) -> None:
+        spec = load_line_data(line_csv, x_col="date", y_cols=["temperature", "humidity"])
+        assert "temperature" in spec.y_series
+        assert "humidity" in spec.y_series
+
+    def test_color_grouping(self, line_csv) -> None:
+        spec = load_line_data(
+            line_csv, x_col="date", y_cols=["temperature"], color_col="region"
+        )
+        assert "north" in spec.y_series
+        assert "south" in spec.y_series
+        assert len(spec.x_values) == 3  # 3 unique dates
+
+    def test_non_numeric_handling(self, numeric_csv) -> None:
+        spec = load_line_data(numeric_csv, x_col="name", y_cols=["score"])
+        assert spec.x_is_date is False
+        assert len(spec.y_series["score"]) == 4
+        # "not_a_number" and "" should become NaN
+        import math
+
+        assert math.isnan(spec.y_series["score"][2])
+        assert math.isnan(spec.y_series["score"][3])
+
+    def test_date_detection(self, line_csv) -> None:
+        spec = load_line_data(line_csv, x_col="date", y_cols=["temperature"])
+        assert spec.x_is_date is True
+
+    def test_head_limits_rows(self, line_csv) -> None:
+        spec = load_line_data(line_csv, x_col="date", y_cols=["temperature"], max_rows=3)
+        assert len(spec.x_values) == 3
+
+    def test_missing_column(self, line_csv) -> None:
+        with pytest.raises(KeyError):
+            load_line_data(line_csv, x_col="nonexistent", y_cols=["temperature"])

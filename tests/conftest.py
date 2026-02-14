@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import csv
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -23,6 +21,58 @@ def sample_csv(tmp_path: Path) -> Path:
     """Write a sample CSV to a temp file and return its path."""
     p = tmp_path / "test.csv"
     p.write_text(SAMPLE_CSV)
+    return p
+
+
+BAR_CSV = """\
+status,assignee,priority
+open,alice,high
+closed,bob,low
+open,alice,medium
+open,charlie,high
+closed,alice,low
+"""
+
+LINE_CSV = """\
+date,temperature,humidity,region
+2024-01-01,10.5,60,north
+2024-01-02,11.0,62,north
+2024-01-03,9.8,58,north
+2024-01-01,20.1,70,south
+2024-01-02,21.3,72,south
+2024-01-03,19.5,68,south
+"""
+
+NUMERIC_CSV = """\
+name,score,grade,notes
+alice,95.5,A,good
+bob,82,B,ok
+charlie,not_a_number,C,bad
+dave,,D,missing
+"""
+
+
+@pytest.fixture
+def bar_csv(tmp_path: Path) -> Path:
+    """Write a bar-chart CSV to a temp file and return its path."""
+    p = tmp_path / "bar.csv"
+    p.write_text(BAR_CSV)
+    return p
+
+
+@pytest.fixture
+def line_csv(tmp_path: Path) -> Path:
+    """Write a line-chart CSV to a temp file and return its path."""
+    p = tmp_path / "line.csv"
+    p.write_text(LINE_CSV)
+    return p
+
+
+@pytest.fixture
+def numeric_csv(tmp_path: Path) -> Path:
+    """Write a CSV with mixed numeric/non-numeric columns."""
+    p = tmp_path / "numeric.csv"
+    p.write_text(NUMERIC_CSV)
     return p
 
 
