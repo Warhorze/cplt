@@ -11,7 +11,7 @@ from rich import print as rprint
 from rich.table import Table
 
 from csvplot.bubble import load_bubble_data
-from csvplot.completions import complete_column, complete_date_column
+from csvplot.completions import complete_column, complete_date_column, complete_where
 from csvplot.models import Marker, PlotSpec
 from csvplot.reader import (
     load_bar_data,
@@ -299,7 +299,11 @@ def bar(
     ] = None,
     where: Annotated[
         Optional[list[str]],
-        typer.Option("--where", help="Filter rows: COL=value (case-insensitive)"),
+        typer.Option(
+            "--where",
+            help="Filter rows: COL=value (case-insensitive)",
+            autocompletion=complete_where,
+        ),
     ] = None,
     where_not: Annotated[
         Optional[list[str]],
@@ -388,7 +392,11 @@ def line(
     ] = None,
     where: Annotated[
         Optional[list[str]],
-        typer.Option("--where", help="Filter rows: COL=value (case-insensitive)"),
+        typer.Option(
+            "--where",
+            help="Filter rows: COL=value (case-insensitive)",
+            autocompletion=complete_where,
+        ),
     ] = None,
     where_not: Annotated[
         Optional[list[str]],
@@ -452,7 +460,11 @@ def summarise(
     ] = None,
     where: Annotated[
         Optional[list[str]],
-        typer.Option("--where", help="Filter rows: COL=value (case-insensitive)"),
+        typer.Option(
+            "--where",
+            help="Filter rows: COL=value (case-insensitive)",
+            autocompletion=complete_where,
+        ),
     ] = None,
     where_not: Annotated[
         Optional[list[str]],
@@ -585,7 +597,11 @@ def bubble(
     ] = None,
     where: Annotated[
         Optional[list[str]],
-        typer.Option("--where", help="Filter rows: COL=value (case-insensitive)"),
+        typer.Option(
+            "--where",
+            help="Filter rows: COL=value (case-insensitive)",
+            autocompletion=complete_where,
+        ),
     ] = None,
     where_not: Annotated[
         Optional[list[str]],

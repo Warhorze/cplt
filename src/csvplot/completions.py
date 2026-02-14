@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import csv
+import difflib
 from pathlib import Path
 
 import click
@@ -11,6 +13,10 @@ from csvplot.reader import detect_date_columns, read_csv_header
 # Cache: (resolved_path, mtime) → list of column names
 _header_cache: dict[tuple[str, float], list[str]] = {}
 _date_col_cache: dict[tuple[str, float], list[str]] = {}
+# Cache: (resolved_path, mtime, column_name) → list of distinct values
+_value_cache: dict[tuple[str, float, str], list[str]] = {}
+
+SAMPLE_ROWS_FOR_VALUES = 1000
 
 _START_KEYWORDS = {"start", "begin", "van", "from", "first"}
 _END_KEYWORDS = {"end", "eind", "stop", "last", "final", "tot", "until"}
@@ -93,3 +99,116 @@ def complete_date_column(ctx: click.Context, args: list[str], incomplete: str) -
 
     filtered = [c for c in columns if c.lower().startswith(incomplete.lower())]
     return _sort_columns_for_position(filtered, position)
+
+
+def _get_column_values(
+    file_path: str | Path, column: str, max_rows: int = SAMPLE_ROWS_FOR_VALUES
+) -> list[str]:
+    """Get distinct values for a column, sampled from first N rows, with caching."""
+    key = _cache_key(file_path)
+    if key is None:
+        return []
+    cache_key = (key[0], key[1], column)
+    if cache_key not in _value_cache:
+        try:
+            seen: set[str] = set()
+            values: list[str] = []
+            with open(file_path, newline="") as f:
+                reader = csv.DictReader(f)
+                for i, row in enumerate(reader):
+                    if i >= max_rows:
+                        break
+                    val = row.get(column, "").strip()
+                    if val and val not in seen:
+                        seen.add(val)
+                        values.append(val)
+            _value_cache[cache_key] = values
+        except Exception:
+            return []
+    return _value_cache[cache_key]
+
+
+def match_values(incomplete: str, values: list[str]) -> list[str]:
+    """Match incomplete input against a list of values.
+
+    Strategy: prefix match first, then substring, then difflib for typos.
+    """
+    if not incomplete:
+        return list(values)
+
+    lower = incomplete.lower()
+
+    # 1. Prefix match
+    prefix = [v for v in values if v.lower().startswith(lower)]
+    if prefix:
+        return prefix
+
+    # 2. Substring match
+    substr = [v for v in values if lower in v.lower()]
+    if substr:
+        return substr
+
+    # 3. Typo tolerance via difflib
+    close = difflib.get_close_matches(incomplete, values, n=5, cutoff=0.6)
+    return list(close)
+
+
+def _last_context_column(ctx: click.Context) -> str | None:
+    """Find the last --x or --y column from context params for pre-filling."""
+    # Check --y first (more specific), then --x
+    for param in ("y", "x"):
+        vals = ctx.params.get(param)
+        if vals:
+            if isinstance(vals, list) and vals:
+                return vals[-1]
+            elif isinstance(vals, str):
+                return vals
+    return None
+
+
+def complete_where(ctx: click.Context, args: list[str], incomplete: str) -> list[str]:
+    """Typer/Click autocompletion callback for --where values.
+
+    Context-aware: pre-fills column name from the last --x/--y.
+    """
+    file_path = ctx.params.get("file")
+    if not file_path:
+        return []
+
+    try:
+        columns = _get_columns(file_path)
+    except Exception:
+        return []
+
+    if not columns:
+        return []
+
+    if "=" in incomplete:
+        # User typed COL=partial — suggest values for that column
+        col, partial = incomplete.split("=", 1)
+        if col not in columns:
+            return []
+        values = _get_column_values(file_path, col)
+        matched = match_values(partial, values)
+        return [f"{col}={v}" for v in matched]
+
+    # No "=" yet — suggest COL= completions
+    # Pre-fill from last --x/--y context column
+    context_col = _last_context_column(ctx)
+
+    suggestions: list[str] = []
+    if context_col and context_col in columns:
+        # Pre-fill with context column values
+        values = _get_column_values(file_path, context_col)
+        suggestions = [f"{context_col}={v}" for v in values]
+
+    # Also suggest other columns as COL= format
+    for col in columns:
+        if col != context_col:
+            suggestions.append(f"{col}=")
+
+    if incomplete:
+        lower = incomplete.lower()
+        suggestions = [s for s in suggestions if s.lower().startswith(lower)]
+
+    return suggestions

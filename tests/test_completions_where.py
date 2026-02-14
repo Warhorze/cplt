@@ -1,0 +1,102 @@
+"""Tests for --where value completion and improved autocomplete."""
+
+from __future__ import annotations
+
+from pathlib import Path
+from unittest.mock import MagicMock
+
+import pytest
+
+from csvplot.completions import complete_where, match_values
+
+WHERE_CSV = """\
+name,status,region
+alice,open,north
+bob,closed,south
+charlie,open,north
+dave,pending,south
+eve,Open,west
+"""
+
+
+@pytest.fixture
+def where_csv(tmp_path: Path) -> Path:
+    p = tmp_path / "where.csv"
+    p.write_text(WHERE_CSV)
+    return p
+
+
+class TestMatchValues:
+    def test_prefix_match(self) -> None:
+        values = ["open", "closed", "option", "pending"]
+        result = match_values("op", values)
+        assert result == ["open", "option"]
+
+    def test_substring_fallback(self) -> None:
+        values = ["open", "closed", "option", "reopened"]
+        result = match_values("pen", values)
+        # "open" and "reopened" contain "pen", "pending" not in list
+        assert "open" in result
+        assert "reopened" in result
+
+    def test_difflib_typo_fallback(self) -> None:
+        values = ["open", "closed", "pending"]
+        result = match_values("opne", values)
+        assert "open" in result
+
+    def test_empty_incomplete_returns_all(self) -> None:
+        values = ["open", "closed", "pending"]
+        result = match_values("", values)
+        assert result == ["open", "closed", "pending"]
+
+    def test_no_match_returns_empty(self) -> None:
+        values = ["open", "closed", "pending"]
+        result = match_values("zzzzz", values)
+        assert result == []
+
+    def test_case_insensitive(self) -> None:
+        values = ["Open", "CLOSED", "pending"]
+        result = match_values("op", values)
+        assert "Open" in result
+
+
+class TestCompleteWhere:
+    def test_empty_incomplete_suggests_columns(self, where_csv: Path) -> None:
+        ctx = MagicMock()
+        ctx.params = {"file": where_csv, "x": ["status"]}
+        result = complete_where(ctx, [], "")
+        # Should suggest column=value format, with last --x column pre-filled
+        assert any("status=" in r for r in result)
+
+    def test_with_col_prefix_suggests_values(self, where_csv: Path) -> None:
+        ctx = MagicMock()
+        ctx.params = {"file": where_csv, "x": ["status"]}
+        result = complete_where(ctx, [], "status=")
+        assert any("open" in r.lower() for r in result)
+
+    def test_with_partial_value(self, where_csv: Path) -> None:
+        ctx = MagicMock()
+        ctx.params = {"file": where_csv, "x": ["status"]}
+        result = complete_where(ctx, [], "status=op")
+        # Should match "open" and "Open"
+        assert any("open" in r.lower() for r in result)
+
+    def test_no_file_returns_empty(self) -> None:
+        ctx = MagicMock()
+        ctx.params = {"file": None}
+        result = complete_where(ctx, [], "")
+        assert result == []
+
+    def test_context_from_y(self, where_csv: Path) -> None:
+        ctx = MagicMock()
+        ctx.params = {"file": where_csv, "y": ["region"], "x": []}
+        result = complete_where(ctx, [], "")
+        assert any("region=" in r for r in result)
+
+    def test_malformed_csv_no_crash(self, tmp_path: Path) -> None:
+        bad = tmp_path / "bad.csv"
+        bad.write_text("this is not\nvalid csv \x00 data")
+        ctx = MagicMock()
+        ctx.params = {"file": bad}
+        result = complete_where(ctx, [], "")
+        assert isinstance(result, list)
