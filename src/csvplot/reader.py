@@ -8,7 +8,7 @@ from pathlib import Path
 
 from rich import print as rprint
 
-from csvplot.models import Segment
+from csvplot.models import BarSpec, LineSpec, Segment
 
 DATETIME_FORMATS = [
     "%Y-%m-%d %H:%M:%S.%f",
@@ -50,6 +50,35 @@ def detect_date_columns(path: str | Path, *, sample_rows: int = 10) -> list[str]
     return [col for col in columns if col in date_cols]
 
 
+def detect_numeric_columns(path: str | Path, *, sample_rows: int = 10) -> list[str]:
+    """Return column names that have at least one numeric value in the first few rows."""
+    with open(path, newline="") as f:
+        reader = csv.DictReader(f)
+        num_cols: set[str] = set()
+        columns: list[str] = []
+        for i, row in enumerate(reader):
+            if i == 0:
+                columns = list(row.keys())
+            for col in columns:
+                if col not in num_cols and _is_numeric(row.get(col, "")):
+                    num_cols.add(col)
+            if i + 1 >= sample_rows:
+                break
+    return [col for col in columns if col in num_cols]
+
+
+def _is_numeric(value: str) -> bool:
+    """Check if a string looks like a number."""
+    value = value.strip()
+    if not value:
+        return False
+    try:
+        float(value)
+        return True
+    except ValueError:
+        return False
+
+
 def _is_datetime(value: str) -> bool:
     """Check if a string looks like a datetime (including sentinels)."""
     value = value.strip()
@@ -87,6 +116,7 @@ def load_segments(
     *,
     color_col: str | None = None,
     txt_col: str | None = None,
+    y_detail_col: str | None = None,
     open_end: datetime | None = None,
     max_rows: int | None = None,
 ) -> list[Segment]:
@@ -98,6 +128,7 @@ def load_segments(
         y_col: Column name(s) for categorical Y-axis.
         color_col: Column name for color grouping.
         txt_col: Column name for text labels on segments.
+        y_detail_col: Column name to append as detail sub-group to y_label.
         open_end: Replacement date for NULL/sentinel end dates.
         max_rows: Limit processing to the first N CSV rows.
     """
@@ -111,6 +142,8 @@ def load_segments(
                 break
 
             y_label = " | ".join(row[col] for col in y_cols)
+            if y_detail_col:
+                y_label = f"{y_label} | {row[y_detail_col]}"
             color_key = row[color_col] if color_col else ""
             txt_label = row[txt_col] if txt_col else ""
 
@@ -129,6 +162,7 @@ def load_segments(
                             start, end = end, start
                         segments.append(
                             Segment(
+                                row_index=row_index,
                                 layer=layer_index,
                                 y_label=y_label,
                                 start=start,
@@ -139,3 +173,138 @@ def load_segments(
                         )
 
     return segments
+
+
+def load_bar_data(
+    path: str | Path,
+    column: str,
+    *,
+    sort_by: str = "value",
+    top: int | None = None,
+    max_rows: int | None = None,
+    title: str = "csvplot",
+    horizontal: bool = False,
+) -> BarSpec:
+    """Count distinct values in a column and return a BarSpec.
+
+    Args:
+        path: Path to the CSV file.
+        column: Column name to count values of.
+        sort_by: Sort order — "value" (descending count), "label" (alpha), "none" (CSV order).
+        top: Show only the top N categories.
+        max_rows: Limit CSV rows read.
+        title: Chart title.
+        horizontal: Use horizontal bars.
+    """
+    counts: dict[str, int] = {}
+    order: list[str] = []
+
+    with open(path, newline="") as f:
+        reader = csv.DictReader(f)
+        for i, row in enumerate(reader, start=1):
+            if max_rows is not None and i > max_rows:
+                break
+            val = row[column]
+            if val not in counts:
+                order.append(val)
+                counts[val] = 0
+            counts[val] += 1
+
+    if sort_by == "value":
+        order.sort(key=lambda k: counts[k], reverse=True)
+    elif sort_by == "label":
+        order.sort()
+
+    if top is not None:
+        order = order[:top]
+
+    return BarSpec(
+        labels=order,
+        values=[float(counts[k]) for k in order],
+        title=title,
+        horizontal=horizontal,
+    )
+
+
+def load_line_data(
+    path: str | Path,
+    x_col: str,
+    y_cols: list[str],
+    *,
+    color_col: str | None = None,
+    max_rows: int | None = None,
+    title: str = "csvplot",
+) -> LineSpec:
+    """Extract x/y pairs for line plotting, optionally grouped by a color column.
+
+    Args:
+        path: Path to the CSV file.
+        x_col: Column for the X axis (date or sequential).
+        y_cols: Column(s) for the Y axis (numeric).
+        color_col: Optional column to split into separate series.
+        max_rows: Limit CSV rows read.
+        title: Chart title.
+    """
+    raw_rows: list[dict[str, str]] = []
+
+    with open(path, newline="") as f:
+        reader = csv.DictReader(f)
+        for i, row in enumerate(reader, start=1):
+            if max_rows is not None and i > max_rows:
+                break
+            raw_rows.append(row)
+
+    if not raw_rows:
+        return LineSpec(title=title)
+
+    # Detect if x column contains dates
+    x_is_date = any(parse_datetime(row[x_col]) is not None for row in raw_rows[:10])
+
+    # Sort by date if applicable
+    if x_is_date:
+        raw_rows.sort(key=lambda r: parse_datetime(r[x_col]) or datetime.min)
+
+    # Build series: either grouped by color_col, or one series per y_col
+    series: dict[str, list[float]] = {}
+    x_values: list[str] = []
+
+    if color_col:
+        # When grouping by color, we need a single y column
+        y_col = y_cols[0]
+        # Collect all unique x values in order
+        groups: dict[str, dict[str, float]] = {}
+        x_set: list[str] = []
+        x_seen: set[str] = set()
+        for row in raw_rows:
+            x_val = row[x_col]
+            if x_val not in x_seen:
+                x_set.append(x_val)
+                x_seen.add(x_val)
+            group_key = row[color_col]
+            if group_key not in groups:
+                groups[group_key] = {}
+            try:
+                groups[group_key][x_val] = float(row[y_col])
+            except (ValueError, TypeError):
+                continue
+
+        x_values = x_set
+        for group_key, vals in groups.items():
+            series[group_key] = [vals.get(x, float("nan")) for x in x_values]
+    else:
+        x_values = [row[x_col] for row in raw_rows]
+        for y_col in y_cols:
+            y_vals: list[float] = []
+            for row in raw_rows:
+                try:
+                    y_vals.append(float(row[y_col]))
+                except (ValueError, TypeError):
+                    y_vals.append(float("nan"))
+            series[y_col] = y_vals
+
+    return LineSpec(
+        x_values=x_values,
+        y_series=series,
+        title=title,
+        x_is_date=x_is_date,
+    )
