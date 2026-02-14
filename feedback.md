@@ -2,53 +2,62 @@
 
 ## Overall Impression
 
-The tool looks nice and the terminal-based Gantt chart idea is great for quick data exploration without leaving the CLI. The color coding works well and the `--txt` labels help identify what each segment represents. The CLI interface with `--x` accepting multiple values for start/end pairs is clean.
+The tool feels solid for what it does. You type a command, you get a Gantt chart in your terminal. No browser, no fuss. The CLI is well-structured with clear help text, the `--x` start/end pair convention makes sense once you get it, and error messages are helpful when you mess up. It genuinely fills a niche that other terminal tools don't cover.
 
-## Main Issue: Multiple Lines Compacted Into One
+## What's Been Fixed Since Last Round
 
-The biggest usability problem is how rows with the same `--y` value get compacted onto a single horizontal line. When I run:
+Several issues from the previous feedback session have been addressed:
 
-```
-csvplot timeline --file data/timeplot2.csv \
-  --x DH_PV_STARTDATUM --x DH_PV_EINDDATUM \
-  --x EN_START_DATETIME --x EA_END_DATETIME \
-  --y DH_FACING_NUMMER --color SH_ARTIKEL_S1 --txt SH_ARTIKEL_S1
-```
+- **Row stacking now works.** The main complaint last time was that rows sharing the same `--y` value got smashed into one line. That's fixed -- each CSV row now gets its own sub-row within a y-group, so even when all rows share `DH_FACING_NUMMER = 2006`, you can see each one separately. Big improvement.
+- **`--y-detail` exists.** Previously suggested as a wish. Now you can do `--y-detail DN_BRONSLEUTEL` to sub-group within a y-label. Works well and makes dense charts readable.
+- **`--head` filter added.** Previously you had to pre-filter your CSV externally. Now `--head 5` limits the rows read. Useful for quick exploration of large files.
+- **Legend deduplication.** The old issue where "primary (120290146)" appeared three times per segment is gone. Each unique color_key + layer combo appears only once now.
+- **Text label collision avoidance.** Labels no longer pile on top of each other blindly -- there's now truncation (to 15 chars) and a basic staggering system that alternates vertical offsets when labels are close in time.
 
-All three data rows have `DH_FACING_NUMMER = 2006`, so they all land on the same y-position. The segments overlap and it becomes very hard to tell which segment belongs to which row. The layer offset (primary vs layer 1) is too subtle - the dots and half-blocks nearly merge into each other.
+## What Still Feels Off
 
-### What I expected
+### 1. Layer distinction is still too subtle
 
-- Segments that overlap in time on the same y-label should be visually separated, either by stacking them or by adding enough vertical spacing between layers that you can clearly see each one.
-- Or: some way to break ties on the y-axis (e.g. an option like `--y-detail` that sub-groups by another column within each y-label).
+When using two layers (e.g. `--x START1 --x END1 --x START2 --x END2`), the visual difference between layer 0 (half-block `hd`) and layer 1 (filled half-block `fhd`) is hard to spot. They look nearly identical in most terminals. The vertical offset between layers (~0.45) helps, but when you're scanning a busy chart, your eye can't quickly tell "this is the primary range" vs "this is the secondary range." Some kind of more obvious differentiation would help -- different colors per layer, dashed vs solid, or at minimum a clearer marker style contrast.
 
-### What I got
+### 2. The title is always just "csvplot"
 
-- A single thick line where the primary and secondary layers are smashed together with ~0.15 vertical offset, which in practice looks like one line.
-- Text labels overlap each other when segments are close in time range.
+Every chart says "csvplot" at the top. That's not useful once you know what tool you're using. I'd rather see the filename or the `--y` column name there, something that tells me what I'm actually looking at. When you're running multiple plots in a row to compare things, they all look the same at the top.
 
-## Other Observations
+### 3. No way to zoom into a time range
 
-1. **Text label overlap**: When multiple segments are close together, the `--txt` labels pile on top of each other and become unreadable. Some kind of collision avoidance or truncation would help.
+If your data spans 2 years but you care about a specific month, you're stuck looking at the full range. There's a `view_start`/`view_end` on the `PlotSpec` dataclass but no CLI flags to set them. Something like `--from 2025-01-01 --to 2025-03-01` would be really handy for focusing on a slice.
 
-2. **Legend clutter**: Each segment gets its own legend entry (e.g. "primary (120290146)", "layer 1 (120290146)"). With more data rows this would explode. A deduplicated legend by color_key would be cleaner.
+### 4. The `--x` convention is not immediately obvious
 
-3. **Small dataset looks fine, larger ones won't**: With only 3 rows and 1 unique y-value, the plot is already cramped. With real-world data (dozens of y-values, hundreds of segments), the compaction issue will be much worse.
+The first time I used it, I instinctively typed `--x START END` (two values after one flag). But it's actually `--x START --x END`. This works fine once you know, but the help text could do a better job explaining it upfront. The error message when you give only one `--x` is clear ("requires at least 2 values"), but you have to fail first to learn the pattern. A short example in the help output would save time.
 
-4. **The layer concept is interesting but confusing**: Having `--x` accept pairs of start/end columns and rendering them as layers is powerful, but the visual distinction between layer 0 (half-block markers) and layer 1+ (dot markers) is too subtle in practice. Different line styles or clearer vertical separation would help.
+### 5. No color when `--color` is not specified
 
-5. **Open-end handling works well**: The `--open-end` flag correctly extends NULL end-dates to today, which is useful for ongoing records.
+Without `--color`, everything is white (or gray for secondary layers). With only a few y-groups this is fine, but with more it would be hard to visually follow which bar belongs to which group. Auto-coloring by y-group when no `--color` is given would make the default output more useful.
 
-6. **Legend shows duplicates**: When using `--color SH_ARTIKEL_S1`, the legend shows "primary (120290146)" three separate times (once per segment). It should deduplicate and only show each color_key once.
+### 6. Legend says "primary" / "layer 1" -- means nothing to the user
 
-7. **Using a different `--y` helps a lot**: When switching from `--y DH_FACING_NUMMER` (all rows = 2006) to `--y SH_ARTIKEL_S1` (unique per row), the chart immediately becomes readable with proper separation. This confirms the core problem isn't the rendering itself, but the lack of any sub-grouping when multiple rows share a y-value.
+The legend labels like "primary (120290146)" or "layer 1 (117987179)" use internal terminology. As a user, I don't think in terms of "primary" and "layer 1", and the number next to it is just the raw value from the `--color` column with no context. I see "primary (120290146)" and I have no idea what 120290146 refers to -- is that an article? A store? A variant? The legend doesn't tell me which column that value came from, so it's just a mystery number. At minimum it should show the column name, e.g. "SH_ARTIKEL_S1: 120290146". Even better would be replacing the layer jargon with the actual column pair names, e.g. "DH_PV_STARTDATUM - DH_PV_EINDDATUM (SH_ARTIKEL_S1: 120290146)".
 
-8. **Marker feature works nicely**: `--marker 2025-06-01 --marker-label "Release"` renders a clean red vertical line with label. Looks good.
+### 7. The `--marker-label` without `--marker` silently does nothing
 
-9. **Error handling is solid**: Invalid column names give a clear error ("Column not found in CSV: 'NONEXISTENT'"), odd `--x` counts are caught, and the help text is well organized with the Formatting panel separation.
+If you accidentally pass `--marker-label "Release"` without `--marker`, it's just ignored. Not a big deal, but a small warning would prevent confusion.
 
-10. **Smart autocomplete ordering is clever but hard to verify**: The completions code sorts start-like columns first on even positions and end-like columns first on odd positions. Good idea, but the keyword sets (`start`, `begin`, `van`, `from` vs `end`, `eind`, `stop`, `tot`) might not cover all naming conventions. For this dataset, `DH_PV_STARTDATUM` matches "start" but `EA_END_DATETIME` doesn't match any end keyword since "end" is a substring of the longer token. Actually it does match since it checks `kw in col_lower` - so "end" in "ea_end_datetime" works. That's good.
+### 8. `--txt` label positioning is inconsistent
 
-11. **No way to filter or limit rows**: With larger CSVs, you'd want something like `--where "COLUMN=VALUE"` or `--head 50` to limit what gets plotted. Right now you'd have to pre-filter the CSV externally.
+The text labels from `--txt` jump around vertically -- sometimes they sit right on the bar, other times they float above or below it. When you're scanning a chart with multiple segments, your eye has to hunt for which label belongs to which bar. The staggering logic helps avoid overlaps, but the result looks messy because labels at different vertical offsets don't feel visually "attached" to their segment anymore. It would feel much cleaner if labels were consistently placed -- either always on the bar or always directly above it -- even if that means some labels get dropped when they'd collide.
 
-12. **Only one command so far (`timeline`)**: The top-level help shows just `timeline`. Would be good to see what other plot types are planned - scatter, bar, etc. The Typer subcommand structure is ready for it.
+### 9. Multiple `--y` feels like it should create separate groups, not concatenate
+
+When I do `--y DH_FACING_NUMMER --y SH_FORMULE`, the values get joined as "4006 | 181". That's one valid behavior, but my instinct was that it would create two levels of grouping (facing within formule, or vice versa). The concatenation works but feels like a flat string join rather than a structured grouping. This might just need clearer documentation about what multiple `--y` actually does.
+
+## What Works Well
+
+- **Error handling is excellent.** Wrong column name, missing file, odd number of `--x` values, unparseable marker date -- every case I tried gave a clear, colored error with no traceback. Very polished.
+- **`--no-open-end` is useful.** Toggling between "extend NULLs to today" and "skip them" changes the chart meaningfully and both modes work correctly. Good default to have open-end on.
+- **Marker looks good.** The red vertical line with label renders cleanly and stands out. Nice for highlighting reference dates.
+- **The y-detail feature is the right abstraction.** Rather than forcing complex y-axis logic, `--y-detail` lets you add one more dimension when you need it. Simple and effective.
+- **`--head` is great for exploration.** Being able to quickly peek at the first N rows before committing to a full render is exactly the kind of workflow shortcut a CLI tool should have.
+- **Help text organization.** The Formatting/Filtering panels in `--help` make it easy to scan. Required options are clearly marked.
+- **Sub-row stacking.** Now that rows with the same y-value get their own visual lanes, the chart is genuinely useful for real data. This was the blocker last round and it's fixed well.
