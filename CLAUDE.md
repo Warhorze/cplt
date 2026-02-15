@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What is csvplot?
 
-A CLI tool for plotting timeline/Gantt-style range charts from CSV files in the terminal. Uses stdlib `csv` (no pandas), Typer for CLI, plotext for rendering, and Rich for terminal formatting.
+A CLI tool for plotting and summarising CSV data in the terminal. Supports timeline/Gantt ranges, bar charts, line charts, bubble matrices, and CSV summaries. Uses stdlib `csv` (no pandas), Typer for CLI, plotext for charts, and Rich for table formatting.
 
 ## Commands
 
@@ -32,14 +32,18 @@ uv run ruff format src/ tests/ # format
 
 Data flows linearly: **CLI args → reader → PlotSpec → renderer → terminal**
 
-- `cli.py` — Typer app with a single `timeline` command. Validates `--x` pairs, builds a `PlotSpec`, calls `render()`. Column-name options use autocompletion callbacks from `completions.py`.
-- `reader.py` — `load_segments()` reads CSV via `csv.DictReader` and emits `Segment` objects. `parse_datetime()` tries multiple `strptime` formats. Sentinel dates (year 9999) and empty values return `None`. Open-ended ranges get replaced with today's date by default.
-- `models.py` — Frozen dataclasses: `Segment` (one time range per row per layer), `Marker` (vertical date line), `PlotSpec` (full render specification).
-- `renderer.py` — Converts `PlotSpec` into plotext calls. Each segment is `plt.plot([start, end], [y, y])`. Supports multiple layers (different x-pair columns) offset vertically within a y-group, color mapping by column or auto by y-label, and sub-row assignment so multiple CSV rows with the same y-label get separate lines.
-- `completions.py` — Tab-completion callbacks cached by `(path, mtime)`. `--x` suggests only datetime columns with smart start/end keyword ordering based on position.
+- `cli.py` — Typer app with commands: `timeline`, `bar`, `line`, `bubble`, `summarise`. Handles argument validation, shared `--format` validation (`visual|semantic|compact`), and command orchestration.
+- `reader.py` — CSV loaders for timeline, bar, and line data; datetime parsing; filtering (`--where`, `--where-not`); open-end handling for timeline ranges.
+- `bubble.py` — Bubble matrix data loading and falsy-value interpretation.
+- `summarise.py` — CSV profiling (type detection, counts, top values, optional random samples).
+- `models.py` — Dataclasses for plot specs and timeline segments/markers.
+- `renderer.py` — Visual renderers for timeline/bar/line via plotext.
+- `compact.py` / `semantic.py` — Token-efficient and ANSI-stripped output modes.
+- `completions.py` — Cached column/value completion. Date-column suggestions are position-aware for timeline `--x` pairs.
 
 ## Key design details
 
 - `--x` takes a flat list of column names that must be even-length; they're chunked into start/end pairs to form layers (layer 0, layer 1, etc.)
 - Multiple `--y` values are concatenated with ` | ` to form composite y-labels (flat, not hierarchical)
+- Bubble uses `--cols` (not `--x`) as the primary matrix-column option.
 - Ruff config: line-length 100, target Python 3.11, rules E/F/I

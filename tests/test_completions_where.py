@@ -81,6 +81,14 @@ class TestCompleteWhere:
         # Should match "open" and "Open"
         assert any("open" in r.lower() for r in result)
 
+    def test_with_col_prefix_case_insensitive(self, where_csv: Path) -> None:
+        ctx = MagicMock()
+        ctx.params = {"file": where_csv, "x": ["status"]}
+        result = complete_where(ctx, [], "STATUS=op")
+        # Runtime filtering is case-insensitive; completion should match that behavior.
+        assert any(r.startswith("status=") for r in result)
+        assert any("open" in r.lower() for r in result)
+
     def test_no_file_returns_empty(self) -> None:
         ctx = MagicMock()
         ctx.params = {"file": None}
@@ -92,6 +100,12 @@ class TestCompleteWhere:
         ctx.params = {"file": where_csv, "y": ["region"], "x": []}
         result = complete_where(ctx, [], "")
         assert any("region=" in r for r in result)
+
+    def test_context_column_case_insensitive(self, where_csv: Path) -> None:
+        ctx = MagicMock()
+        ctx.params = {"file": where_csv, "y": ["STATUS"], "x": []}
+        result = complete_where(ctx, [], "")
+        assert any(r.startswith("status=") for r in result)
 
     def test_malformed_csv_no_crash(self, tmp_path: Path) -> None:
         bad = tmp_path / "bad.csv"

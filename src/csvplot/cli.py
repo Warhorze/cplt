@@ -29,6 +29,16 @@ app = typer.Typer(
 )
 
 
+def _validate_format(format_opt: str) -> None:
+    """Validate common --format option values."""
+    if format_opt not in ("visual", "compact", "semantic"):
+        rprint(
+            f"[red]Error:[/red] --format must be 'visual', 'compact', or 'semantic', "
+            f"got {format_opt!r}"
+        )
+        raise typer.Exit(1)
+
+
 @app.callback()
 def main() -> None:
     """Plot data from CSV files directly in the terminal."""
@@ -163,18 +173,13 @@ def timeline(
         str,
         typer.Option(
             "--format",
-            help="Output format: visual (plotext) or compact (RLE-encoded ASCII for LLMs)",
+            help="Output format: visual, semantic, or compact",
             rich_help_panel="Formatting",
         ),
     ] = "visual",
 ) -> None:
     """Plot timeline/Gantt-style ranges from a CSV file."""
-    if format_opt not in ("visual", "compact", "semantic"):
-        rprint(
-            f"[red]Error:[/red] --format must be 'visual', 'compact', or 'semantic', "
-            f"got {format_opt!r}"
-        )
-        raise typer.Exit(1)
+    _validate_format(format_opt)
     # Validate --x: need at least 2 values, and an even count
     if len(x) < 2:
         rprint("[red]Error:[/red] --x requires at least 2 values (start and end columns).")
@@ -334,10 +339,11 @@ def bar(
     ] = None,
     format_opt: Annotated[
         str,
-        typer.Option("--format", help="Output format: visual or compact"),
+        typer.Option("--format", help="Output format: visual, semantic, or compact"),
     ] = "visual",
 ) -> None:
     """Plot a bar chart of value counts from a CSV column."""
+    _validate_format(format_opt)
     if sort not in ("value", "label", "none"):
         rprint(f"[red]Error:[/red] --sort must be 'value', 'label', or 'none', got {sort!r}")
         raise typer.Exit(1)
@@ -440,10 +446,11 @@ def line(
     ] = None,
     format_opt: Annotated[
         str,
-        typer.Option("--format", help="Output format: visual or compact"),
+        typer.Option("--format", help="Output format: visual, semantic, or compact"),
     ] = "visual",
 ) -> None:
     """Plot a line chart from CSV columns."""
+    _validate_format(format_opt)
     if len(y) < 1:
         rprint("[red]Error:[/red] --y requires at least 1 value.")
         raise typer.Exit(1)
@@ -521,10 +528,11 @@ def summarise(
     ] = None,
     format_opt: Annotated[
         str,
-        typer.Option("--format", help="Output format: visual or compact"),
+        typer.Option("--format", help="Output format: visual, semantic, or compact"),
     ] = "visual",
 ) -> None:
     """Print a summary of a CSV file — column types, counts, nulls, top values."""
+    _validate_format(format_opt)
     # Parse --where / --where-not expressions
     wheres: list[tuple[str, str]] = []
     where_nots: list[tuple[str, str]] = []
@@ -677,10 +685,11 @@ def bubble(
     ] = None,
     format_opt: Annotated[
         str,
-        typer.Option("--format", help="Output format: visual or compact"),
+        typer.Option("--format", help="Output format: visual, semantic, or compact"),
     ] = "visual",
 ) -> None:
     """Plot a presence/absence dot matrix from CSV columns."""
+    _validate_format(format_opt)
     if not cols:
         rprint("[red]Error:[/red] --cols requires at least 1 column.")
         raise typer.Exit(1)

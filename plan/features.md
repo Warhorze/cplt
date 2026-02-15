@@ -2,6 +2,8 @@
 
 Constraint: datasets up to 100,000 rows max.
 
+> Note: This is a roadmap document. Some items below describe proposed behavior, not guaranteed current behavior.
+
 ---
 
 ## 1. Filter (`--where` / `--where-not`)
@@ -27,7 +29,7 @@ csvplot timeline -f data.csv --x S --x E --y name --where "status=open" --where 
 - `--where COL=val` — string equality, **case-insensitive by default**
 - Same column repeated = **OR** (match any), different columns = **AND** (match all)
 - No comma-delimited multi-value syntax — avoids ambiguity when values contain commas
-- `--case-sensitive` flag to opt into exact matching when needed
+- Optional future `--case-sensitive` flag to opt into exact matching when needed
 - `--head` stays as-is for row slicing (limit how many CSV rows are read)
 
 **Autocomplete UX — context-aware pre-fill:**
@@ -146,6 +148,14 @@ csvplot bubble -f data.csv --cols col1 --cols col2 --y name_col --color category
 - `--z` column for bubble size (continuous values)
 - `--one-hot` flag to auto-pivot a single column into binary columns
 - Color mapping by cell value
+
+### Command Naming Decision (2026-02-15)
+
+- Keep `--cols` as the **primary** bubble option because it is more explicit for matrix-style input.
+- Keep `--x` for `timeline` and `line` only.
+- Keep `--column` for `bar`.
+- Do **not** consolidate bubble onto `--x` as the primary name in the near term.
+- Optional future compatibility path: add `--x` as a bubble alias only if requested, while keeping docs centered on `--cols`.
 
 ---
 

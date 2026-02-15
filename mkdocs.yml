@@ -1,0 +1,10 @@
+site_name: csvplot
+site_description: Terminal-first CSV plotting and summarisation CLI
+repo_url: https://github.com/Warhorze/csvplot
+
+theme:
+  name: material
+
+nav:
+  - Home: index.md
+  - CLI Reference: cli.md

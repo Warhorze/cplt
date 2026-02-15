@@ -1,0 +1,45 @@
+"""CLI-level tests for shared option behavior."""
+
+from __future__ import annotations
+
+from typer.testing import CliRunner
+
+from csvplot.cli import app
+
+runner = CliRunner()
+
+
+def test_bar_rejects_invalid_format(bar_csv) -> None:
+    result = runner.invoke(
+        app,
+        ["bar", "-f", str(bar_csv), "-c", "status", "--format", "invalid"],
+    )
+    assert result.exit_code == 1
+    assert "--format must be 'visual', 'compact', or 'semantic'" in result.stdout
+
+
+def test_line_rejects_invalid_format(line_csv) -> None:
+    result = runner.invoke(
+        app,
+        ["line", "-f", str(line_csv), "--x", "date", "--y", "temperature", "--format", "invalid"],
+    )
+    assert result.exit_code == 1
+    assert "--format must be 'visual', 'compact', or 'semantic'" in result.stdout
+
+
+def test_summarise_rejects_invalid_format(sample_csv) -> None:
+    result = runner.invoke(
+        app,
+        ["summarise", "-f", str(sample_csv), "--format", "invalid"],
+    )
+    assert result.exit_code == 1
+    assert "--format must be 'visual', 'compact', or 'semantic'" in result.stdout
+
+
+def test_bubble_rejects_invalid_format(sample_csv) -> None:
+    result = runner.invoke(
+        app,
+        ["bubble", "-f", str(sample_csv), "--cols", "name", "--y", "name", "--format", "invalid"],
+    )
+    assert result.exit_code == 1
+    assert "--format must be 'visual', 'compact', or 'semantic'" in result.stdout

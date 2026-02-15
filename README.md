@@ -41,6 +41,24 @@ After installing, enable tab-completion:
 csvplot --install-completion  # restart shell after
 ```
 
+## Documentation
+
+- Human docs site (MkDocs): `mkdocs.yml` + `docs/`
+- Generated CLI reference: `docs/cli.md`
+
+Regenerate CLI docs from current Typer help output:
+
+```bash
+bash scripts/generate_cli_docs.sh
+```
+
+Preview docs locally:
+
+```bash
+uv sync --extra docs
+uv run mkdocs serve
+```
+
 ## Quick Start
 
 Bar chart from a categorical column:
@@ -92,7 +110,7 @@ Plot timeline/Gantt-style ranges from a CSV file.
 | `--x <col>` | Yes (2+) | | Time-range columns as start/end pairs |
 | `--y <col>` | Yes (1+) | | Categorical Y-axis column(s); repeat to combine |
 | `--color <col>` | No | | Color segments by this column |
-| `--txt <col>` | No | | Label segments with this column's value |
+| `--txt <col>` | No | | Label segments with this column's value (visual/semantic only) |
 | `--y-detail <col>` | No | | Sub-group within `--y` by appending this column's value |
 | `--marker <date>` | No | | Vertical marker line (YYYY-MM-DD) |
 | `--marker-label <text>` | No | | Label for the marker |
@@ -131,7 +149,7 @@ Plot a bar chart of value counts from a CSV column.
 | `--file`, `-f` | Yes | | Path to CSV file |
 | `--column`, `-c` | Yes | | Column to count values of |
 | `--sort` | No | `value` | Sort by: `value` (desc count), `label` (alpha), `none` (CSV order) |
-| `--horizontal` | No | `false` | Use horizontal bars |
+| `--horizontal` | No | `false` | Use horizontal bars (visual/semantic only) |
 | `--top <n>` | No | | Show only the top N categories |
 | `--head <n>` | No | | Only read the first N CSV rows |
 | `--title <text>` | No | filename | Chart title |

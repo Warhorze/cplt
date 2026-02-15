@@ -186,25 +186,29 @@ def complete_where(ctx: click.Context, args: list[str], incomplete: str) -> list
     if "=" in incomplete:
         # User typed COL=partial — suggest values for that column
         col, partial = incomplete.split("=", 1)
-        if col not in columns:
+        col_map = {c.lower(): c for c in columns}
+        actual_col = col_map.get(col.lower())
+        if actual_col is None:
             return []
-        values = _get_column_values(file_path, col)
+        values = _get_column_values(file_path, actual_col)
         matched = match_values(partial, values)
-        return [f"{col}={v}" for v in matched]
+        return [f"{actual_col}={v}" for v in matched]
 
     # No "=" yet — suggest COL= completions
     # Pre-fill from last --x/--y context column
     context_col = _last_context_column(ctx)
+    col_map = {c.lower(): c for c in columns}
+    actual_context_col = col_map.get(context_col.lower()) if context_col else None
 
     suggestions: list[str] = []
-    if context_col and context_col in columns:
+    if actual_context_col:
         # Pre-fill with context column values
-        values = _get_column_values(file_path, context_col)
-        suggestions = [f"{context_col}={v}" for v in values]
+        values = _get_column_values(file_path, actual_context_col)
+        suggestions = [f"{actual_context_col}={v}" for v in values]
 
     # Also suggest other columns as COL= format
     for col in columns:
-        if col != context_col:
+        if col != actual_context_col:
             suggestions.append(f"{col}=")
 
     if incomplete:
