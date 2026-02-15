@@ -1,63 +1,216 @@
-# csvplot timeline - Tester Feedback
+# csvplot Tester Feedback
 
-## Overall Impression
+Date: 2026-02-14
+Tester: Claude Code (second pass, validating + extending Codex's original review)
 
-The tool feels solid for what it does. You type a command, you get a Gantt chart in your terminal. No browser, no fuss. The CLI is well-structured with clear help text, the `--x` start/end pair convention makes sense once you get it, and error messages are helpful when you mess up. It genuinely fills a niche that other terminal tools don't cover.
+## Bottom line
 
-## What's Been Fixed Since Last Round
+All 175 tests pass. All 5 commands (timeline, bar, line, bubble, summarise) work correctly with the bundled `data/` files. Several issues from the original review have been fixed. A few remain, plus new findings.
 
-Several issues from the previous feedback session have been addressed:
+## Status of previously reported findings
 
-- **Row stacking now works.** The main complaint last time was that rows sharing the same `--y` value got smashed into one line. That's fixed -- each CSV row now gets its own sub-row within a y-group, so even when all rows share `DH_FACING_NUMMER = 2006`, you can see each one separately. Big improvement.
-- **`--y-detail` exists.** Previously suggested as a wish. Now you can do `--y-detail DN_BRONSLEUTEL` to sub-group within a y-label. Works well and makes dense charts readable.
-- **`--head` filter added.** Previously you had to pre-filter your CSV externally. Now `--head 5` limits the rows read. Useful for quick exploration of large files.
-- **Legend deduplication.** The old issue where "primary (120290146)" appeared three times per segment is gone. Each unique color_key + layer combo appears only once now.
-- **Text label collision avoidance.** Labels no longer pile on top of each other blindly -- there's now truncation (to 15 chars) and a basic staggering system that alternates vertical offsets when labels are close in time.
+### Fixed since original review
 
-## What Still Feels Off
+1. **`--where` column names are now case-insensitive** (was finding #4)
+   - `--where "sex=male"`, `--where "SEX=female"`, `--where "Sex=MALE"` all work identically.
+   - Help text matches behavior: both column names and values are case-insensitive.
 
-### 1. Layer distinction is still too subtle
+2. **`line` no longer crashes on blank/invalid x dates** (was finding #3)
+   - Tested with synthetic CSV containing empty and "invalid" date strings in x column.
+   - Invalid rows are silently skipped; 3 valid points rendered from 5-row CSV.
 
-When using two layers (e.g. `--x START1 --x END1 --x START2 --x END2`), the visual difference between layer 0 (half-block `hd`) and layer 1 (filled half-block `fhd`) is hard to spot. They look nearly identical in most terminals. The vertical offset between layers (~0.45) helps, but when you're scanning a busy chart, your eye can't quickly tell "this is the primary range" vs "this is the secondary range." Some kind of more obvious differentiation would help -- different colors per layer, dashed vs solid, or at minimum a clearer marker style contrast.
+3. **`bubble --cols` docs now use correct repeated-flag syntax** (was finding #1)
+   - README line 44: `--cols Cabin --cols Age --cols Embarked` (correct).
+   - Space-separated `--cols Cabin Age Embarked` still fails as expected (Typer limitation).
 
-### 2. The title is always just "csvplot"
+### Still present
 
-Every chart says "csvplot" at the top. That's not useful once you know what tool you're using. I'd rather see the filename or the `--y` column name there, something that tells me what I'm actually looking at. When you're running multiple plots in a row to compare things, they all look the same at the top.
+4. **`timeline --open-end` silently drops rows with invalid (non-empty, non-sentinel) end dates** (was finding #2, behavior changed)
+   - Original report: invalid end dates were converted to "open now".
+   - Current behavior: rows with unparseable non-empty end dates (e.g. "baddate") are silently dropped entirely — not shown, no warning.
+   - Empty end dates and sentinel dates (9999-12-31) correctly get open-end treatment.
+   - This is arguably better than the old behavior (no silent misrepresentation), but still a data loss risk since the user gets no indication that rows were skipped.
 
-### 3. No way to zoom into a time range
+5. **`summarise` top-value notation is still unclear** (finding #6)
+   - `1(1), 2(1), 3(1)` format has no legend explaining that `(N)` means frequency.
+   - The column header says "Top Values" but doesn't clarify the format.
 
-If your data spans 2 years but you care about a specific month, you're stuck looking at the full range. There's a `view_start`/`view_end` on the `PlotSpec` dataclass but no CLI flags to set them. Something like `--from 2025-01-01 --to 2025-03-01` would be really handy for focusing on a slice.
+6. **Bar charts still use ANSI colors by default without `--color` flag** (finding #5)
+   - Bar command has no explicit color-control option.
+   - Low priority — this is standard plotext behavior and only affects visual mode.
 
-### 4. The `--x` convention is not immediately obvious
+## New findings
 
-The first time I used it, I instinctively typed `--x START END` (two values after one flag). But it's actually `--x START --x END`. This works fine once you know, but the help text could do a better job explaining it upfront. The error message when you give only one `--x` is clear ("requires at least 2 values"), but you have to fail first to learn the pattern. A short example in the help output would save time.
+### 7. Compact line min/max shows excessive decimal places (Low UX)
+- Repro: `csvplot line -f data/temperatures.csv --x Date --y Temp --format compact`
+- Output: `(min=6.30655737704918 max=17.698333333333334)`
+- These are averaged values from downsampling, but the precision is excessive.
+- Suggest rounding to 2 decimal places for readability.
 
-### 5. No color when `--color` is not specified
+### 8. `--txt` labels are not rendered in compact format (Low, by design?)
+- Repro: `csvplot timeline -f data/projects.csv --x start_date --x end_date --y project --txt status --format compact`
+- The `--txt` option is accepted without error but produces identical output to without it.
+- Compact format uses RLE-encoded bars where there's no room for text labels, so this may be intentional — but the option should either be documented as visual-only or produce some compact representation.
 
-Without `--color`, everything is white (or gray for secondary layers). With only a few y-groups this is fine, but with more it would be hard to visually follow which bar belongs to which group. Auto-coloring by y-group when no `--color` is given would make the default output more useful.
+### 9. `--horizontal` has no effect in compact bar format (Low, by design?)
+- Repro: `csvplot bar -f data/titanic.csv -c Pclass --horizontal --format compact`
+- Output is identical to non-horizontal compact output.
+- Makes sense since compact bars are always horizontal RLE-encoded, but the flag is silently ignored.
 
-### 6. Legend says "primary" / "layer 1" -- means nothing to the user
+### 10. README project structure is incomplete (Low, docs)
+- `data/projects.csv` not listed in the data files section (line 216).
+- `src/csvplot/compact.py`, `bubble.py`, `summarise.py` not listed in project structure (lines 207-213).
+- `--format` option not mentioned anywhere in README (users may not discover compact mode).
+- `--where`/`--where-not` not listed in individual command tables (only in separate "Filtering" section) — inconsistent with how `--head` is listed per-command.
+- `summarise` command missing from Quick Start examples.
 
-The legend labels like "primary (120290146)" or "layer 1 (117987179)" use internal terminology. As a user, I don't think in terms of "primary" and "layer 1", and the number next to it is just the raw value from the `--color` column with no context. I see "primary (120290146)" and I have no idea what 120290146 refers to -- is that an article? A store? A variant? The legend doesn't tell me which column that value came from, so it's just a mystery number. At minimum it should show the column name, e.g. "SH_ARTIKEL_S1: 120290146". Even better would be replacing the layer jargon with the actual column pair names, e.g. "DH_PV_STARTDATUM - DH_PV_EINDDATUM (SH_ARTIKEL_S1: 120290146)".
+## Validation results
 
-### 7. The `--marker-label` without `--marker` silently does nothing
+### All commands tested with compact output
 
-If you accidentally pass `--marker-label "Release"` without `--marker`, it's just ignored. Not a big deal, but a small warning would prevent confusion.
+```
+# timeline — 15 segments, 3 status groups, correct color legend
+csvplot timeline -f data/projects.csv --x start_date --x end_date --y project --color status --format compact
 
-### 8. `--txt` label positioning is inconsistent
+# bar — counts match: 3=491, 1=216, 2=184
+csvplot bar -f data/titanic.csv -c Pclass --format compact
 
-The text labels from `--txt` jump around vertically -- sometimes they sit right on the bar, other times they float above or below it. When you're scanning a chart with multiple segments, your eye has to hunt for which label belongs to which bar. The staggering logic helps avoid overlaps, but the result looks messy because labels at different vertical offsets don't feel visually "attached" to their segment anymore. It would feel much cleaner if labels were consistently placed -- either always on the bar or always directly above it -- even if that means some labels get dropped when they'd collide.
+# line — 3650 points, date range 1981-01-01..1990-12-31
+csvplot line -f data/temperatures.csv --x Date --y Temp --format compact
 
-### 9. Multiple `--y` feels like it should create separate groups, not concatenate
+# bubble — presence/absence matches CSV null/non-null row-by-row
+csvplot bubble -f data/titanic.csv --cols Cabin --cols Age --cols Embarked --y Name --head 8
 
-When I do `--y DH_FACING_NUMMER --y SH_FORMULE`, the values get joined as "4006 | 181". That's one valid behavior, but my instinct was that it would create two levels of grouping (facing within formule, or vice versa). The concatenation works but feels like a flat string join rather than a structured grouping. This might just need clearer documentation about what multiple `--y` actually does.
+# summarise — correct row counts, type detection, top values
+csvplot summarise -f data/projects.csv
+```
 
-## What Works Well
+### Filtering validated
 
-- **Error handling is excellent.** Wrong column name, missing file, odd number of `--x` values, unparseable marker date -- every case I tried gave a clear, colored error with no traceback. Very polished.
-- **`--no-open-end` is useful.** Toggling between "extend NULLs to today" and "skip them" changes the chart meaningfully and both modes work correctly. Good default to have open-end on.
-- **Marker looks good.** The red vertical line with label renders cleanly and stands out. Nice for highlighting reference dates.
-- **The y-detail feature is the right abstraction.** Rather than forcing complex y-axis logic, `--y-detail` lets you add one more dimension when you need it. Simple and effective.
-- **`--head` is great for exploration.** Being able to quickly peek at the first N rows before committing to a full render is exactly the kind of workflow shortcut a CLI tool should have.
-- **Help text organization.** The Formatting/Filtering panels in `--help` make it easy to scan. Required options are clearly marked.
-- **Sub-row stacking.** Now that rows with the same y-value get their own visual lanes, the chart is genuinely useful for real data. This was the blocker last round and it's fixed well.
+| Test | Command | Result |
+|------|---------|--------|
+| `--where` single | `bar ... --where "Sex=male"` | 577 male rows |
+| `--where` case-insensitive col | `bar ... --where "sex=male"` | Same 577 rows |
+| `--where` case-insensitive val | `bar ... --where "Sex=MALE"` | Same 577 rows |
+| `--where` multiple (AND) | `bar ... --where "Sex=male" --where "Embarked=S"` | 265+97+79=441 (correct subset) |
+| `--where-not` | `timeline ... --where-not "status=Planning"` | 12 rows (15 - 3 Planning) |
+| `--where` + `--where-not` | `timeline ... --where "team=Backend" --where-not "status=Done"` | 2 rows (correct) |
+| `--where` no match | `bar ... --where "Pclass=999"` | "Warning: No data found in the column." |
+| `--where` bad format | `bar ... --where "badformat"` | "Error: Expected format COL=value" |
+
+### Options validated
+
+| Feature | Command | Result |
+|---------|---------|--------|
+| `--sort value` | `bar -c Embarked --sort value` | S(644), C(168), Q(77), empty(2) |
+| `--sort label` | `bar -c Embarked --sort label` | empty(2), C(168), Q(77), S(644) |
+| `--sort none` | `bar -c Embarked --sort none` | S, C, Q, empty (CSV first-appearance order) |
+| `--top N` | `bar -c Pclass --top 2` | Only 3(491), 1(216) shown |
+| `--head N` | `line --head 100` | 100 points, range 1981-01-01..1981-04-10 |
+| `--from/--to` | `timeline --from 2026-01-01 --to 2026-04-01` | Correctly zoomed date range |
+| `--marker` | `timeline --marker 2026-01-01 --marker-label "New Year"` | Marker in compact output |
+| Multi-layer | `timeline --x S1 --x E1 --x S2 --x E2` | `█` for layer 0, `#` for layer 1 |
+| Multi-`--y` | `timeline --y team --y project` | Composite labels "Backend \| Auth service" |
+| `--y-detail` | `timeline --y team --y-detail project` | Same composite grouping |
+| `--color` (bubble) | `bubble --color Pclass` | Accepted, renders with Rich colors |
+| `--sample N` | `summarise --sample 3` | Shows 3 random sample rows below summary |
+| `--open-end` | `timeline` with empty end date | Extended to today (2026-02-14) |
+| `--no-open-end` | `timeline --no-open-end` | Row with empty end dropped, 6 of 7 shown |
+
+### Error handling validated
+
+| Scenario | Result |
+|----------|--------|
+| Nonexistent file | "File 'data/nonexistent.csv' does not exist." (exit 2) |
+| Nonexistent column | "Column not found in CSV: 'NonExistentCol'" (exit 1) |
+| No matching data | "Warning: No data found." / "Warning: No data found in the column." |
+| Bad `--where` format | "Error: Expected format COL=value, got 'badformat'" (exit 1) |
+| Blank/invalid dates in line x | Silently skipped, valid points rendered |
+
+## Test suite
+
+- **175 tests, all passing** (pytest 9.0.2, Python 3.12.9)
+- Test files: test_bubble, test_compact, test_completions, test_completions_where, test_filter, test_models, test_reader, test_summarise
+- Runtime: ~1.4s
+
+## Recommendations (prioritized)
+
+1. **Warn when rows are silently dropped** (finding #4) — When `--open-end` is on and a row has a non-empty but unparseable end date, emit a stderr warning like "Warning: skipped 1 row(s) with unparseable end dates". This prevents silent data loss.
+
+2. **Round compact line min/max** (finding #7) — Format to 2 decimal places in `compact_line()`.
+
+3. **Add `summarise` top-value legend** (finding #5) — Either add a table footnote ("Top Values format: value(frequency)") or rename the column header to "Top Values (freq)".
+
+4. **Complete README project structure** (finding #10) — Add missing files (`compact.py`, `bubble.py`, `summarise.py`, `projects.csv`), document `--format compact`, and add a `summarise` Quick Start example.
+
+5. **Document visual-only options** (findings #8, #9) — Note in help text that `--txt` and `--horizontal` have no effect in compact format, or implement compact representations.
+
+## Command Log
+
+```bash
+# All commands used during this review (all with --format compact where supported)
+
+# timeline
+csvplot timeline -f data/projects.csv --x start_date --x end_date --y project --color status --format compact
+csvplot timeline -f data/projects.csv --x start_date --x end_date --y project --color status --where "status=Done" --format compact
+csvplot timeline -f data/projects.csv --x start_date --x end_date --y project --where-not "status=Planning" --format compact
+csvplot timeline -f data/projects.csv --x start_date --x end_date --y project --color status --marker 2026-01-01 --marker-label "New Year" --format compact
+csvplot timeline -f data/projects.csv --x start_date --x end_date --y team --y project --color status --format compact
+csvplot timeline -f data/projects.csv --x start_date --x end_date --y team --y-detail project --color status --format compact
+csvplot timeline -f data/projects.csv --x start_date --x end_date --y project --txt status --format compact
+csvplot timeline -f data/projects.csv --x start_date --x end_date --y project --from 2026-01-01 --to 2026-04-01 --format compact
+csvplot timeline -f data/projects.csv --x start_date --x end_date --y project --where "team=Backend" --where "status=Done" --format compact
+csvplot timeline -f data/projects.csv --x start_date --x end_date --y project --where "team=Backend" --where-not "status=Done" --format compact
+csvplot timeline -f data/timeplot.csv --x EN_START_DATETIME --x EA_END_DATETIME --y DN_BRONSLEUTEL --format compact
+csvplot timeline -f data/timeplot.csv --x EN_START_DATETIME --x EA_END_DATETIME --y DN_BRONSLEUTEL --no-open-end --format compact
+csvplot timeline -f data/timeplot.csv --x DH_PV_STARTDATUM --x DH_PV_EINDDATUM --x EN_START_DATETIME --x EA_END_DATETIME --y DH_FACING_NUMMER --color SH_ARTIKEL_S1 --marker 2025-01-22 --marker-label "wissel-datum" --format compact
+
+# bar
+csvplot bar -f data/titanic.csv -c Pclass --format compact
+csvplot bar -f data/titanic.csv -c Sex --where "Sex=MALE" --format compact
+csvplot bar -f data/titanic.csv -c Sex --where "sex=male" --format compact
+csvplot bar -f data/titanic.csv -c Sex --where "SEX=female" --format compact
+csvplot bar -f data/titanic.csv -c Embarked --sort none --format compact
+csvplot bar -f data/titanic.csv -c Embarked --sort value --format compact
+csvplot bar -f data/titanic.csv -c Embarked --sort label --format compact
+csvplot bar -f data/titanic.csv -c Pclass --top 2 --format compact
+csvplot bar -f data/titanic.csv -c Pclass --horizontal --format compact
+csvplot bar -f data/titanic.csv -c Pclass --sort label --format compact
+csvplot bar -f data/titanic.csv -c Pclass --where "Sex=male" --where "Embarked=S" --format compact
+csvplot bar -f data/titanic.csv -c Pclass --where "Pclass=999" --format compact
+
+# line
+csvplot line -f data/temperatures.csv --x Date --y Temp --format compact
+csvplot line -f data/temperatures.csv --x Date --y Temp --head 100 --format compact
+csvplot line -f data/temperatures.csv --x Date --y Temp --where "Temp=ZZZ" --format compact
+csvplot line -f /tmp/test_blank_dates.csv --x Date --y Temp --format compact
+
+# bubble
+csvplot bubble -f data/titanic.csv --cols Cabin --cols Age --cols Embarked --y Name --head 8
+csvplot bubble -f data/titanic.csv --cols Cabin Age Embarked --y Name --head 3  # expected failure
+csvplot bubble -f data/titanic.csv --cols Cabin --cols Age --cols Embarked --y Name --top 2 --head 8
+csvplot bubble -f data/titanic.csv --cols Cabin --cols Age --cols Embarked --y Name --color Pclass --head 10
+
+# summarise
+csvplot summarise -f data/projects.csv
+csvplot summarise -f data/titanic.csv --head 10
+csvplot summarise -f data/temperatures.csv
+csvplot summarise -f data/titanic.csv --where "Sex=male"
+csvplot summarise -f data/projects.csv --sample 3
+
+# edge case: open-end with bad data
+csvplot timeline -f /tmp/test_bad_end.csv --x start --x end --y name --format compact
+csvplot timeline -f /tmp/test_bad_end.csv --x start --x end --y name --open-end --format compact
+csvplot timeline -f /tmp/test_empty_end.csv --x start --x end --y name --format compact
+csvplot timeline -f /tmp/test_sentinel_end.csv --x start --x end --y name --format compact
+
+# error handling
+csvplot bar -f data/nonexistent.csv -c Pclass --format compact
+csvplot bar -f data/titanic.csv -c NonExistentCol --format compact
+csvplot bar -f data/titanic.csv -c Pclass --where "badformat" --format compact
+csvplot line -f data/temperatures.csv --x Date --y Temp --where "Temp=ZZZ" --format compact
+```
+
+## Verdict
+
+csvplot is solid and well-tested. The core data pipeline (CSV → loader → spec → render) is correct across all 5 commands and all bundled datasets. Filtering, sorting, multi-layer timelines, open-end handling, and error cases all behave as expected. The main remaining gaps are UX polish items (compact decimal formatting, summarise legend, docs completeness) and a missing warning for silently dropped rows with bad end dates.
