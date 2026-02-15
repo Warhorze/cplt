@@ -72,7 +72,7 @@ def timeline(
         Optional[str],
         typer.Option(
             "--txt",
-            help="Label segments with this column's value",
+            help="Label segments with this column's value (visual format only)",
             autocompletion=complete_column,
             rich_help_panel="Formatting",
         ),
@@ -306,7 +306,7 @@ def bar(
     ] = "value",
     horizontal: Annotated[
         bool,
-        typer.Option("--horizontal", help="Use horizontal bars"),
+        typer.Option("--horizontal", help="Use horizontal bars (visual format only)"),
     ] = False,
     top: Annotated[
         Optional[int],
