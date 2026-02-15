@@ -378,7 +378,12 @@ def load_line_data(
 
     # Sort by date if applicable
     if x_is_date:
+        # Drop rows with invalid/blank dates to avoid renderer crashes in date mode.
+        raw_rows = [row for row in raw_rows if parse_datetime(row[x_col]) is not None]
         raw_rows.sort(key=lambda r: parse_datetime(r[x_col]) or datetime.min)
+
+    if not raw_rows:
+        return LineSpec(title=title, x_is_date=x_is_date)
 
     # Build series: either grouped by color_col, or one series per y_col
     series: dict[str, list[float]] = {}
