@@ -159,8 +159,22 @@ def timeline(
             rich_help_panel="Filtering",
         ),
     ] = None,
+    format_opt: Annotated[
+        str,
+        typer.Option(
+            "--format",
+            help="Output format: visual (plotext) or compact (RLE-encoded ASCII for LLMs)",
+            rich_help_panel="Formatting",
+        ),
+    ] = "visual",
 ) -> None:
     """Plot timeline/Gantt-style ranges from a CSV file."""
+    if format_opt not in ("visual", "compact", "semantic"):
+        rprint(
+            f"[red]Error:[/red] --format must be 'visual', 'compact', or 'semantic', "
+            f"got {format_opt!r}"
+        )
+        raise typer.Exit(1)
     # Validate --x: need at least 2 values, and an even count
     if len(x) < 2:
         rprint("[red]Error:[/red] --x requires at least 2 values (start and end columns).")
@@ -256,7 +270,16 @@ def timeline(
     )
 
     # Render
-    render(spec)
+    if format_opt == "compact":
+        from csvplot.compact import compact_timeline
+
+        print(compact_timeline(spec))
+    elif format_opt == "semantic":
+        from csvplot.semantic import strip_ansi
+
+        print(strip_ansi(render(spec, build=True)))
+    else:
+        render(spec)
 
 
 @app.command()
@@ -309,6 +332,10 @@ def bar(
         Optional[list[str]],
         typer.Option("--where-not", help="Exclude rows: COL=value (case-insensitive)"),
     ] = None,
+    format_opt: Annotated[
+        str,
+        typer.Option("--format", help="Output format: visual or compact"),
+    ] = "visual",
 ) -> None:
     """Plot a bar chart of value counts from a CSV column."""
     if sort not in ("value", "label", "none"):
@@ -349,7 +376,16 @@ def bar(
         rprint("[yellow]Warning:[/yellow] No data found in the column.")
         raise typer.Exit(0)
 
-    render_bar(spec)
+    if format_opt == "compact":
+        from csvplot.compact import compact_bar
+
+        print(compact_bar(spec))
+    elif format_opt == "semantic":
+        from csvplot.semantic import strip_ansi
+
+        print(strip_ansi(render_bar(spec, build=True)))
+    else:
+        render_bar(spec)
 
 
 @app.command()
@@ -402,6 +438,10 @@ def line(
         Optional[list[str]],
         typer.Option("--where-not", help="Exclude rows: COL=value (case-insensitive)"),
     ] = None,
+    format_opt: Annotated[
+        str,
+        typer.Option("--format", help="Output format: visual or compact"),
+    ] = "visual",
 ) -> None:
     """Plot a line chart from CSV columns."""
     if len(y) < 1:
@@ -441,7 +481,16 @@ def line(
         rprint("[yellow]Warning:[/yellow] No data found.")
         raise typer.Exit(0)
 
-    render_line(spec)
+    if format_opt == "compact":
+        from csvplot.compact import compact_line
+
+        print(compact_line(spec))
+    elif format_opt == "semantic":
+        from csvplot.semantic import strip_ansi
+
+        print(strip_ansi(render_line(spec, build=True)))
+    else:
+        render_line(spec)
 
 
 @app.command()
@@ -470,6 +519,10 @@ def summarise(
         Optional[list[str]],
         typer.Option("--where-not", help="Exclude rows: COL=value (case-insensitive)"),
     ] = None,
+    format_opt: Annotated[
+        str,
+        typer.Option("--format", help="Output format: visual or compact"),
+    ] = "visual",
 ) -> None:
     """Print a summary of a CSV file — column types, counts, nulls, top values."""
     # Parse --where / --where-not expressions
@@ -510,47 +563,62 @@ def summarise(
         rprint("[yellow]Warning:[/yellow] No columns found in CSV.")
         raise typer.Exit(0)
 
-    # Render summary table
-    table = Table(title=f"Summary: {file.name}")
-    table.add_column("Column", style="bold")
-    table.add_column("Type")
-    table.add_column("Rows", justify="right")
-    table.add_column("Non-null", justify="right")
-    table.add_column("Unique", justify="right")
-    table.add_column("Min")
-    table.add_column("Max")
-    table.add_column("Top Values")
+    if format_opt == "compact":
+        from csvplot.compact import compact_summarise
 
-    for s in summaries:
-        top_str = ""
-        if s.high_cardinality:
-            top_str = "[dim]>10K unique[/dim]"
-        elif s.top_values:
-            top_str = ", ".join(f"{v}({c})" for v, c in s.top_values[:5])
+        print(compact_summarise(summaries, title=file.name, sample_rows=sample_rows or None))
+    else:
+        # Build summary table
+        table = Table(title=f"Summary: {file.name}")
+        table.add_column("Column", style="bold")
+        table.add_column("Type")
+        table.add_column("Rows", justify="right")
+        table.add_column("Non-null", justify="right")
+        table.add_column("Unique", justify="right")
+        table.add_column("Min")
+        table.add_column("Max")
+        table.add_column("Top Values")
 
-        table.add_row(
-            s.name,
-            s.detected_type,
-            str(s.row_count),
-            str(s.non_null_count),
-            str(s.unique_count),
-            s.min_val or "-",
-            s.max_val or "-",
-            top_str or "-",
-        )
+        for s in summaries:
+            top_str = ""
+            if s.high_cardinality:
+                top_str = "[dim]>10K unique[/dim]"
+            elif s.top_values:
+                top_str = ", ".join(f"{v}({c})" for v, c in s.top_values[:5])
 
-    rprint(table)
+            table.add_row(
+                s.name,
+                s.detected_type,
+                str(s.row_count),
+                str(s.non_null_count),
+                str(s.unique_count),
+                s.min_val or "-",
+                s.max_val or "-",
+                top_str or "-",
+            )
 
-    # Render sample table if requested
-    if sample_rows:
-        rprint()
-        sample_table = Table(title=f"Sample ({len(sample_rows)} random rows)")
-        cols = list(sample_rows[0].keys())
-        for col in cols:
-            sample_table.add_column(col)
-        for row in sample_rows:
-            sample_table.add_row(*(row[c] for c in cols))
-        rprint(sample_table)
+        # Build sample table if requested
+        sample_table = None
+        if sample_rows:
+            sample_table = Table(title=f"Sample ({len(sample_rows)} random rows)")
+            cols = list(sample_rows[0].keys())
+            for col in cols:
+                sample_table.add_column(col)
+            for row in sample_rows:
+                sample_table.add_row(*(row[c] for c in cols))
+
+        if format_opt == "semantic":
+            from csvplot.semantic import semantic_rich
+
+            renderables = [table]
+            if sample_table:
+                renderables.append(sample_table)
+            print(semantic_rich(*renderables), end="")
+        else:
+            rprint(table)
+            if sample_table:
+                rprint()
+                rprint(sample_table)
 
 
 @app.command()
@@ -607,6 +675,10 @@ def bubble(
         Optional[list[str]],
         typer.Option("--where-not", help="Exclude rows: COL=value (case-insensitive)"),
     ] = None,
+    format_opt: Annotated[
+        str,
+        typer.Option("--format", help="Output format: visual or compact"),
+    ] = "visual",
 ) -> None:
     """Plot a presence/absence dot matrix from CSV columns."""
     if not cols:
@@ -644,17 +716,28 @@ def bubble(
         rprint("[yellow]Warning:[/yellow] No data found.")
         raise typer.Exit(0)
 
-    # Render as Rich table with Unicode dots
     chart_title = title if title else file.stem
-    table = Table(title=chart_title)
-    table.add_column("", style="bold")  # y-label column
-    for col_name in spec.col_names:
-        table.add_column(col_name, justify="center")
 
-    for row_idx, label in enumerate(spec.y_labels):
-        cells = []
-        for val in spec.matrix[row_idx]:
-            cells.append("[green]●[/green]" if val else "")
-        table.add_row(label, *cells)
+    if format_opt == "compact":
+        from csvplot.compact import compact_bubble
 
-    rprint(table)
+        print(compact_bubble(spec, title=chart_title))
+    else:
+        # Build Rich table with Unicode dots
+        table = Table(title=chart_title)
+        table.add_column("", style="bold")  # y-label column
+        for col_name in spec.col_names:
+            table.add_column(col_name, justify="center")
+
+        for row_idx, label in enumerate(spec.y_labels):
+            cells = []
+            for val in spec.matrix[row_idx]:
+                cells.append("[green]●[/green]" if val else "")
+            table.add_row(label, *cells)
+
+        if format_opt == "semantic":
+            from csvplot.semantic import semantic_rich
+
+            print(semantic_rich(table), end="")
+        else:
+            rprint(table)
