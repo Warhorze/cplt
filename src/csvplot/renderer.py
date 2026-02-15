@@ -81,8 +81,8 @@ def _assign_sub_rows(segments: list[Segment]) -> dict[Segment, int]:
     return sub_row_map
 
 
-def render(spec: PlotSpec) -> None:
-    """Render a PlotSpec to the terminal."""
+def render(spec: PlotSpec, build: bool = False) -> str | None:
+    """Render a PlotSpec to the terminal, or return canvas string if build=True."""
     plt.clear_figure()
     plt.date_form("Y-m-d H:M:S")
     plt.theme("clear")
@@ -232,14 +232,23 @@ def render(spec: PlotSpec) -> None:
     if spec.view_end:
         plt.xlim(right=_dt_to_str(spec.view_end))
 
+    if build:
+        canvas = plt.build()
+        if legend_entries:
+            canvas += "\n\nLegend"
+            for label in legend_entries:
+                canvas += f"\n- {label}"
+        return canvas
+
     plt.show()
     if legend_entries:
         rprint("\nLegend")
         for label in legend_entries:
             rprint(f"- {label}")
+    return None
 
 
-def render_bar(spec: BarSpec) -> None:
+def render_bar(spec: BarSpec, build: bool = False) -> str | None:
     """Render a BarSpec as a bar chart."""
     plt.clear_figure()
     plt.theme("clear")
@@ -250,10 +259,15 @@ def render_bar(spec: BarSpec) -> None:
     plt.bar(spec.labels, spec.values, color=colors, orientation=orientation)
 
     plt.title(spec.title)
+
+    if build:
+        return plt.build()
+
     plt.show()
+    return None
 
 
-def render_line(spec: LineSpec) -> None:
+def render_line(spec: LineSpec, build: bool = False) -> str | None:
     """Render a LineSpec as a line chart."""
     plt.clear_figure()
     plt.theme("clear")
@@ -283,4 +297,9 @@ def render_line(spec: LineSpec) -> None:
             plt.xticks(list(range(len(spec.x_values))), spec.x_values)
 
     plt.title(spec.title)
+
+    if build:
+        return plt.build()
+
     plt.show()
+    return None
