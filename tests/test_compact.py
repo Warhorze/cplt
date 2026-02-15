@@ -225,15 +225,26 @@ class TestCompactLine:
         assert "█" in out
 
     def test_min_max_annotation(self):
-        """Output includes min/max values."""
+        """Output includes min/max values formatted with g format."""
         spec = LineSpec(
             x_values=["a", "b", "c"],
             y_series={"temp": [5.0, 15.0, 25.0]},
             title="Annotated",
         )
         out = compact_line(spec, width=3)
-        assert "min=5.0" in out
-        assert "max=25.0" in out
+        assert "min=5" in out
+        assert "max=25" in out
+
+    def test_min_max_rounds_long_decimals(self):
+        """Long decimal values are rounded in min/max annotation."""
+        spec = LineSpec(
+            x_values=["a", "b", "c"],
+            y_series={"temp": [1.23456789, 5.0, 9.87654321]},
+            title="Rounded",
+        )
+        out = compact_line(spec, width=3)
+        assert "min=1.235" in out
+        assert "max=9.877" in out
 
     def test_multiple_series(self):
         """Multiple series produce separate sparkline rows."""

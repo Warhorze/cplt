@@ -251,7 +251,7 @@ def compact_line(spec: LineSpec, width: int = 60) -> str:
 
         sparkline = "".join(sparkline_chars)
         padded = f"{name}:".ljust(max_name_width + 1)
-        lines.append(f"{padded} {sparkline} (min={v_min} max={v_max})")
+        lines.append(f"{padded} {sparkline} (min={v_min:.4g} max={v_max:.4g})")
 
     lines.append("---")
     return "\n".join(lines)
