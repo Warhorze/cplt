@@ -2,14 +2,14 @@
 
 ## Context
 
-csvplot is a greenfield Python CLI tool for plotting timeline/Gantt-style ranges from CSV files in the terminal. No code exists yet — just `readme.md` and a sample CSV (`data/timeplot.csv`, 7 rows, 24 columns). No existing tools in the ecosystem handle terminal Gantt plots from CSV.
+csvplot is a greenfield Python CLI tool for plotting timeline/Gantt-style ranges from CSV files in the terminal. No code exists yet — just `README.md` and a sample CSV (`data/timeplot.csv`, 7 rows, 24 columns). No existing tools in the ecosystem handle terminal Gantt plots from CSV.
 
 ## File Tree
 
 ```
 csvplot/
   pyproject.toml
-  readme.md
+  README.md
   data/
     timeplot.csv
   src/
@@ -141,3 +141,130 @@ CLI args → reader.load_segments() → list[Segment]
 - **plotext datetime axis**: If date strings don't render on horizontal plots, fallback is numeric timestamps with manual tick labels
 - **Typer `list[str]` for `--x`**: May require `--x val1 --x val2` syntax instead of `--x val1 val2`. Test early in Step 1.
 - **Completion context**: `--file` must come before column options. Documented limitation.
+
+New Findings:
+
+Findings (prioritized)
+
+  1. High: bubble --color is accepted but not applied in rendering
+
+  - src/csvplot/cli.py:578 exposes --color (“Color rows by this column”).
+  - src/csvplot/bubble.py:71 loads color_keys.
+  - src/csvplot/cli.py:654 renders all truthy cells as hardcoded [green]●[/green], never using spec.color_keys.
+  - Impact: user-visible feature contract is broken; option appears to work but is ignored.
+
+  2. High: line --color drops data for duplicate (group, x) points (last-write-wins)
+
+  - src/csvplot/reader.py:420 stores grouped values as dict[str, float] per group.
+  - src/csvplot/reader.py:432 assigns groups[group_key][x_val] = float(...), overwriting prior points with same x.
+  - Impact: silent data loss for common time-series shapes (multiple observations per period per group), with no warning or aggregation policy.
+
+  3. Medium: timeline command swallows all loader exceptions, reducing diagnosability
+
+  - src/csvplot/cli.py:210 catches broad Exception and prints generic “Failed to read CSV”.
+  - Other commands only catch KeyError and let unexpected errors surface.
+  - Impact: inconsistent error behavior and harder debugging of real parsing/logic failures.
+
+  4. Medium: --where autocompletion is case-sensitive for column lookup, while runtime filtering is now case-insensitive
+
+  - src/csvplot/completions.py:189 rejects col unless exact-case match.
+  - Runtime filtering resolves columns case-insensitively (src/csvplot/reader.py:127).
+  - Impact: UX inconsistency; completion fails for valid expressions like sex=... when CSV has Sex.
+
+  5. Medium: summarise --sample does full-row buffering (O(n) memory)
+
+  - src/csvplot/summarise.py:90 allocates all_rows when sampling is enabled.
+  - src/csvplot/summarise.py:115 appends every row before random.sample.
+  - Impact: avoidable memory growth on large files; reservoir sampling would keep memory O(sample_n).
+
+  6. Medium: gap in CLI integration test coverage
+
+  - Current tests focus on loaders/completions/unit behavior (tests/test_reader.py, tests/test_filter.py, etc.) but there is no command-level CLI
+    test module (for example no tests/test_cli.py).
+  - Impact: user-facing regressions (arg parsing/help/option wiring) are more likely to slip through.
+
+  Open questions / assumptions
+
+  1. For duplicate grouped line points, should behavior be mean, sum, min/max, or explicit error?
+  2. For timeline loader failures, do you want strict failure (raise) or warn-and-skip-row semantics?
+
+  Current architecture snapshot
+
+  - Overall layering is clear and mostly clean: CLI orchestration (src/csvplot/cli.py) -> data loaders (src/csvplot/reader.py, src/csvplot/
+    bubble.py, src/csvplot/summarise.py) -> rendering (src/csvplot/renderer.py) with typed specs (src/csvplot/models.py).
+  - Main risks are now around feature-contract consistency and scale behavior, not fundamental structure.
+
+---
+
+## LLM Integration Flows
+
+csvplot supports three output formats (`visual`, `compact`, `semantic`) designed for two distinct LLM-driven workflows.
+
+### Flow 1: Scout & Presenter
+
+A two-stage pipeline where an LLM explores a dataset and then presents findings to a human.
+
+```
+                  compact                              visual
+  CSV ──→ LLM Scout ──→ csvplot ──→ LLM Scout ──→ csvplot ──→ Human
+          (analysis)     (cheap)    (decides what     (rich)
+                                    to show)
+```
+
+**Stage 1 — Scout (compact mode)**:
+The LLM calls `csvplot summarise -f data.csv --format compact` to cheaply understand the dataset shape: column types, cardinality, distributions, min/max ranges. Based on this, it reasons about which visualizations would be informative — e.g. "the Status column has 3 values, a bar chart would show the distribution; start_date and end_date look like a timeline pair."
+
+The scout may also call `csvplot bubble --format compact` to check sparsity patterns, or `csvplot bar --format compact` to verify a hypothesis about value distributions — all at minimal token cost (55-98% cheaper than visual).
+
+**Stage 2 — Presenter (visual mode)**:
+The LLM generates the final `csvplot` commands with `--format visual` (or no `--format` flag) and presents the rendered charts to the human user. The scout stage informed which commands, columns, filters, and options to use.
+
+**Key design point**: compact mode is not a degraded visual — it's a different representation optimized for LLM reasoning. RLE-encoded bars, sparklines, and `●·` matrices carry the same data signal but at a fraction of the token cost. The LLM never needs to "see" the chart; it needs to understand the data.
+
+**MCP integration**: In an MCP (Model Context Protocol) setup, csvplot commands become tools the LLM can invoke. The scout stage maps to tool calls with `--format compact`, and the presenter stage maps to tool calls with `--format visual` whose output is forwarded to the user's terminal.
+
+### Flow 2: UX Tester
+
+A single-stage flow where an LLM evaluates the visual presentation quality of csvplot's output.
+
+```
+  CSV ──→ csvplot ──→ LLM UX Tester ──→ Feedback
+           (semantic)   (evaluates layout,
+                         alignment, readability)
+```
+
+**The problem**: An LLM can't parse ANSI escape codes (`\x1b[31m...`), so feeding it `--format visual` output produces garbled input. But `--format compact` changes the representation entirely — the LLM would be reviewing a different UI than what the human sees.
+
+**The solution**: `--format semantic` strips ANSI color codes but preserves the exact visual layout: box-drawing characters (`┌─┐│└─┘`), table alignment, braille chart patterns (`⣿⡇`), whitespace padding — everything that constitutes the visual UX. The LLM sees exactly what a human sees, minus the colors.
+
+**What the UX tester can evaluate**:
+- Table column alignment and padding
+- Chart proportions and axis labels
+- Title placement and truncation behavior
+- Whether long values wrap or get cut off
+- Overall information density and readability
+- Consistency across commands (do all tables look similar?)
+
+**What the UX tester cannot evaluate**:
+- Color choices and contrast (stripped by semantic mode)
+- ANSI styling (bold, dim, underline)
+- Terminal-specific rendering artifacts (font, line height)
+
+### Format Selection Guide
+
+| Scenario | Format | Why |
+|----------|--------|-----|
+| Human viewing output directly | `visual` | Full colors and Rich formatting |
+| LLM analyzing data to decide what to plot | `compact` | 55-98% fewer tokens, data-optimized representation |
+| LLM generating charts for human consumption | `visual` | Human sees the real output |
+| LLM reviewing visual UX quality | `semantic` | Same layout as visual, parseable by LLM |
+| MCP tool call for data exploration | `compact` | Cheap scout calls |
+| MCP tool call for final presentation | `visual` | Rich output forwarded to user |
+| Automated regression testing of chart output | `semantic` | Stable text output, no ANSI to match against |
+
+### Implementation Details
+
+- **`compact.py`**: Per-command rendering functions (`compact_timeline`, `compact_bar`, `compact_line`, `compact_bubble`, `compact_summarise`). Each takes a spec and produces a self-contained text block with a `[COMPACT:command]` header.
+- **`semantic.py`**: Two utilities — `strip_ansi()` (regex removal of `\x1b[...]m` sequences) and `semantic_rich()` (Rich Console capture with `export_text(styles=False)`). Plotext output uses `plt.build()` + `strip_ansi()`; Rich output uses `semantic_rich()`.
+- **`renderer.py`**: `render()`, `render_bar()`, `render_line()` accept `build=False` parameter. When `True`, return `plt.build()` string instead of calling `plt.show()`.
+- **`cli.py`**: All 5 commands accept `--format visual|compact|semantic` and branch accordingly.

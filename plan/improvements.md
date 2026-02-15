@@ -15,7 +15,7 @@ After initial implementation, a tester exercised csvplot with `data/timeplot2.cs
 | 3 | Text labels overlap | High | `renderer.py` |
 | 4 | Layer visual distinction too subtle | Medium | `renderer.py` |
 | 5 | No row filtering (`--where`, `--head`) | Low | `cli.py`, `reader.py` |
-| 6 | `--txt` option in README | Low | `readme.md` |
+| 6 | `--txt` option in README | Low | `README.md` |
 
 ---
 
@@ -140,11 +140,11 @@ A full `--where` filter is more complex (expression parsing, type coercion) and 
 
 ## 6. Document `--txt` in README (Low)
 
-The `--txt` option exists in the CLI but is missing from the CLI reference table in `readme.md`.
+The `--txt` option exists in the CLI but is missing from the CLI reference table in `README.md`.
 
 **Files to modify**:
 
-- `readme.md`: add `--txt <col>` row to the argument table
+- `README.md`: add `--txt <col>` row to the argument table
 
 ---
 
