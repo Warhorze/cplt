@@ -97,6 +97,16 @@ class TestLoadSegments:
         sentinel_seg = [s for s in segments if s.y_label == "A" and s.end == open_end]
         assert len(sentinel_seg) == 1  # task3
 
+    def test_open_end_does_not_replace_invalid_non_empty_end(self, tmp_path) -> None:
+        csv_content = "name,start,end,category\ntask1,2024-01-01,not-a-date,A\n"
+        csv_file = tmp_path / "bad_end.csv"
+        csv_file.write_text(csv_content)
+
+        segments = load_segments(
+            csv_file, x_pairs=[("start", "end")], y_col="category", open_end=datetime(2025, 1, 1)
+        )
+        assert segments == []
+
     def test_color_key(self, sample_csv) -> None:
         segments = load_segments(
             sample_csv, x_pairs=[("start", "end")], y_col="category", color_col="color"
