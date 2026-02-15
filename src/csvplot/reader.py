@@ -180,7 +180,8 @@ def filter_rows(
         # Check where-not conditions (exclude if ANY matches)
         excluded = False
         for col, vals in where_not_groups.items():
-            row_val = row[col] if case_sensitive else row[col].lower()
+            actual_col = resolved_cols[col]
+            row_val = row[actual_col] if case_sensitive else row[actual_col].lower()
             if row_val in vals:
                 excluded = True
                 break
@@ -217,6 +218,17 @@ def load_segments(
     """
     segments: list[Segment] = []
     y_cols = [y_col] if isinstance(y_col, str) else list(y_col)
+
+    def _is_open_end_candidate(value: str) -> bool:
+        raw = value.strip()
+        if not raw:
+            return True
+        for fmt in DATETIME_FORMATS:
+            try:
+                return datetime.strptime(raw, fmt).year >= SENTINEL_YEAR
+            except ValueError:
+                continue
+        return False
 
     with open(path, newline="") as f:
         reader = csv.DictReader(f)
