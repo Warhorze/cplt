@@ -11,6 +11,7 @@ csvplot fills that gap and goes further:
 - **Timeline** -- Gantt-style range plots from start/end date columns
 - **Bar** -- Value-count bar charts from any categorical column
 - **Line** -- Line charts for numeric data over time or sequence
+- **Bubble** -- Presence/absence matrix across selected columns
 - Tab-completion for column names so you don't have to memorize your schema
 - Date columns auto-detected -- only datetime columns offered for `--x`
 - Open-ended ranges (NULL, `9999-12-31`) handled by default
@@ -35,6 +36,12 @@ Line chart over time:
 
 ```bash
 csvplot line -f data/temperatures.csv --x Date --y Temp --title "Melbourne Min Temp"
+```
+
+Presence/absence bubble matrix:
+
+```bash
+csvplot bubble -f data/titanic.csv --cols Cabin --cols Age --cols Embarked --y Name
 ```
 
 Timeline with two layers, coloring, and a marker:
@@ -131,6 +138,62 @@ csvplot line -f data.csv --x Date --y Temperature --y Humidity
 csvplot line -f data.csv --x Date --y Revenue --color Region --title "Revenue by Region"
 ```
 
+In date mode, rows with blank or invalid values in `--x` are skipped.
+
+### `csvplot bubble`
+
+Plot a presence/absence matrix from CSV columns.
+
+| Argument | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `--file`, `-f` | Yes | | Path to CSV file |
+| `--cols <col>` | Yes (1+) | | Columns to check; repeat per column |
+| `--y <col>` | Yes | | Row label column |
+| `--color <col>` | No | | Color rows by this column |
+| `--top <n>` | No | | Show only top N columns by fill-rate |
+| `--head <n>` | No | | Only read the first N CSV rows |
+| `--title <text>` | No | filename | Chart title |
+
+```bash
+csvplot bubble -f data.csv --cols feature_a --cols feature_b --cols feature_c --y name
+```
+
+### Output formats
+
+All commands support `--format` with three modes:
+
+| Format | Purpose | Description |
+|--------|---------|-------------|
+| `visual` (default) | Human viewing | Full Rich tables and plotext charts with ANSI colors |
+| `semantic` | LLM UX testing | Same visual layout but with ANSI codes stripped -- an LLM sees exactly what a human sees |
+| `compact` | LLM data analysis | Token-efficient representation (RLE bars, sparklines, `●·` matrices) |
+
+```bash
+csvplot bar -f data.csv -c Status --format compact    # for LLM analysis pipelines
+csvplot bar -f data.csv -c Status --format semantic   # for LLM UX review
+```
+
+**Approximate token cost per format** (heuristic, varies by data size):
+
+| Command | Visual | Semantic | Compact | Saving |
+|---------|-------:|---------:|--------:|-------:|
+| timeline (15 rows) | ~750 | ~530 | ~230 | 69% |
+| bar (891 rows, 3 categories) | ~1,720 | ~1,000 | ~40 | 98% |
+| line (100 data points) | ~2,570 | ~530 | ~110 | 96% |
+| bubble (10 rows, 3 cols) | ~430 | ~430 | ~180 | 58% |
+| summarise (5 columns) | ~690 | ~810 | ~310 | 55% |
+
+Compact saves 55-98% of tokens vs visual. Semantic is cheaper than visual for plotext charts (no ANSI overhead) but similar for Rich tables. Use **compact** when an LLM needs to reason about the data; use **semantic** when an LLM needs to evaluate the visual presentation.
+
+### Filtering
+
+All chart and summary commands support:
+
+- `--where "COL=value"` include rows
+- `--where-not "COL=value"` exclude rows
+
+Matching is case-insensitive by default for both column names and values.
+
 ### Tab completion
 
 After running `csvplot --install-completion`, column-name options complete from the CSV headers:
@@ -143,7 +206,7 @@ Requires `--file` to appear before the column options on the command line.
 
 ### Open-end handling
 
-By default, NULL or sentinel end dates (`9999-12-31`) are replaced with today's date so ranges are always visible. Pass `--no-open-end` to skip rows with missing end dates instead.
+By default, only NULL/empty or sentinel end dates (`9999-12-31`) are replaced with today's date so ranges are visible. Pass `--no-open-end` to skip rows with missing/sentinel end dates.
 
 ---
 
@@ -169,7 +232,7 @@ pytest
 
 ```
 src/csvplot/
-  cli.py          # Typer app: timeline, bar, line commands
+  cli.py          # Typer app: timeline, bar, line, bubble, summarise commands
   reader.py       # CSV reading, datetime parsing, data loading
   models.py       # PlotSpec, BarSpec, LineSpec, Segment, Marker
   renderer.py     # Spec -> plotext -> terminal
