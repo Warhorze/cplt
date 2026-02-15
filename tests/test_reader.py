@@ -280,3 +280,13 @@ class TestLoadLineData:
     def test_missing_column(self, line_csv) -> None:
         with pytest.raises(KeyError):
             load_line_data(line_csv, x_col="nonexistent", y_cols=["temperature"])
+
+    def test_date_x_drops_invalid_rows(self, tmp_path) -> None:
+        csv_content = "date,temperature\n2024-01-01,10\n,11\n2024-01-03,12\n"
+        csv_file = tmp_path / "bad_line.csv"
+        csv_file.write_text(csv_content)
+
+        spec = load_line_data(csv_file, x_col="date", y_cols=["temperature"])
+        assert spec.x_is_date is True
+        assert spec.x_values == ["2024-01-01", "2024-01-03"]
+        assert spec.y_series["temperature"] == [10.0, 12.0]
