@@ -6,12 +6,34 @@ build-backend = "hatchling.build"
 name = "csvplot"
 version = "0.1.0"
 description = "Plot timeline/Gantt-style ranges from CSV files in the terminal"
+readme = "README.md"
+license = "MIT"
 requires-python = ">=3.11"
+authors = [
+    { name = "wesley", email = "rademakerwesley@gmail.com" },
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Visualization",
+]
 dependencies = [
     "typer>=0.9",
     "rich>=13.0",
     "plotext>=5.2",
 ]
+
+[project.urls]
+Homepage = "https://github.com/Warhorze/csvplot"
+Repository = "https://github.com/Warhorze/csvplot"
+Issues = "https://github.com/Warhorze/csvplot/issues"
 
 [project.optional-dependencies]
 dev = [

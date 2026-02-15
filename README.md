@@ -1,5 +1,9 @@
 # csvplot
 
+[![PyPI](https://img.shields.io/pypi/v/csvplot)](https://pypi.org/project/csvplot/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![CI](https://github.com/Warhorze/csvplot/actions/workflows/ci.yml/badge.svg)](https://github.com/Warhorze/csvplot/actions/workflows/ci.yml)
+
 A CLI tool for plotting CSV data directly in the terminal. Supports timeline/Gantt-style ranges, bar charts, and line charts.
 
 ## Why csvplot?
@@ -19,12 +23,25 @@ csvplot fills that gap and goes further:
 
 ---
 
-## Quick Start
+## Installation
+
+Install from PyPI:
 
 ```bash
-pip install -e .
-csvplot --install-completion  # enable tab-completion (restart shell after)
+pip install csvplot
+# or
+pipx install csvplot
 ```
+
+Or download a standalone binary (no Python needed) from the [latest GitHub release](https://github.com/Warhorze/csvplot/releases/latest).
+
+After installing, enable tab-completion:
+
+```bash
+csvplot --install-completion  # restart shell after
+```
+
+## Quick Start
 
 Bar chart from a categorical column:
 
@@ -242,8 +259,10 @@ No pandas. The stdlib `csv` module is all that's needed for the current scope.
 ## Development
 
 ```bash
-pip install -e ".[dev]"
-pytest
+uv sync --extra dev
+uv run pytest
+uv run ruff check src/ tests/
+uv run mypy src/
 ```
 
 ### Project structure
@@ -265,3 +284,9 @@ data/
   temperatures.csv # Melbourne daily min temps 1981-1990 (line testing)
   projects.csv    # Sample project timeline data
 ```
+
+---
+
+## License
+
+[MIT](LICENSE)
