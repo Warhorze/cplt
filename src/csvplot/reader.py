@@ -124,6 +124,30 @@ def parse_where(expr: str) -> tuple[str, str]:
     return col, val
 
 
+def _resolve_filter_columns(
+    requested_cols: list[str], row: dict[str, str], *, case_sensitive: bool
+) -> dict[str, str]:
+    """Resolve requested filter columns to actual CSV keys."""
+    if case_sensitive:
+        missing = [col for col in requested_cols if col not in row]
+        if missing:
+            missing_col = missing[0]
+            raise KeyError(
+                f"Column {missing_col!r} not found. Available: {', '.join(sorted(row.keys()))}"
+            )
+        return {col: col for col in requested_cols}
+
+    # Case-insensitive column matching, preserving actual key casing.
+    key_map = {k.lower(): k for k in row}
+    resolved: dict[str, str] = {}
+    for col in requested_cols:
+        actual = key_map.get(col.lower())
+        if actual is None:
+            raise KeyError(f"Column {col!r} not found. Available: {', '.join(sorted(row.keys()))}")
+        resolved[col] = actual
+    return resolved
+
+
 def filter_rows(
     rows: Iterator[dict[str, str]],
     *,
@@ -155,21 +179,21 @@ def filter_rows(
     for col, val in where_nots:
         where_not_groups[col].append(val if case_sensitive else val.lower())
 
-    first = True
+    resolved_cols: dict[str, str] | None = None
     for row in rows:
-        # Validate column names on first row
-        if first:
-            first = False
-            for col in list(where_groups) + list(where_not_groups):
-                if col not in row:
-                    raise KeyError(
-                        f"Column {col!r} not found. Available: {', '.join(sorted(row.keys()))}"
-                    )
+        # Validate column names on first row and resolve case-insensitive aliases.
+        if resolved_cols is None:
+            resolved_cols = _resolve_filter_columns(
+                list(where_groups) + list(where_not_groups),
+                row,
+                case_sensitive=case_sensitive,
+            )
 
         # Check where conditions (AND across columns, OR within same column)
         match = True
         for col, vals in where_groups.items():
-            row_val = row[col] if case_sensitive else row[col].lower()
+            actual_col = resolved_cols[col]
+            row_val = row[actual_col] if case_sensitive else row[actual_col].lower()
             if row_val not in vals:
                 match = False
                 break
@@ -251,7 +275,7 @@ def load_segments(
                 start = parse_datetime(row[start_col])
                 end = parse_datetime(row[end_col])
                 if start is not None:
-                    if end is None and open_end is not None:
+                    if end is None and open_end is not None and _is_open_end_candidate(row[end_col]):
                         end = open_end
                     if end is not None:
                         if start > end:
