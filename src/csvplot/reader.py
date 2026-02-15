@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import csv
+import sys
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
@@ -241,6 +242,7 @@ def load_segments(
         max_rows: Limit processing to the first N CSV rows.
     """
     segments: list[Segment] = []
+    skipped_unparseable = 0
     y_cols = [y_col] if isinstance(y_col, str) else list(y_col)
 
     def _is_open_end_candidate(value: str) -> bool:
@@ -274,27 +276,38 @@ def load_segments(
             for layer_index, (start_col, end_col) in enumerate(x_pairs):
                 start = parse_datetime(row[start_col])
                 end = parse_datetime(row[end_col])
-                if start is not None:
-                    if end is None and open_end is not None and _is_open_end_candidate(row[end_col]):
-                        end = open_end
-                    if end is not None:
-                        if start > end:
-                            rprint(
-                                f"[yellow]Warning:[/yellow] start > end in row "
-                                f"(y={y_label!r}, layer={layer_index}), swapping."
-                            )
-                            start, end = end, start
-                        segments.append(
-                            Segment(
-                                row_index=row_index,
-                                layer=layer_index,
-                                y_label=y_label,
-                                start=start,
-                                end=end,
-                                color_key=color_key,
-                                txt_label=txt_label,
-                            )
-                        )
+                if start is None:
+                    if row[start_col].strip() and not _is_open_end_candidate(row[start_col]):
+                        skipped_unparseable += 1
+                    continue
+                if end is None and open_end is not None and _is_open_end_candidate(row[end_col]):
+                    end = open_end
+                if end is None:
+                    if row[end_col].strip() and not _is_open_end_candidate(row[end_col]):
+                        skipped_unparseable += 1
+                    continue
+                if start > end:
+                    rprint(
+                        f"[yellow]Warning:[/yellow] start > end in row "
+                        f"(y={y_label!r}, layer={layer_index}), swapping."
+                    )
+                    start, end = end, start
+                segments.append(
+                    Segment(
+                        row_index=row_index,
+                        layer=layer_index,
+                        y_label=y_label,
+                        start=start,
+                        end=end,
+                        color_key=color_key,
+                        txt_label=txt_label,
+                    )
+                )
+
+    if skipped_unparseable > 0:
+        sys.stderr.write(
+            f"Warning: skipped {skipped_unparseable} row(s) with unparseable dates\n"
+        )
 
     return segments
 

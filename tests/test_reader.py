@@ -107,6 +107,40 @@ class TestLoadSegments:
         )
         assert segments == []
 
+    def test_warns_on_unparseable_end_dates(self, tmp_path, capsys) -> None:
+        csv_content = (
+            "name,start,end,category\n"
+            "task1,2024-01-01,not-a-date,A\n"
+            "task2,2024-01-01,also-bad,B\n"
+            "task3,2024-01-01,2024-06-01,C\n"
+        )
+        csv_file = tmp_path / "bad_ends.csv"
+        csv_file.write_text(csv_content)
+
+        segments = load_segments(csv_file, x_pairs=[("start", "end")], y_col="category")
+        assert len(segments) == 1
+        captured = capsys.readouterr()
+        assert "skipped 2 row(s) with unparseable dates" in captured.err
+
+    def test_warns_on_unparseable_start_dates(self, tmp_path, capsys) -> None:
+        csv_content = (
+            "name,start,end,category\n"
+            "task1,garbage,2024-06-01,A\n"
+            "task2,2024-01-01,2024-06-01,B\n"
+        )
+        csv_file = tmp_path / "bad_starts.csv"
+        csv_file.write_text(csv_content)
+
+        segments = load_segments(csv_file, x_pairs=[("start", "end")], y_col="category")
+        assert len(segments) == 1
+        captured = capsys.readouterr()
+        assert "skipped 1 row(s) with unparseable dates" in captured.err
+
+    def test_no_warning_when_all_dates_valid(self, sample_csv, capsys) -> None:
+        load_segments(sample_csv, x_pairs=[("start", "end")], y_col="category")
+        captured = capsys.readouterr()
+        assert "skipped" not in captured.err
+
     def test_color_key(self, sample_csv) -> None:
         segments = load_segments(
             sample_csv, x_pairs=[("start", "end")], y_col="category", color_col="color"
