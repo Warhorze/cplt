@@ -409,6 +409,21 @@ class TestCompactSummarise:
         assert "text" in out
         assert "Alice(5)" in out
 
+    def test_top_values_header_includes_freq(self):
+        """Column header should say 'Top Values (freq)' not just 'Top Values'."""
+        summaries = [
+            ColumnSummary(
+                name="col",
+                detected_type="text",
+                row_count=10,
+                non_null_count=10,
+                unique_count=3,
+                top_values=[("a", 5)],
+            ),
+        ]
+        out = compact_summarise(summaries, title="t.csv")
+        assert "Top Values (freq)" in out
+
     def test_empty_columns(self):
         """Empty summaries list produces no-data message."""
         out = compact_summarise([], title="empty.csv")

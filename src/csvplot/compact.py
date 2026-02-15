@@ -301,7 +301,7 @@ def compact_summarise(
     lines.append("---")
 
     # Build table rows
-    headers = ["Column", "Type", "Non-null", "Unique", "Min", "Max", "Top Values"]
+    headers = ["Column", "Type", "Non-null", "Unique", "Min", "Max", "Top Values (freq)"]
     rows: list[list[str]] = []
     for s in summaries:
         top_str = ""

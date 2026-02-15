@@ -577,7 +577,7 @@ def summarise(
         table.add_column("Unique", justify="right")
         table.add_column("Min")
         table.add_column("Max")
-        table.add_column("Top Values")
+        table.add_column("Top Values (freq)")
 
         for s in summaries:
             top_str = ""
