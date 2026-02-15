@@ -1,0 +1,16 @@
+project,team,start_date,end_date,status
+Auth service,Backend,2025-10-01,2025-11-15,Done
+Payment API,Backend,2025-11-01,2026-01-10,Done
+Search indexer,Backend,2026-01-05,2026-03-01,In Progress
+Recommendation engine,Backend,2026-02-15,2026-04-30,Planning
+Design system,Frontend,2025-09-15,2025-12-20,Done
+Dashboard v2,Frontend,2025-12-01,2026-02-28,In Progress
+Mobile app,Frontend,2026-01-20,2026-05-15,In Progress
+Onboarding wizard,Frontend,2026-03-01,2026-04-15,Planning
+CI/CD pipeline,Platform,2025-10-10,2025-11-30,Done
+Kubernetes migration,Platform,2025-11-15,2026-02-10,Done
+Observability stack,Platform,2026-01-15,2026-03-20,In Progress
+Disaster recovery,Platform,2026-03-15,2026-05-30,Planning
+GDPR audit,Security,2025-11-01,2026-01-15,Done
+Pen testing,Security,2026-01-10,2026-02-20,In Progress
+SOC2 certification,Security,2026-02-01,2026-06-30,In Progress
