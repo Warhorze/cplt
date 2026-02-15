@@ -124,9 +124,7 @@ class TestLoadSegments:
 
     def test_warns_on_unparseable_start_dates(self, tmp_path, capsys) -> None:
         csv_content = (
-            "name,start,end,category\n"
-            "task1,garbage,2024-06-01,A\n"
-            "task2,2024-01-01,2024-06-01,B\n"
+            "name,start,end,category\ntask1,garbage,2024-06-01,A\ntask2,2024-01-01,2024-06-01,B\n"
         )
         csv_file = tmp_path / "bad_starts.csv"
         csv_file.write_text(csv_content)
@@ -146,6 +144,21 @@ class TestLoadSegments:
             sample_csv, x_pairs=[("start", "end")], y_col="category", color_col="color"
         )
         assert segments[0].color_key == "red"
+        assert segments[1].color_key == "blue"
+
+    def test_color_key_missing_value_group(self, tmp_path) -> None:
+        csv_content = (
+            "name,start,end,category,color\n"
+            "task1,2024-01-01,2024-01-02,A,\n"
+            "task2,2024-01-03,2024-01-04,A,blue\n"
+        )
+        csv_file = tmp_path / "missing_color.csv"
+        csv_file.write_text(csv_content)
+
+        segments = load_segments(
+            csv_file, x_pairs=[("start", "end")], y_col="category", color_col="color"
+        )
+        assert segments[0].color_key == "(missing)"
         assert segments[1].color_key == "blue"
 
     def test_missing_column_raises(self, sample_csv) -> None:
@@ -254,6 +267,10 @@ class TestLoadBarData:
         spec = load_bar_data(bar_csv, column="status", sort_by="none")
         assert spec.labels[0] == "open"  # first in CSV
 
+    def test_invalid_sort_raises(self, bar_csv) -> None:
+        with pytest.raises(ValueError, match="Invalid sort_by"):
+            load_bar_data(bar_csv, column="status", sort_by="invalid")  # type: ignore[arg-type]
+
     def test_top_limits(self, bar_csv) -> None:
         spec = load_bar_data(bar_csv, column="assignee", sort_by="value", top=2)
         assert len(spec.labels) == 2
@@ -286,9 +303,7 @@ class TestLoadLineData:
         assert "humidity" in spec.y_series
 
     def test_color_grouping(self, line_csv) -> None:
-        spec = load_line_data(
-            line_csv, x_col="date", y_cols=["temperature"], color_col="region"
-        )
+        spec = load_line_data(line_csv, x_col="date", y_cols=["temperature"], color_col="region")
         assert "north" in spec.y_series
         assert "south" in spec.y_series
         assert len(spec.x_values) == 3  # 3 unique dates

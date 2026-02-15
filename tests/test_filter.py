@@ -61,17 +61,13 @@ class TestFilterRows:
 
     def test_same_column_repeated_is_or(self):
         rows = self._rows(FILTER_CSV)
-        result = list(
-            filter_rows(iter(rows), wheres=[("status", "open"), ("status", "closed")])
-        )
+        result = list(filter_rows(iter(rows), wheres=[("status", "open"), ("status", "closed")]))
         # all 5 rows match (open OR closed)
         assert len(result) == 5
 
     def test_different_columns_is_and(self):
         rows = self._rows(FILTER_CSV)
-        result = list(
-            filter_rows(iter(rows), wheres=[("status", "open"), ("region", "north")])
-        )
+        result = list(filter_rows(iter(rows), wheres=[("status", "open"), ("region", "north")]))
         # open AND north: alice, charlie
         assert len(result) == 2
         assert {r["name"] for r in result} == {"alice", "charlie"}
@@ -89,9 +85,7 @@ class TestFilterRows:
 
     def test_case_sensitive(self):
         rows = self._rows(FILTER_CSV)
-        result = list(
-            filter_rows(iter(rows), wheres=[("status", "Open")], case_sensitive=True)
-        )
+        result = list(filter_rows(iter(rows), wheres=[("status", "Open")], case_sensitive=True))
         # Only eve has exactly "Open"
         assert len(result) == 1
         assert result[0]["name"] == "eve"

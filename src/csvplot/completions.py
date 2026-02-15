@@ -5,6 +5,7 @@ from __future__ import annotations
 import csv
 import difflib
 from pathlib import Path
+from typing import Any
 
 import click
 
@@ -20,6 +21,22 @@ SAMPLE_ROWS_FOR_VALUES = 1000
 
 _START_KEYWORDS = {"start", "begin", "van", "from", "first"}
 _END_KEYWORDS = {"end", "eind", "stop", "last", "final", "tot", "until"}
+
+
+def _ctx_file_path(ctx: click.Context) -> str | Path | None:
+    value: Any = ctx.params.get("file")
+    if isinstance(value, (str, Path)):
+        return value
+    return None
+
+
+def _ctx_param_values(ctx: click.Context, name: str) -> list[str]:
+    value: Any = ctx.params.get(name)
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, list):
+        return [item for item in value if isinstance(item, str)]
+    return []
 
 
 def _cache_key(file_path: str | Path) -> tuple[str, float] | None:
@@ -83,19 +100,21 @@ def _sort_columns_for_position(columns: list[str], position: int) -> list[str]:
 
 def complete_column(ctx: click.Context, args: list[str], incomplete: str) -> list[str]:
     """Typer/Click autocompletion callback for all column-name options."""
-    file_path = ctx.params.get("file")
+    _ = args
+    file_path = _ctx_file_path(ctx)
     columns = _get_columns(file_path)
     return [c for c in columns if c.lower().startswith(incomplete.lower())]
 
 
 def complete_date_column(ctx: click.Context, args: list[str], incomplete: str) -> list[str]:
     """Typer/Click autocompletion callback for date column options with smart ordering."""
-    file_path = ctx.params.get("file")
+    _ = args
+    file_path = _ctx_file_path(ctx)
     columns = _get_date_columns(file_path)
 
     # Determine current position in --x values for smart ordering
-    x_values = ctx.params.get("x")
-    position = len(x_values) if x_values else 0
+    x_values = _ctx_param_values(ctx, "x")
+    position = len(x_values)
 
     filtered = [c for c in columns if c.lower().startswith(incomplete.lower())]
     return _sort_columns_for_position(filtered, position)
@@ -157,12 +176,9 @@ def _last_context_column(ctx: click.Context) -> str | None:
     """Find the last --x or --y column from context params for pre-filling."""
     # Check --y first (more specific), then --x
     for param in ("y", "x"):
-        vals = ctx.params.get(param)
+        vals = _ctx_param_values(ctx, param)
         if vals:
-            if isinstance(vals, list) and vals:
-                return vals[-1]
-            elif isinstance(vals, str):
-                return vals
+            return vals[-1]
     return None
 
 
@@ -171,7 +187,8 @@ def complete_where(ctx: click.Context, args: list[str], incomplete: str) -> list
 
     Context-aware: pre-fills column name from the last --x/--y.
     """
-    file_path = ctx.params.get("file")
+    _ = args
+    file_path = _ctx_file_path(ctx)
     if not file_path:
         return []
 

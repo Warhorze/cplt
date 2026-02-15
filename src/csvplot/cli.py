@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Annotated, Optional
+from typing import Annotated, Literal, Optional, cast
 
 import typer
 from rich import print as rprint
@@ -37,6 +37,14 @@ def _validate_format(format_opt: str) -> None:
             f"got {format_opt!r}"
         )
         raise typer.Exit(1)
+
+
+def _require_canvas(canvas: str | None) -> str:
+    """Ensure a built renderer canvas is available."""
+    if canvas is None:
+        rprint("[red]Error:[/red] Failed to build semantic output.")
+        raise typer.Exit(1)
+    return canvas
 
 
 @app.callback()
@@ -271,7 +279,7 @@ def timeline(
         view_end=view_end,
         title=chart_title,
         x_pair_names=x_pairs,
-        color_col_name=color or "",
+        color_col_name=color or None,
     )
 
     # Render
@@ -282,7 +290,8 @@ def timeline(
     elif format_opt == "semantic":
         from csvplot.semantic import strip_ansi
 
-        print(strip_ansi(render(spec, build=True)))
+        canvas = _require_canvas(render(spec, build=True))
+        print(strip_ansi(canvas))
     else:
         render(spec)
 
@@ -347,6 +356,7 @@ def bar(
     if sort not in ("value", "label", "none"):
         rprint(f"[red]Error:[/red] --sort must be 'value', 'label', or 'none', got {sort!r}")
         raise typer.Exit(1)
+    sort_by = cast(Literal["value", "label", "none"], sort)
 
     # Parse --where / --where-not expressions
     wheres: list[tuple[str, str]] = []
@@ -366,7 +376,7 @@ def bar(
         spec = load_bar_data(
             path=file,
             column=column,
-            sort_by=sort,
+            sort_by=sort_by,
             top=top,
             max_rows=head,
             title=chart_title,
@@ -389,7 +399,8 @@ def bar(
     elif format_opt == "semantic":
         from csvplot.semantic import strip_ansi
 
-        print(strip_ansi(render_bar(spec, build=True)))
+        canvas = _require_canvas(render_bar(spec, build=True))
+        print(strip_ansi(canvas))
     else:
         render_bar(spec)
 
@@ -495,7 +506,8 @@ def line(
     elif format_opt == "semantic":
         from csvplot.semantic import strip_ansi
 
-        print(strip_ansi(render_line(spec, build=True)))
+        canvas = _require_canvas(render_line(spec, build=True))
+        print(strip_ansi(canvas))
     else:
         render_line(spec)
 
@@ -533,6 +545,7 @@ def summarise(
 ) -> None:
     """Print a summary of a CSV file — column types, counts, nulls, top values."""
     _validate_format(format_opt)
+    sample_rows: list[dict[str, str]] = []
     # Parse --where / --where-not expressions
     wheres: list[tuple[str, str]] = []
     where_nots: list[tuple[str, str]] = []
@@ -562,7 +575,6 @@ def summarise(
                 where_nots=where_nots or None,
                 max_rows=head,
             )
-            sample_rows = []
     except KeyError as e:
         rprint(f"[red]Error:[/red] Column not found in CSV: {e}")
         raise typer.Exit(1)

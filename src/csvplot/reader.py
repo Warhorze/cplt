@@ -7,7 +7,7 @@ import sys
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
-from typing import Iterator
+from typing import Iterator, Literal
 
 from rich import print as rprint
 
@@ -26,6 +26,7 @@ DATETIME_FORMATS = [
 ]
 
 SENTINEL_YEAR = 9999
+MISSING_GROUP = "(missing)"
 
 
 def read_csv_header(path: str | Path) -> list[str]:
@@ -270,7 +271,10 @@ def load_segments(
             y_label = " | ".join(row[col] for col in y_cols)
             if y_detail_col:
                 y_label = f"{y_label} | {row[y_detail_col]}"
-            color_key = row[color_col] if color_col else ""
+            color_key: str | None = None
+            if color_col:
+                color_raw = row[color_col].strip()
+                color_key = color_raw if color_raw else MISSING_GROUP
             txt_label = row[txt_col] if txt_col else ""
 
             for layer_index, (start_col, end_col) in enumerate(x_pairs):
@@ -305,9 +309,7 @@ def load_segments(
                 )
 
     if skipped_unparseable > 0:
-        sys.stderr.write(
-            f"Warning: skipped {skipped_unparseable} row(s) with unparseable dates\n"
-        )
+        sys.stderr.write(f"Warning: skipped {skipped_unparseable} row(s) with unparseable dates\n")
 
     return segments
 
@@ -316,7 +318,7 @@ def load_bar_data(
     path: str | Path,
     column: str,
     *,
-    sort_by: str = "value",
+    sort_by: Literal["value", "label", "none"] = "value",
     top: int | None = None,
     max_rows: int | None = None,
     title: str = "csvplot",
@@ -354,6 +356,9 @@ def load_bar_data(
                 order.append(val)
                 counts[val] = 0
             counts[val] += 1
+
+    if sort_by not in {"value", "label", "none"}:
+        raise ValueError(f"Invalid sort_by {sort_by!r}; expected 'value', 'label', or 'none'.")
 
     if sort_by == "value":
         order.sort(key=lambda k: counts[k], reverse=True)

@@ -285,7 +285,7 @@ def compact_bubble(spec: BubbleSpec, title: str = "csvplot") -> str:
 def compact_summarise(
     summaries: list[ColumnSummary],
     title: str = "csvplot",
-    sample_rows: list[dict] | None = None,
+    sample_rows: list[dict[str, str]] | None = None,
 ) -> str:
     """Render column summaries as compact tabular text."""
     lines: list[str] = []
@@ -310,15 +310,17 @@ def compact_summarise(
         elif s.top_values:
             top_str = ", ".join(f"{v}({c})" for v, c in s.top_values[:5])
 
-        rows.append([
-            s.name,
-            s.detected_type,
-            str(s.non_null_count),
-            str(s.unique_count),
-            s.min_val or "-",
-            s.max_val or "-",
-            top_str or "-",
-        ])
+        rows.append(
+            [
+                s.name,
+                s.detected_type,
+                str(s.non_null_count),
+                str(s.unique_count),
+                s.min_val or "-",
+                s.max_val or "-",
+                top_str or "-",
+            ]
+        )
 
     # Calculate column widths
     col_widths = [len(h) for h in headers]

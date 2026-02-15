@@ -280,7 +280,7 @@ No pandas. The stdlib `csv` module is all that's needed for the current scope.
 uv sync --extra dev
 uv run pytest
 uv run ruff check src/ tests/
-uv run mypy src/
+uv run pyright
 ```
 
 ### Project structure

@@ -7,7 +7,7 @@ import random
 from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Iterator, overload
+from typing import Iterator, Literal, overload
 
 from csvplot.reader import filter_rows, parse_datetime
 
@@ -38,7 +38,7 @@ def summarise_csv(
     case_sensitive: bool = ...,
     max_rows: int | None = ...,
     sample_n: int | None = ...,
-    return_sample: bool = ...,
+    return_sample: Literal[False] = ...,
 ) -> list[ColumnSummary]: ...
 
 
@@ -50,8 +50,8 @@ def summarise_csv(
     where_nots: list[tuple[str, str]] | None = ...,
     case_sensitive: bool = ...,
     max_rows: int | None = ...,
-    sample_n: int = ...,
-    return_sample: bool = ...,
+    sample_n: int,
+    return_sample: Literal[True],
 ) -> tuple[list[ColumnSummary], list[dict[str, str]]]: ...
 
 

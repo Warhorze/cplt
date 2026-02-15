@@ -145,7 +145,7 @@ def render(spec: PlotSpec, build: bool = False) -> str | None:
 
     has_color_keys = any(seg.color_key for seg in spec.segments)
 
-    legend_seen: set[tuple[str, str]] = set()
+    legend_seen: set[tuple[str, str | None]] = set()
     legend_entries: list[str] = []
 
     # Build layer display names from x_pair_names
@@ -155,13 +155,17 @@ def render(spec: PlotSpec, build: bool = False) -> str | None:
             return f"{s} \u2013 {e}"
         return f"layer {layer}" if layer > 0 else "primary"
 
-    def _color_display(color_key: str) -> str:
+    def _color_display(color_key: str | None) -> str:
+        if color_key is None:
+            return ""
         if color_key and spec.color_col_name:
             return f"{spec.color_col_name}: {color_key}"
         return color_key
 
     def _resolve_color(seg: Segment, default: str) -> str:
         if has_color_keys:
+            if seg.color_key is None:
+                return default
             return color_map.get(seg.color_key, default)
         return color_map.get(seg.y_label, default)
 
@@ -176,7 +180,9 @@ def render(spec: PlotSpec, build: bool = False) -> str | None:
         color = _resolve_color(seg, "gray")
         layer_name = _layer_display(seg.layer)
         legend_key = (layer_name, seg.color_key)
-        legend_label = f"{layer_name} ({_color_display(seg.color_key)})" if seg.color_key else layer_name
+        legend_label = (
+            f"{layer_name} ({_color_display(seg.color_key)})" if seg.color_key else layer_name
+        )
         if legend_key not in legend_seen:
             legend_entries.append(legend_label)
         marker_style = _LAYER_MARKERS[seg.layer % len(_LAYER_MARKERS)]
@@ -197,7 +203,9 @@ def render(spec: PlotSpec, build: bool = False) -> str | None:
         color = _resolve_color(seg, "white")
         layer_name = _layer_display(0)
         legend_key = (layer_name, seg.color_key)
-        legend_label = f"{layer_name} ({_color_display(seg.color_key)})" if seg.color_key else layer_name
+        legend_label = (
+            f"{layer_name} ({_color_display(seg.color_key)})" if seg.color_key else layer_name
+        )
         if legend_key not in legend_seen:
             legend_entries.append(legend_label)
         plt.plot(
@@ -280,7 +288,11 @@ def render_line(spec: LineSpec, build: bool = False) -> str | None:
     if spec.x_is_date:
         from csvplot.reader import parse_datetime as _pd
 
-        x_display = [_dt_to_str(_pd(v)) if _pd(v) else v for v in spec.x_values]
+        normalized: list[str] = []
+        for value in spec.x_values:
+            parsed = _pd(value)
+            normalized.append(_dt_to_str(parsed) if parsed else value)
+        x_display = normalized
 
     for i, (series_name, y_vals) in enumerate(spec.y_series.items()):
         color = PALETTE[i % len(PALETTE)]

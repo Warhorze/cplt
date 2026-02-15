@@ -43,7 +43,7 @@ class TestSegment:
             start=datetime(2024, 1, 1),
             end=datetime(2024, 1, 10),
         )
-        assert seg.color_key == ""
+        assert seg.color_key is None
 
     def test_layer_supports_arbitrary_int(self) -> None:
         seg = Segment(

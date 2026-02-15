@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any, cast
 from unittest.mock import MagicMock
 
+import click
 import pytest
 
 from csvplot.completions import complete_where, match_values
@@ -61,56 +63,54 @@ class TestMatchValues:
 
 
 class TestCompleteWhere:
+    @staticmethod
+    def _ctx(params: dict[str, Any]) -> click.Context:
+        mock = MagicMock()
+        mock.params = params
+        return cast(click.Context, mock)
+
     def test_empty_incomplete_suggests_columns(self, where_csv: Path) -> None:
-        ctx = MagicMock()
-        ctx.params = {"file": where_csv, "x": ["status"]}
+        ctx = self._ctx({"file": where_csv, "x": ["status"]})
         result = complete_where(ctx, [], "")
         # Should suggest column=value format, with last --x column pre-filled
         assert any("status=" in r for r in result)
 
     def test_with_col_prefix_suggests_values(self, where_csv: Path) -> None:
-        ctx = MagicMock()
-        ctx.params = {"file": where_csv, "x": ["status"]}
+        ctx = self._ctx({"file": where_csv, "x": ["status"]})
         result = complete_where(ctx, [], "status=")
         assert any("open" in r.lower() for r in result)
 
     def test_with_partial_value(self, where_csv: Path) -> None:
-        ctx = MagicMock()
-        ctx.params = {"file": where_csv, "x": ["status"]}
+        ctx = self._ctx({"file": where_csv, "x": ["status"]})
         result = complete_where(ctx, [], "status=op")
         # Should match "open" and "Open"
         assert any("open" in r.lower() for r in result)
 
     def test_with_col_prefix_case_insensitive(self, where_csv: Path) -> None:
-        ctx = MagicMock()
-        ctx.params = {"file": where_csv, "x": ["status"]}
+        ctx = self._ctx({"file": where_csv, "x": ["status"]})
         result = complete_where(ctx, [], "STATUS=op")
         # Runtime filtering is case-insensitive; completion should match that behavior.
         assert any(r.startswith("status=") for r in result)
         assert any("open" in r.lower() for r in result)
 
     def test_no_file_returns_empty(self) -> None:
-        ctx = MagicMock()
-        ctx.params = {"file": None}
+        ctx = self._ctx({"file": None})
         result = complete_where(ctx, [], "")
         assert result == []
 
     def test_context_from_y(self, where_csv: Path) -> None:
-        ctx = MagicMock()
-        ctx.params = {"file": where_csv, "y": ["region"], "x": []}
+        ctx = self._ctx({"file": where_csv, "y": ["region"], "x": []})
         result = complete_where(ctx, [], "")
         assert any("region=" in r for r in result)
 
     def test_context_column_case_insensitive(self, where_csv: Path) -> None:
-        ctx = MagicMock()
-        ctx.params = {"file": where_csv, "y": ["STATUS"], "x": []}
+        ctx = self._ctx({"file": where_csv, "y": ["STATUS"], "x": []})
         result = complete_where(ctx, [], "")
         assert any(r.startswith("status=") for r in result)
 
     def test_malformed_csv_no_crash(self, tmp_path: Path) -> None:
         bad = tmp_path / "bad.csv"
         bad.write_text("this is not\nvalid csv \x00 data")
-        ctx = MagicMock()
-        ctx.params = {"file": bad}
+        ctx = self._ctx({"file": bad})
         result = complete_where(ctx, [], "")
         assert isinstance(result, list)

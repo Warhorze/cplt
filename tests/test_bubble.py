@@ -67,9 +67,7 @@ class TestLoadBubbleData:
         assert spec.y_labels == ["alice", "charlie", "eve"]
 
     def test_head_limits_rows(self, bubble_csv: Path) -> None:
-        spec = load_bubble_data(
-            bubble_csv, cols=["feature_a"], y_col="name", max_rows=2
-        )
+        spec = load_bubble_data(bubble_csv, cols=["feature_a"], y_col="name", max_rows=2)
         assert len(spec.y_labels) == 2
 
     def test_missing_column_raises(self, bubble_csv: Path) -> None:

@@ -13,7 +13,7 @@ class Segment:
     y_label: str
     start: datetime
     end: datetime
-    color_key: str = ""
+    color_key: str | None = None
     txt_label: str = ""
 
 
@@ -47,4 +47,4 @@ class PlotSpec:
     view_end: datetime | None = None
     title: str = "csvplot"
     x_pair_names: list[tuple[str, str]] = field(default_factory=list)
-    color_col_name: str = ""
+    color_col_name: str | None = None
