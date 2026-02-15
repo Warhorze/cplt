@@ -82,6 +82,11 @@ class TestFilterRows:
         # Matches "open", "Open" — alice, charlie, eve
         assert len(result) == 3
 
+    def test_column_names_case_insensitive_by_default(self):
+        rows = self._rows(FILTER_CSV)
+        result = list(filter_rows(iter(rows), wheres=[("STATUS", "open")]))
+        assert len(result) == 3
+
     def test_case_sensitive(self):
         rows = self._rows(FILTER_CSV)
         result = list(
