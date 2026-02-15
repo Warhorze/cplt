@@ -44,6 +44,12 @@ Presence/absence bubble matrix:
 csvplot bubble -f data/titanic.csv --cols Cabin --cols Age --cols Embarked --y Name
 ```
 
+Summarise a CSV's columns at a glance:
+
+```bash
+csvplot summarise -f data/projects.csv
+```
+
 Timeline with two layers, coloring, and a marker:
 
 ```bash
@@ -78,6 +84,9 @@ Plot timeline/Gantt-style ranges from a CSV file.
 | `--to <date>` | No | | Zoom end date (YYYY-MM-DD) |
 | `--title <text>` | No | filename | Chart title |
 | `--open-end / --no-open-end` | No | `--open-end` | Replace NULL/sentinel end dates with today |
+| `--format` | No | `visual` | Output format: `visual`, `semantic`, `compact` |
+| `--where "COL=val"` | No | | Include only matching rows |
+| `--where-not "COL=val"` | No | | Exclude matching rows |
 
 The `--x` option takes start/end column pairs. Provide 2 values for a single layer, 4 for two layers, etc:
 
@@ -109,6 +118,9 @@ Plot a bar chart of value counts from a CSV column.
 | `--top <n>` | No | | Show only the top N categories |
 | `--head <n>` | No | | Only read the first N CSV rows |
 | `--title <text>` | No | filename | Chart title |
+| `--format` | No | `visual` | Output format: `visual`, `semantic`, `compact` |
+| `--where "COL=val"` | No | | Include only matching rows |
+| `--where-not "COL=val"` | No | | Exclude matching rows |
 
 ```bash
 csvplot bar -f data/titanic.csv -c Embarked --sort label --title "Embarkation Port"
@@ -127,6 +139,9 @@ Plot a line chart from CSV columns.
 | `--color <col>` | No | | Group into separate lines by this column |
 | `--head <n>` | No | | Only read the first N CSV rows |
 | `--title <text>` | No | filename | Chart title |
+| `--format` | No | `visual` | Output format: `visual`, `semantic`, `compact` |
+| `--where "COL=val"` | No | | Include only matching rows |
+| `--where-not "COL=val"` | No | | Exclude matching rows |
 
 Date columns are auto-detected and sorted chronologically. You can repeat `--y` to plot multiple numeric series on the same chart, or use `--color` to split a single `--y` into grouped lines:
 
@@ -153,6 +168,9 @@ Plot a presence/absence matrix from CSV columns.
 | `--top <n>` | No | | Show only top N columns by fill-rate |
 | `--head <n>` | No | | Only read the first N CSV rows |
 | `--title <text>` | No | filename | Chart title |
+| `--format` | No | `visual` | Output format: `visual`, `semantic`, `compact` |
+| `--where "COL=val"` | No | | Include only matching rows |
+| `--where-not "COL=val"` | No | | Exclude matching rows |
 
 ```bash
 csvplot bubble -f data.csv --cols feature_a --cols feature_b --cols feature_c --y name
@@ -234,11 +252,16 @@ pytest
 src/csvplot/
   cli.py          # Typer app: timeline, bar, line, bubble, summarise commands
   reader.py       # CSV reading, datetime parsing, data loading
-  models.py       # PlotSpec, BarSpec, LineSpec, Segment, Marker
+  models.py       # PlotSpec, BarSpec, LineSpec, BubbleSpec, Segment, Marker
   renderer.py     # Spec -> plotext -> terminal
+  compact.py      # Token-efficient compact output format
+  semantic.py     # ANSI-stripped semantic output format
+  bubble.py       # Bubble chart data loading and BubbleSpec
+  summarise.py    # Column summary / profiling logic
   completions.py  # Column-name tab completion with date detection
 data/
   timeplot.csv    # Sample timeline data
   titanic.csv     # Titanic passenger data (bar/line testing)
   temperatures.csv # Melbourne daily min temps 1981-1990 (line testing)
+  projects.csv    # Sample project timeline data
 ```
