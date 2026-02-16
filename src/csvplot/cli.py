@@ -791,7 +791,8 @@ def bubble(
             cells = []
             for val in spec.matrix[row_idx]:
                 if val:
-                    cells.append(f"[{row_style}]●[/{row_style}]" if row_style else "[green]●[/green]")
+                    dot_cell = f"[{row_style}]●[/{row_style}]" if row_style else "[green]●[/green]"
+                    cells.append(dot_cell)
                 else:
                     cells.append("")
             table.add_row(label_cell, *cells)

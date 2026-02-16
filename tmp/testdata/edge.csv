@@ -1,6 +1,0 @@
-id,start,end,label,status,val_a,val_b,flag,group
-1,2024-01-01,2024-01-10,Alpha,Done,10,,true,A
-2,2024-01-05,9999-12-31,Beta,In Progress,0,5,false,B
-3,2024-02-01,2024-01-20,Gamma,Planning,,8,NA,A
-4,,2024-03-01,Delta,Done,4,none,yes,B
-5,2024-03-05,,Epsilon,Done,7,9,no,A
