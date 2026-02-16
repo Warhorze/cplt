@@ -63,6 +63,20 @@ def _dt_to_str(dt: datetime) -> str:
     return dt.strftime("%Y-%m-%d %H:%M:%S")
 
 
+def _date_form_for_range(start: datetime, end: datetime) -> str:
+    """Pick an x-axis date label format based on visible timespan."""
+    span_seconds = abs((end - start).total_seconds())
+    if span_seconds >= 365 * 24 * 3600:
+        return "Y-m"
+    if span_seconds >= 2 * 24 * 3600:
+        return "Y-m-d"
+    if span_seconds >= 6 * 3600:
+        return "m-d H:M"
+    if span_seconds >= 3600:
+        return "H:M"
+    return "H:M:S"
+
+
 def _assign_sub_rows(segments: list[Segment]) -> dict[Segment, int]:
     """Assign sub-rows by row identity: each CSV row gets its own line."""
     groups: dict[str, list[Segment]] = defaultdict(list)
@@ -84,8 +98,14 @@ def _assign_sub_rows(segments: list[Segment]) -> dict[Segment, int]:
 def render(spec: PlotSpec, build: bool = False) -> str | None:
     """Render a PlotSpec to the terminal, or return canvas string if build=True."""
     plt.clear_figure()
-    plt.date_form("Y-m-d H:M:S")
+    plt.date_form("Y-m-d H:M:S", "Y-m-d H:M:S")
     plt.theme("clear")
+    if spec.segments:
+        data_start = min(seg.start for seg in spec.segments)
+        data_end = max(seg.end for seg in spec.segments)
+        view_start = spec.view_start or data_start
+        view_end = spec.view_end or data_end
+        plt.date_form("Y-m-d H:M:S", _date_form_for_range(view_start, view_end))
 
     # Collect unique y-labels preserving order
     y_labels: list[str] = []
@@ -145,8 +165,9 @@ def render(spec: PlotSpec, build: bool = False) -> str | None:
 
     has_color_keys = any(seg.color_key for seg in spec.segments)
 
-    legend_seen: set[tuple[str, str | None]] = set()
-    legend_entries: list[str] = []
+    legend_layer_order: list[str] = []
+    legend_values_by_layer: dict[str, list[str]] = {}
+    legend_value_seen: dict[str, set[str]] = {}
 
     # Build layer display names from x_pair_names
     def _layer_display(layer: int) -> str:
@@ -155,19 +176,23 @@ def render(spec: PlotSpec, build: bool = False) -> str | None:
             return f"{s} \u2013 {e}"
         return f"layer {layer}" if layer > 0 else "primary"
 
-    def _color_display(color_key: str | None) -> str:
-        if color_key is None:
-            return ""
-        if color_key and spec.color_col_name:
-            return f"{spec.color_col_name}: {color_key}"
-        return color_key
-
     def _resolve_color(seg: Segment, default: str) -> str:
         if has_color_keys:
             if seg.color_key is None:
                 return default
             return color_map.get(seg.color_key, default)
         return color_map.get(seg.y_label, default)
+
+    def _add_legend(layer_name: str, color_key: str | None) -> None:
+        if layer_name not in legend_values_by_layer:
+            legend_layer_order.append(layer_name)
+            legend_values_by_layer[layer_name] = []
+            legend_value_seen[layer_name] = set()
+        if color_key:
+            seen_values = legend_value_seen[layer_name]
+            if color_key not in seen_values:
+                legend_values_by_layer[layer_name].append(color_key)
+                seen_values.add(color_key)
 
     # Layer marker styles: visually distinct per layer
     _LAYER_MARKERS = ["hd", "braille", "dot", "sd"]
@@ -179,12 +204,7 @@ def render(spec: PlotSpec, build: bool = False) -> str | None:
         y = y_base[seg.y_label] + sub_row_map[seg] * _SUB_ROW_HEIGHT + seg.layer * _LAYER_OFFSET
         color = _resolve_color(seg, "gray")
         layer_name = _layer_display(seg.layer)
-        legend_key = (layer_name, seg.color_key)
-        legend_label = (
-            f"{layer_name} ({_color_display(seg.color_key)})" if seg.color_key else layer_name
-        )
-        if legend_key not in legend_seen:
-            legend_entries.append(legend_label)
+        _add_legend(layer_name, seg.color_key)
         marker_style = _LAYER_MARKERS[seg.layer % len(_LAYER_MARKERS)]
         plt.plot(
             [_dt_to_str(seg.start), _dt_to_str(seg.end)],
@@ -193,7 +213,6 @@ def render(spec: PlotSpec, build: bool = False) -> str | None:
             color=color,
             label=None,
         )
-        legend_seen.add(legend_key)
 
     # Plot primary segments (layer 0) on top
     for seg in spec.segments:
@@ -202,12 +221,7 @@ def render(spec: PlotSpec, build: bool = False) -> str | None:
         y = y_base[seg.y_label] + sub_row_map[seg] * _SUB_ROW_HEIGHT
         color = _resolve_color(seg, "white")
         layer_name = _layer_display(0)
-        legend_key = (layer_name, seg.color_key)
-        legend_label = (
-            f"{layer_name} ({_color_display(seg.color_key)})" if seg.color_key else layer_name
-        )
-        if legend_key not in legend_seen:
-            legend_entries.append(legend_label)
+        _add_legend(layer_name, seg.color_key)
         plt.plot(
             [_dt_to_str(seg.start), _dt_to_str(seg.end)],
             [y, y],
@@ -215,7 +229,6 @@ def render(spec: PlotSpec, build: bool = False) -> str | None:
             color=color,
             label=None,
         )
-        legend_seen.add(legend_key)
 
     # Plot markers as vertical lines
     for marker in spec.markers:
@@ -239,6 +252,18 @@ def render(spec: PlotSpec, build: bool = False) -> str | None:
         plt.xlim(left=_dt_to_str(spec.view_start))
     if spec.view_end:
         plt.xlim(right=_dt_to_str(spec.view_end))
+
+    legend_entries: list[str] = []
+    for layer_name in legend_layer_order:
+        layer_values = legend_values_by_layer[layer_name]
+        if layer_values and spec.color_col_name:
+            values = ", ".join(layer_values)
+            legend_entries.append(f"{layer_name} ({spec.color_col_name}: {values})")
+        elif layer_values:
+            values = ", ".join(layer_values)
+            legend_entries.append(f"{layer_name} ({values})")
+        else:
+            legend_entries.append(layer_name)
 
     if build:
         canvas = plt.build()
@@ -278,10 +303,8 @@ def render_bar(spec: BarSpec, build: bool = False) -> str | None:
 def render_line(spec: LineSpec, build: bool = False) -> str | None:
     """Render a LineSpec as a line chart."""
     plt.clear_figure()
+    plt.date_form("Y-m-d H:M:S", "Y-m-d H:M:S")
     plt.theme("clear")
-
-    if spec.x_is_date:
-        plt.date_form("Y-m-d H:M:S")
 
     # Normalize date strings to plotext's expected format (Y-m-d H:M:S)
     x_display = spec.x_values
@@ -289,10 +312,18 @@ def render_line(spec: LineSpec, build: bool = False) -> str | None:
         from csvplot.reader import parse_datetime as _pd
 
         normalized: list[str] = []
+        parsed_dates: list[datetime] = []
         for value in spec.x_values:
             parsed = _pd(value)
             normalized.append(_dt_to_str(parsed) if parsed else value)
+            if parsed:
+                parsed_dates.append(parsed)
         x_display = normalized
+        if parsed_dates:
+            plt.date_form(
+                "Y-m-d H:M:S",
+                _date_form_for_range(parsed_dates[0], parsed_dates[-1]),
+            )
 
     for i, (series_name, y_vals) in enumerate(spec.y_series.items()):
         color = PALETTE[i % len(PALETTE)]

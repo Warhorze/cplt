@@ -31,3 +31,13 @@ This writes:
 - review summary report to `assets/review/REPORT.md`
 
 Generated files are not meant to be hand-edited.
+
+## Extra UX Pointers
+
+Apply these additional checks across all plot types:
+
+- Verify color encodings remain understandable without color alone (legend + alternate cue).
+- Surface missing categorical values explicitly (for example `(missing)`).
+- Prefer adaptive date tick precision based on visible range.
+- Prevent label-heavy layouts from overwhelming the data region (use truncation/indexing patterns when needed).
+- Include a compact interpretation summary when it materially improves scanability.

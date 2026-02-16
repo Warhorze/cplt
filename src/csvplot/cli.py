@@ -758,8 +758,18 @@ def bubble(
             "bright_magenta",
             "bright_cyan",
         ]
+        symbol_palette = ["●", "■", "▲", "◆", "✦", "✚", "✖", "★", "⬟", "⬢", "◉", "◎"]
+        max_label_width = 44
+
+        def _truncate_label(value: str) -> str:
+            if len(value) <= max_label_width:
+                return value
+            return value[: max_label_width - 1] + "…"
+
         color_map: dict[str, str] = {}
+        symbol_map: dict[str, str] = {}
         legend_table: Table | None = None
+        label_map_table: Table | None = None
         if color and spec.color_keys:
             unique_keys: list[str] = []
             seen_keys: set[str] = set()
@@ -768,40 +778,67 @@ def bubble(
                     unique_keys.append(key)
                     seen_keys.add(key)
             color_map = {key: palette[i % len(palette)] for i, key in enumerate(unique_keys)}
+            symbol_map = {
+                key: symbol_palette[i % len(symbol_palette)] for i, key in enumerate(unique_keys)
+            }
             legend_table = Table(title="Legend")
-            legend_table.add_column("Color", justify="center")
+            legend_table.add_column("Cue", justify="center")
             legend_table.add_column(color)
             for key in unique_keys:
                 style = color_map[key]
-                legend_table.add_row(f"[{style}]●[/{style}]", key)
+                symbol = symbol_map[key]
+                legend_table.add_row(f"[{style}]{symbol}[/{style}]", key)
 
         # Build Rich table with Unicode dots
         table = Table(title=chart_title)
-        table.add_column("", style="bold")  # y-label column
+        table.add_column("Row", style="bold")
         for col_name in spec.col_names:
             table.add_column(col_name, justify="center")
 
+        truncated_rows: list[tuple[int, str]] = []
         for row_idx, label in enumerate(spec.y_labels):
+            row_num = row_idx + 1
             row_style = (
                 color_map.get(spec.color_keys[row_idx], "")
                 if color_map and row_idx < len(spec.color_keys)
                 else ""
             )
-            label_cell = f"[{row_style}]{label}[/{row_style}]" if row_style else label
+            shown_label = _truncate_label(label)
+            if shown_label != label:
+                truncated_rows.append((row_num, label))
+            row_label = f"{row_num:>2}. {shown_label}"
+            label_cell = f"[{row_style}]{row_label}[/{row_style}]" if row_style else row_label
             cells = []
+            row_symbol = (
+                symbol_map.get(spec.color_keys[row_idx], "●")
+                if symbol_map and row_idx < len(spec.color_keys)
+                else "●"
+            )
             for val in spec.matrix[row_idx]:
                 if val:
-                    dot_cell = f"[{row_style}]●[/{row_style}]" if row_style else "[green]●[/green]"
+                    dot_cell = (
+                        f"[{row_style}]{row_symbol}[/{row_style}]"
+                        if row_style
+                        else f"[green]{row_symbol}[/green]"
+                    )
                     cells.append(dot_cell)
                 else:
                     cells.append("")
             table.add_row(label_cell, *cells)
 
+        if truncated_rows:
+            label_map_table = Table(title="Row Labels")
+            label_map_table.add_column("#", justify="right")
+            label_map_table.add_column("Full label")
+            for row_num, full_label in truncated_rows:
+                label_map_table.add_row(str(row_num), full_label)
+
         if format_opt == "semantic":
             from csvplot.semantic import semantic_rich
 
-            if legend_table:
-                print(semantic_rich(table, legend_table), end="")
+            extra_tables = [t for t in (legend_table, label_map_table) if t is not None]
+            if extra_tables:
+                print(semantic_rich(table, *extra_tables), end="")
             else:
                 print(semantic_rich(table), end="")
         else:
@@ -809,3 +846,6 @@ def bubble(
             if legend_table:
                 rprint()
                 rprint(legend_table)
+            if label_map_table:
+                rprint()
+                rprint(label_map_table)

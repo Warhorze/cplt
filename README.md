@@ -119,6 +119,16 @@ bash scripts/generate_design_review_images.sh
 
 5. For color behavior (for example bubble `--color`), use the generated PNGs plus the visual output checks in `assets/review/raw/`.
 
+### Extra UX Pointers
+
+Use these as cross-cutting checks during any chart review:
+
+- Ensure `--color` has a non-color fallback cue (symbol/style) so output remains interpretable in low-color terminals and static screenshots.
+- Normalize missing categorical values to explicit labels like `(missing)` instead of unlabeled buckets.
+- Keep date tick formatting adaptive to time span to reduce axis noise.
+- Prefer compact row-label handling (truncate + reference table) when labels dominate matrix readability.
+- Add a short interpretation footer where possible (for example top category and missing count) to reduce scan effort.
+
 ## Output Modes
 
 All plotting and summary commands support `--format`:

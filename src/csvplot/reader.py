@@ -351,7 +351,8 @@ def load_bar_data(
         for i, row in enumerate(rows, start=1):
             if max_rows is not None and i > max_rows:
                 break
-            val = row[column]
+            raw_val = row[column]
+            val = raw_val if raw_val.strip() else MISSING_GROUP
             if val not in counts:
                 order.append(val)
                 counts[val] = 0
