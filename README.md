@@ -51,7 +51,7 @@ csvplot timeline -f data/timeplot.csv \
   --marker 2025-01-22 --marker-label wissel-datum
 ```
 
-![Timeline chart output](assets/images/timeline.svg)
+![Timeline chart output](assets/images/timeline.png)
 
 ### Bar Chart
 
@@ -59,7 +59,7 @@ csvplot timeline -f data/timeplot.csv \
 csvplot bar -f data/titanic.csv --column Sex
 ```
 
-![Bar chart output](assets/images/bar.svg)
+![Bar chart output](assets/images/bar.png)
 
 ### Line Chart
 
@@ -67,7 +67,7 @@ csvplot bar -f data/titanic.csv --column Sex
 csvplot line -f data/temperatures.csv --x Date --y Temp --head 40 --title "Melbourne Min Temp"
 ```
 
-![Line chart output](assets/images/line.svg)
+![Line chart output](assets/images/line.png)
 
 ### Bubble Matrix
 
@@ -75,7 +75,7 @@ csvplot line -f data/temperatures.csv --x Date --y Temp --head 40 --title "Melbo
 csvplot bubble -f data/titanic.csv --cols Cabin --cols Age --cols Embarked --y Name --head 12
 ```
 
-![Bubble matrix output](assets/images/bubble.svg)
+![Bubble matrix output](assets/images/bubble.png)
 
 ## Quick Start
 
@@ -117,7 +117,7 @@ bash scripts/generate_design_review_images.sh
 
 - `assets/review/REPORT.md`
 
-5. For color behavior (for example bubble `--color`), review `visual` output checks, not semantic SVGs.
+5. For color behavior (for example bubble `--color`), review `visual` output checks, not semantic PNG snapshots.
 
 ## Output Modes
 
@@ -171,7 +171,7 @@ Uses `scripts/generate_readme_images.sh`, which:
 
 - runs the timeline/bar/line/bubble sample commands
 - captures semantic output
-- renders SVGs into `assets/images/`
+- renders PNGs into `assets/images/`
 
 ```bash
 bash scripts/generate_readme_images.sh

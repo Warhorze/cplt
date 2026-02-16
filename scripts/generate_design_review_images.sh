@@ -14,6 +14,16 @@ else
   PYTHON_BIN="python"
 fi
 
+RENDER_PYTHON="$PYTHON_BIN"
+if ! "$RENDER_PYTHON" -c "import PIL" >/dev/null 2>&1; then
+  if command -v python3 >/dev/null 2>&1 && python3 -c "import PIL" >/dev/null 2>&1; then
+    RENDER_PYTHON="python3"
+  else
+    echo "Pillow (PIL) is required to render PNG images." >&2
+    exit 1
+  fi
+fi
+
 mkdir -p "$RAW_DIR" "$IMG_DIR"
 
 TMP_DIR="$(mktemp -d)"
@@ -24,50 +34,50 @@ run_csvplot() {
     "$PYTHON_BIN" -m csvplot "$@"
 }
 
-render_semantic_svg() {
+render_semantic_png() {
   local slug="$1"
   local title="$2"
   shift 2
   local semantic_txt="$RAW_DIR/${slug}.semantic.txt"
 
   run_csvplot "$@" --format semantic > "$semantic_txt"
-  "$PYTHON_BIN" "$ROOT_DIR/scripts/render_terminal_svg.py" \
-    "$semantic_txt" "$IMG_DIR/${slug}.svg" --title "$title"
+  "$RENDER_PYTHON" "$ROOT_DIR/scripts/render_terminal_png.py" \
+    "$semantic_txt" "$IMG_DIR/${slug}.png" --title "$title"
 }
 
 # Timeline
-render_semantic_svg timeline_legend "timeline legend review" \
+render_semantic_png timeline_legend "timeline legend review" \
   timeline -f "$ROOT_DIR/data/timeplot.csv" \
   --x DH_PV_STARTDATUM --x DH_PV_EINDDATUM \
   --x EN_START_DATETIME --x EA_END_DATETIME \
   --y DH_FACING_NUMMER --color SH_ARTIKEL_S1 \
   --head 12 --marker 2025-01-22 --marker-label wissel-datum
 
-render_semantic_svg timeline_zoom "timeline zoom review" \
+render_semantic_png timeline_zoom "timeline zoom review" \
   timeline -f "$ROOT_DIR/data/projects.csv" \
   --x start_date --x end_date --y project --color status \
   --from 2026-01-01 --to 2026-04-01
 
 # Bar
-render_semantic_svg bar_distribution "bar distribution review" \
+render_semantic_png bar_distribution "bar distribution review" \
   bar -f "$ROOT_DIR/data/titanic.csv" -c Pclass --sort value
 
-render_semantic_svg bar_sort_top "bar sort top review" \
+render_semantic_png bar_sort_top "bar sort top review" \
   bar -f "$ROOT_DIR/data/titanic.csv" -c Embarked --sort label --top 3
 
 # Line
-render_semantic_svg line_trend "line trend review" \
+render_semantic_png line_trend "line trend review" \
   line -f "$ROOT_DIR/data/temperatures.csv" --x Date --y Temp
 
-render_semantic_svg line_head "line head review" \
+render_semantic_png line_head "line head review" \
   line -f "$ROOT_DIR/data/temperatures.csv" --x Date --y Temp --head 100
 
 # Bubble
-render_semantic_svg bubble_matrix "bubble matrix review" \
+render_semantic_png bubble_matrix "bubble matrix review" \
   bubble -f "$ROOT_DIR/data/titanic.csv" \
   --cols Cabin --cols Age --cols Embarked --y Name --head 12
 
-render_semantic_svg bubble_top "bubble top review" \
+render_semantic_png bubble_top "bubble top review" \
   bubble -f "$ROOT_DIR/data/titanic.csv" \
   --cols Cabin --cols Age --cols Embarked --y Name --top 2 --head 12
 
@@ -86,7 +96,7 @@ else
   BUBBLE_COLOR_CHECK="PASS (visual outputs differ)"
 fi
 
-render_semantic_svg bubble_color_effect "bubble color effect review" \
+render_semantic_png bubble_color_effect "bubble color effect review" \
   bubble -f "$ROOT_DIR/data/titanic.csv" \
   --cols Cabin --cols Age --cols Embarked --y Name --color Pclass --head 12
 
@@ -106,10 +116,10 @@ bash scripts/generate_design_review_images.sh
 
 ## Scenario Artifacts
 
-- Timeline: \`images/timeline_legend.svg\`, \`images/timeline_zoom.svg\`
-- Bar: \`images/bar_distribution.svg\`, \`images/bar_sort_top.svg\`
-- Line: \`images/line_trend.svg\`, \`images/line_head.svg\`
-- Bubble: \`images/bubble_matrix.svg\`, \`images/bubble_top.svg\`, \`images/bubble_color_effect.svg\`
+- Timeline: \`images/timeline_legend.png\`, \`images/timeline_zoom.png\`
+- Bar: \`images/bar_distribution.png\`, \`images/bar_sort_top.png\`
+- Line: \`images/line_trend.png\`, \`images/line_head.png\`
+- Bubble: \`images/bubble_matrix.png\`, \`images/bubble_top.png\`, \`images/bubble_color_effect.png\`
 
 Raw command outputs are in \`raw/\`.
 

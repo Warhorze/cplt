@@ -5,3 +5,4 @@ build/
 *.spec
 *.egg-info/
 assets/review/
+tmp/testdata/

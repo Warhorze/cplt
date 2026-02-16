@@ -26,7 +26,7 @@ bash scripts/generate_design_review_images.sh
 
 This writes:
 
-- SVG images to `assets/review/images/`
+- PNG images to `assets/review/images/`
 - raw command outputs to `assets/review/raw/`
 - review summary report to `assets/review/REPORT.md`
 

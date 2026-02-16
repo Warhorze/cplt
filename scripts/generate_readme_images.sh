@@ -12,6 +12,16 @@ else
   PYTHON_BIN="python"
 fi
 
+RENDER_PYTHON="$PYTHON_BIN"
+if ! "$RENDER_PYTHON" -c "import PIL" >/dev/null 2>&1; then
+  if command -v python3 >/dev/null 2>&1 && python3 -c "import PIL" >/dev/null 2>&1; then
+    RENDER_PYTHON="python3"
+  else
+    echo "Pillow (PIL) is required to render PNG images." >&2
+    exit 1
+  fi
+fi
+
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
@@ -40,20 +50,20 @@ run_csvplot bubble -f "$ROOT_DIR/data/titanic.csv" \
   --cols Cabin --cols Age --cols Embarked --y Name --head 12 \
   --format semantic > "$TMP_DIR/bubble.txt"
 
-"$PYTHON_BIN" "$ROOT_DIR/scripts/render_terminal_svg.py" \
-  "$TMP_DIR/timeline.txt" "$IMG_DIR/timeline.svg" \
+"$RENDER_PYTHON" "$ROOT_DIR/scripts/render_terminal_png.py" \
+  "$TMP_DIR/timeline.txt" "$IMG_DIR/timeline.png" \
   --title "csvplot timeline output"
 
-"$PYTHON_BIN" "$ROOT_DIR/scripts/render_terminal_svg.py" \
-  "$TMP_DIR/bar.txt" "$IMG_DIR/bar.svg" \
+"$RENDER_PYTHON" "$ROOT_DIR/scripts/render_terminal_png.py" \
+  "$TMP_DIR/bar.txt" "$IMG_DIR/bar.png" \
   --title "csvplot bar output"
 
-"$PYTHON_BIN" "$ROOT_DIR/scripts/render_terminal_svg.py" \
-  "$TMP_DIR/line.txt" "$IMG_DIR/line.svg" \
+"$RENDER_PYTHON" "$ROOT_DIR/scripts/render_terminal_png.py" \
+  "$TMP_DIR/line.txt" "$IMG_DIR/line.png" \
   --title "csvplot line output"
 
-"$PYTHON_BIN" "$ROOT_DIR/scripts/render_terminal_svg.py" \
-  "$TMP_DIR/bubble.txt" "$IMG_DIR/bubble.svg" \
+"$RENDER_PYTHON" "$ROOT_DIR/scripts/render_terminal_png.py" \
+  "$TMP_DIR/bubble.txt" "$IMG_DIR/bubble.png" \
   --title "csvplot bubble output"
 
 echo "README images updated in $IMG_DIR"
