@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="708" height="660" viewBox="0 0 708 660" role="img" aria-label="csvplot timeline output">
+  <defs>
+    <style>
+      .bg { fill: #0f1117; }
+      .title { fill: #9aa4b2; font: 600 13px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+      .code { fill: #e6edf3; font: 14px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre; }
+    </style>
+  </defs>
+  <rect class="bg" x="0" y="0" width="708" height="660" rx="8" />
+  <text class="title" x="18" y="24">csvplot output</text>
+  <text class="code" x="18" y="42">                                      timeplot                                  </text>
+  <text class="code" x="18" y="62">    ┌────────────────────────────────────┬─────────────────────────────────────┐</text>
+  <text class="code" x="18" y="82">    │                              wissel-datum                            ⢀⡀  │</text>
+  <text class="code" x="18" y="102">    │                                    ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▖  │</text>
+  <text class="code" x="18" y="122">    │                                    │  ⢀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀   │</text>
+  <text class="code" x="18" y="142">4006┤                                    │                                     │</text>
+  <text class="code" x="18" y="162">    │                                    ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀│</text>
+  <text class="code" x="18" y="182">    │                                    ⠉⠉⠉⠉                                  │</text>
+  <text class="code" x="18" y="202">    │                                    ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀│</text>
+  <text class="code" x="18" y="222">    │                                    │                                     │</text>
+  <text class="code" x="18" y="242">    │                                ⢀⣀⣀⣀⡀                                     │</text>
+  <text class="code" x="18" y="262">    │▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▖                                     │</text>
+  <text class="code" x="18" y="282">4005┤                                    │                                     │</text>
+  <text class="code" x="18" y="302">    │▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄│</text>
+  <text class="code" x="18" y="322">    │                                    │                                     │</text>
+  <text class="code" x="18" y="342">    │                                    │                                     │</text>
+  <text class="code" x="18" y="362">    │                           ⠠⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤                                  │</text>
+  <text class="code" x="18" y="382">3005┤                           ▗▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄│</text>
+  <text class="code" x="18" y="402">    │                                    │  ⢀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀│</text>
+  <text class="code" x="18" y="422">    │                           ▗▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄│</text>
+  <text class="code" x="18" y="442">    └┬───────────────────────────────────┴┬───────────────────────────────────┬┘</text>
+  <text class="code" x="18" y="462">  2024-01-08 01:00:00            2025-01-26 22:09:29        2026-02-15 19:18:59 </text>
+  <text class="code" x="18" y="482">                                        Date                                    </text>
+  <text class="code" x="18" y="502"></text>
+  <text class="code" x="18" y="522"></text>
+  <text class="code" x="18" y="542">Legend</text>
+  <text class="code" x="18" y="562">- EN_START_DATETIME – EA_END_DATETIME (SH_ARTIKEL_S1: 120290146)</text>
+  <text class="code" x="18" y="582">- EN_START_DATETIME – EA_END_DATETIME (SH_ARTIKEL_S1: 117987179)</text>
+  <text class="code" x="18" y="602">- DH_PV_STARTDATUM – DH_PV_EINDDATUM (SH_ARTIKEL_S1: 120290146)</text>
+  <text class="code" x="18" y="622">- DH_PV_STARTDATUM – DH_PV_EINDDATUM (SH_ARTIKEL_S1: 117987179)</text>
+</svg>
