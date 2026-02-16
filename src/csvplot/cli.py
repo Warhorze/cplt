@@ -744,6 +744,37 @@ def bubble(
 
         print(compact_bubble(spec, title=chart_title))
     else:
+        palette = [
+            "red",
+            "green",
+            "yellow",
+            "blue",
+            "magenta",
+            "cyan",
+            "bright_red",
+            "bright_green",
+            "bright_yellow",
+            "bright_blue",
+            "bright_magenta",
+            "bright_cyan",
+        ]
+        color_map: dict[str, str] = {}
+        legend_table: Table | None = None
+        if color and spec.color_keys:
+            unique_keys: list[str] = []
+            seen_keys: set[str] = set()
+            for key in spec.color_keys:
+                if key not in seen_keys:
+                    unique_keys.append(key)
+                    seen_keys.add(key)
+            color_map = {key: palette[i % len(palette)] for i, key in enumerate(unique_keys)}
+            legend_table = Table(title="Legend")
+            legend_table.add_column("Color", justify="center")
+            legend_table.add_column(color)
+            for key in unique_keys:
+                style = color_map[key]
+                legend_table.add_row(f"[{style}]●[/{style}]", key)
+
         # Build Rich table with Unicode dots
         table = Table(title=chart_title)
         table.add_column("", style="bold")  # y-label column
@@ -751,14 +782,29 @@ def bubble(
             table.add_column(col_name, justify="center")
 
         for row_idx, label in enumerate(spec.y_labels):
+            row_style = (
+                color_map.get(spec.color_keys[row_idx], "")
+                if color_map and row_idx < len(spec.color_keys)
+                else ""
+            )
+            label_cell = f"[{row_style}]{label}[/{row_style}]" if row_style else label
             cells = []
             for val in spec.matrix[row_idx]:
-                cells.append("[green]●[/green]" if val else "")
-            table.add_row(label, *cells)
+                if val:
+                    cells.append(f"[{row_style}]●[/{row_style}]" if row_style else "[green]●[/green]")
+                else:
+                    cells.append("")
+            table.add_row(label_cell, *cells)
 
         if format_opt == "semantic":
             from csvplot.semantic import semantic_rich
 
-            print(semantic_rich(table), end="")
+            if legend_table:
+                print(semantic_rich(table, legend_table), end="")
+            else:
+                print(semantic_rich(table), end="")
         else:
             rprint(table)
+            if legend_table:
+                rprint()
+                rprint(legend_table)

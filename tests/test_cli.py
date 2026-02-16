@@ -43,3 +43,49 @@ def test_bubble_rejects_invalid_format(sample_csv) -> None:
     )
     assert result.exit_code == 1
     assert "--format must be 'visual', 'compact', or 'semantic'" in result.stdout
+
+
+def test_bubble_color_changes_visual_output() -> None:
+    result_plain = runner.invoke(
+        app,
+        [
+            "bubble",
+            "-f",
+            "data/titanic.csv",
+            "--cols",
+            "Cabin",
+            "--cols",
+            "Age",
+            "--cols",
+            "Embarked",
+            "--y",
+            "Name",
+            "--head",
+            "12",
+        ],
+    )
+    result_color = runner.invoke(
+        app,
+        [
+            "bubble",
+            "-f",
+            "data/titanic.csv",
+            "--cols",
+            "Cabin",
+            "--cols",
+            "Age",
+            "--cols",
+            "Embarked",
+            "--y",
+            "Name",
+            "--color",
+            "Pclass",
+            "--head",
+            "12",
+        ],
+    )
+
+    assert result_plain.exit_code == 0
+    assert result_color.exit_code == 0
+    assert result_plain.stdout != result_color.stdout
+    assert "Legend" in result_color.stdout
