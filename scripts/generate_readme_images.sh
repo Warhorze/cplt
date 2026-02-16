@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+IMG_DIR="$ROOT_DIR/assets/images"
+
+if [[ -x "$ROOT_DIR/.venv/bin/python" ]]; then
+  PYTHON_BIN="$ROOT_DIR/.venv/bin/python"
+elif command -v python3 >/dev/null 2>&1; then
+  PYTHON_BIN="python3"
+else
+  PYTHON_BIN="python"
+fi
+
+TMP_DIR="$(mktemp -d)"
+trap 'rm -rf "$TMP_DIR"' EXIT
+
+mkdir -p "$IMG_DIR"
+
+run_csvplot() {
+  PYTHONPATH="$ROOT_DIR/src${PYTHONPATH:+:$PYTHONPATH}" \
+    "$PYTHON_BIN" -m csvplot "$@"
+}
+
+run_csvplot timeline -f "$ROOT_DIR/data/timeplot.csv" \
+  --x DH_PV_STARTDATUM --x DH_PV_EINDDATUM \
+  --x EN_START_DATETIME --x EA_END_DATETIME \
+  --y DH_FACING_NUMMER --color SH_ARTIKEL_S1 \
+  --head 12 --marker 2025-01-22 --marker-label wissel-datum \
+  --format semantic > "$TMP_DIR/timeline.txt"
+
+run_csvplot bar -f "$ROOT_DIR/data/titanic.csv" \
+  --column Sex --format semantic > "$TMP_DIR/bar.txt"
+
+run_csvplot line -f "$ROOT_DIR/data/temperatures.csv" \
+  --x Date --y Temp --head 40 --title "Melbourne Min Temp" \
+  --format semantic > "$TMP_DIR/line.txt"
+
+run_csvplot bubble -f "$ROOT_DIR/data/titanic.csv" \
+  --cols Cabin --cols Age --cols Embarked --y Name --head 12 \
+  --format semantic > "$TMP_DIR/bubble.txt"
+
+"$PYTHON_BIN" "$ROOT_DIR/scripts/render_terminal_svg.py" \
+  "$TMP_DIR/timeline.txt" "$IMG_DIR/timeline.svg" \
+  --title "csvplot timeline output"
+
+"$PYTHON_BIN" "$ROOT_DIR/scripts/render_terminal_svg.py" \
+  "$TMP_DIR/bar.txt" "$IMG_DIR/bar.svg" \
+  --title "csvplot bar output"
+
+"$PYTHON_BIN" "$ROOT_DIR/scripts/render_terminal_svg.py" \
+  "$TMP_DIR/line.txt" "$IMG_DIR/line.svg" \
+  --title "csvplot line output"
+
+"$PYTHON_BIN" "$ROOT_DIR/scripts/render_terminal_svg.py" \
+  "$TMP_DIR/bubble.txt" "$IMG_DIR/bubble.svg" \
+  --title "csvplot bubble output"
+
+echo "README images updated in $IMG_DIR"
