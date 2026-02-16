@@ -286,7 +286,8 @@ def render_bar(spec: BarSpec, build: bool = False) -> str | None:
     plt.clear_figure()
     plt.theme("clear")
 
-    colors = [PALETTE[i % len(PALETTE)] for i in range(len(spec.labels))]
+    # Use a single bar color for cleaner magnitude comparison in categorical distributions.
+    colors = ["yellow"] * max(1, len(spec.labels))
 
     orientation = "horizontal" if spec.horizontal else "vertical"
     plt.bar(spec.labels, spec.values, color=colors, orientation=orientation)
