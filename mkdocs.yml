@@ -8,3 +8,9 @@ theme:
 nav:
   - Home: index.md
   - CLI Reference: cli.md
+  - Design Review:
+      - Overview: design/index.md
+      - Timeline: design/timeline.md
+      - Bar: design/bar.md
+      - Line: design/line.md
+      - Bubble: design/bubble.md

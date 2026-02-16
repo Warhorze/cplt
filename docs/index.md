@@ -13,6 +13,7 @@ csvplot is a terminal-first CLI for plotting and summarising CSV files.
 The full command reference is generated from the CLI help output:
 
 - [CLI Reference](cli.md)
+- [Design Review Docs](design/index.md)
 
 To regenerate locally:
 
