@@ -34,50 +34,50 @@ run_csvplot() {
     "$PYTHON_BIN" -m csvplot "$@"
 }
 
-render_semantic_png() {
+render_visual_png() {
   local slug="$1"
   local title="$2"
   shift 2
-  local semantic_txt="$RAW_DIR/${slug}.semantic.txt"
+  local visual_txt="$RAW_DIR/${slug}.visual.txt"
 
-  run_csvplot "$@" --format semantic > "$semantic_txt"
+  run_csvplot "$@" --format visual > "$visual_txt"
   "$RENDER_PYTHON" "$ROOT_DIR/scripts/render_terminal_png.py" \
-    "$semantic_txt" "$IMG_DIR/${slug}.png" --title "$title"
+    "$visual_txt" "$IMG_DIR/${slug}.png" --title "$title"
 }
 
 # Timeline
-render_semantic_png timeline_legend "timeline legend review" \
+render_visual_png timeline_legend "timeline legend review" \
   timeline -f "$ROOT_DIR/data/timeplot.csv" \
   --x DH_PV_STARTDATUM --x DH_PV_EINDDATUM \
   --x EN_START_DATETIME --x EA_END_DATETIME \
   --y DH_FACING_NUMMER --color SH_ARTIKEL_S1 \
   --head 12 --marker 2025-01-22 --marker-label wissel-datum
 
-render_semantic_png timeline_zoom "timeline zoom review" \
+render_visual_png timeline_zoom "timeline zoom review" \
   timeline -f "$ROOT_DIR/data/projects.csv" \
   --x start_date --x end_date --y project --color status \
   --from 2026-01-01 --to 2026-04-01
 
 # Bar
-render_semantic_png bar_distribution "bar distribution review" \
+render_visual_png bar_distribution "bar distribution review" \
   bar -f "$ROOT_DIR/data/titanic.csv" -c Pclass --sort value
 
-render_semantic_png bar_sort_top "bar sort top review" \
+render_visual_png bar_sort_top "bar sort top review" \
   bar -f "$ROOT_DIR/data/titanic.csv" -c Embarked --sort label --top 3
 
 # Line
-render_semantic_png line_trend "line trend review" \
+render_visual_png line_trend "line trend review" \
   line -f "$ROOT_DIR/data/temperatures.csv" --x Date --y Temp
 
-render_semantic_png line_head "line head review" \
+render_visual_png line_head "line head review" \
   line -f "$ROOT_DIR/data/temperatures.csv" --x Date --y Temp --head 100
 
 # Bubble
-render_semantic_png bubble_matrix "bubble matrix review" \
+render_visual_png bubble_matrix "bubble matrix review" \
   bubble -f "$ROOT_DIR/data/titanic.csv" \
   --cols Cabin --cols Age --cols Embarked --y Name --head 12
 
-render_semantic_png bubble_top "bubble top review" \
+render_visual_png bubble_top "bubble top review" \
   bubble -f "$ROOT_DIR/data/titanic.csv" \
   --cols Cabin --cols Age --cols Embarked --y Name --top 2 --head 12
 
@@ -96,7 +96,7 @@ else
   BUBBLE_COLOR_CHECK="PASS (visual outputs differ)"
 fi
 
-render_semantic_png bubble_color_effect "bubble color effect review" \
+render_visual_png bubble_color_effect "bubble color effect review" \
   bubble -f "$ROOT_DIR/data/titanic.csv" \
   --cols Cabin --cols Age --cols Embarked --y Name --color Pclass --head 12
 

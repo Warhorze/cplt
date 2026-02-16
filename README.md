@@ -117,7 +117,7 @@ bash scripts/generate_design_review_images.sh
 
 - `assets/review/REPORT.md`
 
-5. For color behavior (for example bubble `--color`), review `visual` output checks, not semantic PNG snapshots.
+5. For color behavior (for example bubble `--color`), use the generated PNGs plus the visual output checks in `assets/review/raw/`.
 
 ## Output Modes
 
@@ -170,7 +170,7 @@ uv run mkdocs serve
 Uses `scripts/generate_readme_images.sh`, which:
 
 - runs the timeline/bar/line/bubble sample commands
-- captures semantic output
+- captures visual output (including ANSI colors)
 - renders PNGs into `assets/images/`
 
 ```bash

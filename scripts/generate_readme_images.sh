@@ -37,18 +37,18 @@ run_csvplot timeline -f "$ROOT_DIR/data/timeplot.csv" \
   --x EN_START_DATETIME --x EA_END_DATETIME \
   --y DH_FACING_NUMMER --color SH_ARTIKEL_S1 \
   --head 12 --marker 2025-01-22 --marker-label wissel-datum \
-  --format semantic > "$TMP_DIR/timeline.txt"
+  --format visual > "$TMP_DIR/timeline.txt"
 
 run_csvplot bar -f "$ROOT_DIR/data/titanic.csv" \
-  --column Sex --format semantic > "$TMP_DIR/bar.txt"
+  --column Sex --format visual > "$TMP_DIR/bar.txt"
 
 run_csvplot line -f "$ROOT_DIR/data/temperatures.csv" \
   --x Date --y Temp --head 40 --title "Melbourne Min Temp" \
-  --format semantic > "$TMP_DIR/line.txt"
+  --format visual > "$TMP_DIR/line.txt"
 
 run_csvplot bubble -f "$ROOT_DIR/data/titanic.csv" \
   --cols Cabin --cols Age --cols Embarked --y Name --head 12 \
-  --format semantic > "$TMP_DIR/bubble.txt"
+  --format visual > "$TMP_DIR/bubble.txt"
 
 "$RENDER_PYTHON" "$ROOT_DIR/scripts/render_terminal_png.py" \
   "$TMP_DIR/timeline.txt" "$IMG_DIR/timeline.png" \
