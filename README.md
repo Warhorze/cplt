@@ -4,14 +4,8 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![CI](https://github.com/Warhorze/csvplot/actions/workflows/ci.yml/badge.svg)](https://github.com/Warhorze/csvplot/actions/workflows/ci.yml)
 
-Plot CSVs directly in your terminal with first-class timeline/Gantt support.
-
-## Get Started In 30 Seconds
-
-```bash
-pip install csvplot
-csvplot timeline -f data/projects.csv --x planned_start --x planned_end --y project
-```
+Plot CSV files directly in your terminal.
+Zero GUI. Zero notebooks. Just your CLI.
 
 ## Why csvplot
 
@@ -22,6 +16,13 @@ Most terminal plotting tools handle bars and lines, but not timeline ranges from
 - `line` for numeric trends over time or sequence
 - `bubble` for presence/absence matrices
 - `summarise` for fast column profiling
+
+## Get Started In 30 Seconds
+
+```bash
+pip install csvplot
+csvplot timeline -f data/projects.csv --x planned_start --x planned_end --y project
+```
 
 ## Install
 
@@ -40,6 +41,8 @@ csvplot --install-completion
 ```
 
 ## What It Looks Like
+
+Note: These PNG previews are static captures. The live CLI output is typically sharper and easier to read in your terminal.
 
 ### Timeline / Gantt
 
