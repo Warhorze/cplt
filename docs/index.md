@@ -2,21 +2,12 @@
 
 csvplot is a terminal-first CLI for plotting and summarising CSV files.
 
-- Timeline/Gantt-style range plots
-- Bar charts
-- Line charts
-- Bubble matrices
-- Column summaries
+## References
 
-## CLI Reference
+- [CLI Reference](cli.md) — auto-generated command docs
+- [Architecture](architecture.md) — module layout and data flow
+- [Design Review](design/index.md) — per-plot acceptance criteria and review artifacts
 
-The full command reference is generated from the CLI help output:
+## For Contributors
 
-- [CLI Reference](cli.md)
-- [Design Review Docs](design/index.md)
-
-To regenerate locally:
-
-```bash
-bash scripts/generate_cli_docs.sh
-```
+All contributor workflows (development checks, UX review, design criteria, docs tooling) are consolidated in [`DEVELOPERS.md`](../DEVELOPERS.md).

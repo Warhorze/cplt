@@ -32,14 +32,13 @@ uv run ruff format src/ tests/ # format
 
 Data flows linearly: **CLI args → reader → PlotSpec → renderer → terminal**
 
-- `cli.py` — Typer app with commands: `timeline`, `bar`, `line`, `bubble`, `summarise`. Handles argument validation, shared `--format` validation (`visual|semantic|compact`), and command orchestration.
-- `reader.py` — CSV loaders for timeline, bar, and line data; datetime parsing; filtering (`--where`, `--where-not`); open-end handling for timeline ranges.
-- `bubble.py` — Bubble matrix data loading and falsy-value interpretation.
-- `summarise.py` — CSV profiling (type detection, counts, top values, optional random samples).
-- `models.py` — Dataclasses for plot specs and timeline segments/markers.
-- `renderer.py` — Visual renderers for timeline/bar/line via plotext.
-- `compact.py` / `semantic.py` — Token-efficient and ANSI-stripped output modes.
-- `completions.py` — Cached column/value completion. Date-column suggestions are position-aware for timeline `--x` pairs.
+See `docs/architecture.md` for full module layout and behavior contracts. Key points for working in this codebase:
+
+- `cli.py` — Typer commands + arg validation. Entry point for all commands.
+- `reader.py` / `bubble.py` / `summarise.py` — CSV loading per command type.
+- `models.py` — Dataclasses for plot specs.
+- `renderer.py` / `compact.py` / `semantic.py` — One renderer per `--format` mode.
+- `completions.py` — Shell completion for columns/values.
 
 ## Key design details
 
