@@ -41,6 +41,21 @@ Use these as cross-cutting checks during any chart review:
 - Prefer compact row-label handling (truncate + reference table) when labels dominate matrix readability.
 - Add a short interpretation footer where possible (for example top category and missing count) to reduce scan effort.
 
+## Automated UX Tests
+
+The `tests/ux/` suite covers functional CLI behavior end-to-end (complementing the manual visual review above):
+
+- **Format matrix** — 5 commands x 3 formats = 15 parameterized cases (`test_format_matrix.py`)
+- **Option behavior** — per-command checks for every optional flag (`test_options_ux.py`)
+- **Error message quality** — guards that errors are actionable, not tracebacks (`test_error_ux.py`)
+- **Scale** — 500–10K row stress tests (`test_scale_ux.py`)
+
+```bash
+uv run pytest tests/ux/
+```
+
+See `plan/ux-testing.md` for the full coverage matrix and test design.
+
 ## Docs Tooling
 
 - CLI reference: `docs/cli.md`
