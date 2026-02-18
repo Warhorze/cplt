@@ -13,7 +13,7 @@ from csvplot.compact import (
     compact_timeline,
     rle_encode,
 )
-from csvplot.models import BarSpec, LineSpec, PlotSpec, Segment, VLine
+from csvplot.models import BarSpec, Dot, LineSpec, PlotSpec, Segment, VLine
 from csvplot.summarise import ColumnSummary
 
 
@@ -174,6 +174,63 @@ class TestCompactTimeline:
         out = compact_timeline(spec, width=20)
         assert "legend:" in out
         assert "Active" in out
+
+
+class TestCompactTimelineDots:
+    def test_dot_renders_as_diamond(self):
+        """A dot renders as ◆ at the correct position."""
+        spec = PlotSpec(
+            segments=[Segment(0, 0, "A", _dt(1), _dt(6))],
+            dots=[Dot(row_index=0, layer=0, y_label="A", date=_dt(3))],
+            dot_col_names=["due"],
+            title="DotTest",
+        )
+        out = compact_timeline(spec, width=10)
+        lines = out.strip().split("\n")
+        a_lines = [ln for ln in lines if ln.startswith("A")]
+        assert len(a_lines) == 1
+        assert "◆" in a_lines[0]
+
+    def test_dot_position_maps_correctly(self):
+        """Dot at the start of the range maps to position 0."""
+        spec = PlotSpec(
+            segments=[Segment(0, 0, "A", _dt(1), _dt(6))],
+            dots=[Dot(row_index=0, layer=0, y_label="A", date=_dt(1))],
+            dot_col_names=["due"],
+            title="DotPos",
+        )
+        out = compact_timeline(spec, width=10)
+        lines = out.strip().split("\n")
+        a_line = [ln for ln in lines if ln.startswith("A")][0]
+        inner = a_line.split("|")[1]
+        # Diamond should be at the first position (overlaying segment)
+        assert inner[0] == "◆"
+
+    def test_dot_without_segment_at_label(self):
+        """Dots for a y_label that has segments still render on the segment row."""
+        spec = PlotSpec(
+            segments=[Segment(0, 0, "A", _dt(1), _dt(3))],
+            dots=[Dot(row_index=0, layer=0, y_label="A", date=_dt(5))],
+            dot_col_names=["due"],
+            title="DotOutside",
+            view_end=_dt(6),
+        )
+        out = compact_timeline(spec, width=10)
+        lines = out.strip().split("\n")
+        a_lines = [ln for ln in lines if ln.startswith("A")]
+        assert len(a_lines) == 1
+        assert "◆" in a_lines[0]
+
+    def test_dot_col_names_in_legend(self):
+        """Dot column names appear in the output."""
+        spec = PlotSpec(
+            segments=[Segment(0, 0, "A", _dt(1), _dt(6))],
+            dots=[Dot(row_index=0, layer=0, y_label="A", date=_dt(3))],
+            dot_col_names=["due_date"],
+            title="DotLegend",
+        )
+        out = compact_timeline(spec, width=10)
+        assert "due_date" in out
 
 
 class TestCompactBar:

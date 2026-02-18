@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections import defaultdict
 
 from csvplot.bubble import BubbleSpec
-from csvplot.models import BarSpec, LineSpec, PlotSpec, Segment
+from csvplot.models import BarSpec, Dot, LineSpec, PlotSpec, Segment
 from csvplot.summarise import ColumnSummary
 
 
@@ -118,6 +118,11 @@ def compact_timeline(spec: PlotSpec, width: int = 60) -> str:
         frac = (dt_val - t_min).total_seconds() / t_range
         return max(0, min(width - 1, int(frac * (width - 1) + 0.5)))
 
+    # Group dots by y_label for overlay
+    dots_by_label: dict[str, list[Dot]] = defaultdict(list)
+    for dot in spec.dots:
+        dots_by_label[dot.y_label].append(dot)
+
     for label in y_labels:
         segs = segments_by_label[label]
         max_sub = max(sub_rows[label].values()) if sub_rows[label] else 0
@@ -139,6 +144,17 @@ def compact_timeline(spec: PlotSpec, width: int = 60) -> str:
                     end_pos = _map_pos(seg.end)
                     for i in range(start_pos, end_pos + 1):
                         row_chars[i] = char
+
+                # Overlay dots for this label on layer-0 sub-row only
+                if layer == 0:
+                    matching_row_indices = {
+                        s.row_index for s in matching
+                    }
+                    for dot in dots_by_label.get(label, []):
+                        if dot.row_index in matching_row_indices or sub_idx == 0:
+                            pos = _map_pos(dot.date)
+                            if 0 <= pos < width:
+                                row_chars[pos] = "◆"
 
                 padded = label.ljust(max_label_width)
                 lines.append(f"{padded}  |{rle_encode(row_chars)}|")
@@ -166,6 +182,11 @@ def compact_timeline(spec: PlotSpec, width: int = 60) -> str:
         if color_keys:
             legend_parts = ", ".join(f"{k}={_layer_char(0)}" for k in color_keys)
             lines.append(f"legend: {spec.color_col_name}: {legend_parts}")
+
+    # Dot column legend
+    if spec.dot_col_names:
+        dot_parts = ", ".join(f"{name}=◆" for name in spec.dot_col_names)
+        lines.append(f"dots: {dot_parts}")
 
     return "\n".join(lines)
 
