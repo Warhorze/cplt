@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 import click
+import typer._completion_shared as _typer_completion
 
 from csvplot.reader import detect_date_columns, read_csv_header
 
@@ -250,3 +251,61 @@ def complete_where(ctx: click.Context, args: list[str], incomplete: str) -> list
         suggestions = [s for s in suggestions if s.lower().startswith(lower)]
 
     return suggestions
+
+
+# ---------------------------------------------------------------------------
+# Monkey-patch Typer's bash completion script to handle 'col=value' tokens.
+#
+# Problem: bash's COMP_WORDBREAKS includes '=' by default, so typing
+# '--where status=' causes bash to split 'status=' into two tokens and pass
+# an empty string as the current incomplete word to Typer/Click.  This makes
+# stage-2 (value list) never trigger.
+#
+# Fix: reconstruct the word list from COMP_LINE (the raw command line) using
+# space-only splitting so 'status=' or 'status=Don' stays as one token.
+# After getting completions from Typer (e.g. 'status=Done'), strip the
+# 'col=' prefix before populating COMPREPLY so bash inserts just the value
+# after the '=' that is already on the command line.
+# ---------------------------------------------------------------------------
+
+_BASH_EQ_SAFE = """
+%(complete_func)s() {
+    local IFS=$'\\n'
+
+    # Re-tokenise from the raw line so 'col=val' is kept as one word.
+    local _line="${COMP_LINE:0:$COMP_POINT}"
+    local -a _words=()
+    IFS=' ' read -ra _words <<< "$_line"
+    local _cword=$(( ${#_words[@]} - 1 ))
+    [[ "$_line" =~ [[:space:]]$ ]] && { _words+=(""); ((_cword++)); }
+    local _cur="${_words[$_cword]:-}"
+
+    # Detect a 'col=' prefix (e.g. 'status=' or 'status=Don').
+    local _eq_prefix=""
+    [[ "$_cur" == *"="* ]] && _eq_prefix="${_cur%%=*}="
+
+    IFS=$'\\n'
+    local -a _completions
+    _completions=( $( env COMP_WORDS="${_words[*]}" \\
+                          COMP_CWORD=$_cword \\
+                          %(autocomplete_var)s=complete_bash $1 ) )
+
+    # Strip the col= prefix from each completion so bash inserts only the
+    # value part after the '=' already on the command line.
+    COMPREPLY=()
+    for _c in "${_completions[@]}"; do
+        if [[ -n "$_eq_prefix" && "$_c" == "$_eq_prefix"* ]]; then
+            COMPREPLY+=("${_c#$_eq_prefix}")
+        else
+            COMPREPLY+=("$_c")
+        fi
+    done
+
+    return 0
+}
+
+complete -o default -F %(complete_func)s %(prog_name)s
+"""
+
+_typer_completion.COMPLETION_SCRIPT_BASH = _BASH_EQ_SAFE
+_typer_completion._completion_scripts["bash"] = _BASH_EQ_SAFE
