@@ -174,6 +174,7 @@ def timeline(
         typer.Option(
             "--where",
             help="Filter rows: COL=value (case-insensitive, repeat for OR/AND)",
+            autocompletion=complete_where,
             rich_help_panel="Filtering",
         ),
     ] = None,
@@ -182,6 +183,7 @@ def timeline(
         typer.Option(
             "--where-not",
             help="Exclude rows: COL=value (case-insensitive)",
+            autocompletion=complete_where,
             rich_help_panel="Filtering",
         ),
     ] = None,
@@ -356,7 +358,11 @@ def bar(
     ] = None,
     where_not: Annotated[
         Optional[list[str]],
-        typer.Option("--where-not", help="Exclude rows: COL=value (case-insensitive)"),
+        typer.Option(
+            "--where-not",
+            help="Exclude rows: COL=value (case-insensitive)",
+            autocompletion=complete_where,
+        ),
     ] = None,
     format_opt: Annotated[
         str,
@@ -469,7 +475,11 @@ def line(
     ] = None,
     where_not: Annotated[
         Optional[list[str]],
-        typer.Option("--where-not", help="Exclude rows: COL=value (case-insensitive)"),
+        typer.Option(
+            "--where-not",
+            help="Exclude rows: COL=value (case-insensitive)",
+            autocompletion=complete_where,
+        ),
     ] = None,
     format_opt: Annotated[
         str,
@@ -555,7 +565,11 @@ def summarise(
     ] = None,
     where_not: Annotated[
         Optional[list[str]],
-        typer.Option("--where-not", help="Exclude rows: COL=value (case-insensitive)"),
+        typer.Option(
+            "--where-not",
+            help="Exclude rows: COL=value (case-insensitive)",
+            autocompletion=complete_where,
+        ),
     ] = None,
     format_opt: Annotated[
         str,
@@ -719,7 +733,11 @@ def bubble(
     ] = None,
     where_not: Annotated[
         Optional[list[str]],
-        typer.Option("--where-not", help="Exclude rows: COL=value (case-insensitive)"),
+        typer.Option(
+            "--where-not",
+            help="Exclude rows: COL=value (case-insensitive)",
+            autocompletion=complete_where,
+        ),
     ] = None,
     format_opt: Annotated[
         str,
