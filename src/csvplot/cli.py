@@ -387,6 +387,9 @@ def bar(
     except KeyError as e:
         rprint(f"[red]Error:[/red] Column not found in CSV: {e}")
         raise typer.Exit(1)
+    except ValueError as e:
+        rprint(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
 
     if not spec.labels:
         rprint("[yellow]Warning:[/yellow] No data found in the column.")
@@ -494,6 +497,9 @@ def line(
     except KeyError as e:
         rprint(f"[red]Error:[/red] Column not found in CSV: {e}")
         raise typer.Exit(1)
+    except ValueError as e:
+        rprint(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
 
     if not spec.x_values:
         rprint("[yellow]Warning:[/yellow] No data found.")
@@ -577,6 +583,9 @@ def summarise(
             )
     except KeyError as e:
         rprint(f"[red]Error:[/red] Column not found in CSV: {e}")
+        raise typer.Exit(1)
+    except ValueError as e:
+        rprint(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
 
     if not summaries:
@@ -731,6 +740,9 @@ def bubble(
         )
     except KeyError as e:
         rprint(f"[red]Error:[/red] Column not found in CSV: {e}")
+        raise typer.Exit(1)
+    except ValueError as e:
+        rprint(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
 
     if not spec.y_labels:

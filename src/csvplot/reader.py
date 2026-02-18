@@ -29,6 +29,14 @@ SENTINEL_YEAR = 9999
 MISSING_GROUP = "(missing)"
 
 
+def _ensure_well_formed_row(row: dict[str, str], row_number: int) -> None:
+    """Raise a clear error when DictReader emits malformed rows."""
+    if None in row or any(value is None for value in row.values()):
+        raise ValueError(
+            f"Failed to read CSV: row {row_number} has missing columns. Check file format."
+        )
+
+
 def read_csv_header(path: str | Path) -> list[str]:
     """Read only the first line of a CSV and return column names."""
     with open(path, newline="") as f:
@@ -265,6 +273,7 @@ def load_segments(
                 rows, wheres=wheres, where_nots=where_nots, case_sensitive=case_sensitive
             )
         for row_index, row in enumerate(rows, start=1):
+            _ensure_well_formed_row(row, row_index + 1)
             if max_rows is not None and row_index > max_rows:
                 break
 
@@ -349,6 +358,7 @@ def load_bar_data(
                 rows, wheres=wheres, where_nots=where_nots, case_sensitive=case_sensitive
             )
         for i, row in enumerate(rows, start=1):
+            _ensure_well_formed_row(row, i + 1)
             if max_rows is not None and i > max_rows:
                 break
             raw_val = row[column]
@@ -409,6 +419,7 @@ def load_line_data(
                 rows, wheres=wheres, where_nots=where_nots, case_sensitive=case_sensitive
             )
         for i, row in enumerate(rows, start=1):
+            _ensure_well_formed_row(row, i + 1)
             if max_rows is not None and i > max_rows:
                 break
             raw_rows.append(row)

@@ -223,6 +223,14 @@ class TestLoadSegments:
         assert segments[0].y_label == "A | task1"
         assert segments[1].y_label == "B | task2"
 
+    def test_malformed_csv_raises_clear_error(self, tmp_path) -> None:
+        csv_content = "name,start,end\nitem1,2024-01-01\n"
+        csv_file = tmp_path / "malformed.csv"
+        csv_file.write_text(csv_content)
+
+        with pytest.raises(ValueError, match="Failed to read CSV: row 2 has missing columns"):
+            load_segments(csv_file, x_pairs=[("start", "end")], y_col="name")
+
 
 class TestDetectNumericColumns:
     def test_sample_csv(self, sample_csv) -> None:
