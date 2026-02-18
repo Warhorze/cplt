@@ -32,7 +32,7 @@ PALETTE = [
 
 # Vertical spacing inside a y-label group.
 _SUB_ROW_HEIGHT = 1.0
-_LAYER_OFFSET = 0.45
+_LAYER_OFFSET = 0.20
 _Y_GROUP_GAP = 1.2
 
 
@@ -124,12 +124,15 @@ def render(spec: PlotSpec, build: bool = False) -> str | None:
 
     # Collect txt labels per (y_label, sub_row) for y-axis display
     has_txt = any(seg.txt_label for seg in spec.segments)
-    txt_by_sub_row: dict[tuple[str, int], str] = {}
+    txt_by_sub_row: dict[tuple[str, int], list[str]] = {}
     if has_txt:
         for seg in spec.segments:
             key = (seg.y_label, sub_row_map[seg])
-            if key not in txt_by_sub_row and seg.txt_label:
-                txt_by_sub_row[key] = seg.txt_label
+            if not seg.txt_label:
+                continue
+            values = txt_by_sub_row.setdefault(key, [])
+            if seg.txt_label not in values:
+                values.append(seg.txt_label)
 
     y_base: dict[str, float] = {}
     y_ticks: list[float] = []
@@ -148,7 +151,7 @@ def render(spec: PlotSpec, build: bool = False) -> str | None:
             # One tick per sub-row showing y_label + txt value
             for sr in range(max_sub_row + 1):
                 tick_y = cursor + sr * _SUB_ROW_HEIGHT
-                txt = txt_by_sub_row.get((label, sr), "")
+                txt = ", ".join(txt_by_sub_row.get((label, sr), []))
                 tick_label = f"{label} | {txt}" if txt else label
                 y_ticks.append(tick_y)
                 y_tick_labels.append(tick_label)
@@ -168,6 +171,7 @@ def render(spec: PlotSpec, build: bool = False) -> str | None:
     legend_layer_order: list[str] = []
     legend_values_by_layer: dict[str, list[str]] = {}
     legend_value_seen: dict[str, set[str]] = {}
+    legend_layer_index: dict[str, int] = {}
 
     # Build layer display names from x_pair_names
     def _layer_display(layer: int) -> str:
@@ -183,11 +187,12 @@ def render(spec: PlotSpec, build: bool = False) -> str | None:
             return color_map.get(seg.color_key, default)
         return color_map.get(seg.y_label, default)
 
-    def _add_legend(layer_name: str, color_key: str | None) -> None:
+    def _add_legend(layer_name: str, color_key: str | None, layer_index: int) -> None:
         if layer_name not in legend_values_by_layer:
             legend_layer_order.append(layer_name)
             legend_values_by_layer[layer_name] = []
             legend_value_seen[layer_name] = set()
+            legend_layer_index[layer_name] = layer_index
         if color_key:
             seen_values = legend_value_seen[layer_name]
             if color_key not in seen_values:
@@ -195,7 +200,10 @@ def render(spec: PlotSpec, build: bool = False) -> str | None:
                 seen_values.add(color_key)
 
     # Layer marker styles: visually distinct per layer
-    _LAYER_MARKERS = ["hd", "braille", "dot", "sd"]
+    _LAYER_MARKERS = ["hd", "sd", "braille", "dot"]
+
+    def _marker_for_layer(layer: int) -> str:
+        return _LAYER_MARKERS[layer % len(_LAYER_MARKERS)]
 
     # Plot non-primary layers first (behind primary)
     for seg in spec.segments:
@@ -204,8 +212,8 @@ def render(spec: PlotSpec, build: bool = False) -> str | None:
         y = y_base[seg.y_label] + sub_row_map[seg] * _SUB_ROW_HEIGHT + seg.layer * _LAYER_OFFSET
         color = _resolve_color(seg, "gray")
         layer_name = _layer_display(seg.layer)
-        _add_legend(layer_name, seg.color_key)
-        marker_style = _LAYER_MARKERS[seg.layer % len(_LAYER_MARKERS)]
+        _add_legend(layer_name, seg.color_key, seg.layer)
+        marker_style = _marker_for_layer(seg.layer)
         plt.plot(
             [_dt_to_str(seg.start), _dt_to_str(seg.end)],
             [y, y],
@@ -221,11 +229,11 @@ def render(spec: PlotSpec, build: bool = False) -> str | None:
         y = y_base[seg.y_label] + sub_row_map[seg] * _SUB_ROW_HEIGHT
         color = _resolve_color(seg, "white")
         layer_name = _layer_display(0)
-        _add_legend(layer_name, seg.color_key)
+        _add_legend(layer_name, seg.color_key, 0)
         plt.plot(
             [_dt_to_str(seg.start), _dt_to_str(seg.end)],
             [y, y],
-            marker="hd",
+            marker=_marker_for_layer(0),
             color=color,
             label=None,
         )
@@ -256,14 +264,16 @@ def render(spec: PlotSpec, build: bool = False) -> str | None:
     legend_entries: list[str] = []
     for layer_name in legend_layer_order:
         layer_values = legend_values_by_layer[layer_name]
+        layer_index = legend_layer_index.get(layer_name, 0)
+        marker_note = f" [marker={_marker_for_layer(layer_index)}]"
         if layer_values and spec.color_col_name:
             values = ", ".join(layer_values)
-            legend_entries.append(f"{layer_name} ({spec.color_col_name}: {values})")
+            legend_entries.append(f"{layer_name}{marker_note} ({spec.color_col_name}: {values})")
         elif layer_values:
             values = ", ".join(layer_values)
-            legend_entries.append(f"{layer_name} ({values})")
+            legend_entries.append(f"{layer_name}{marker_note} ({values})")
         else:
-            legend_entries.append(layer_name)
+            legend_entries.append(f"{layer_name}{marker_note}")
 
     if build:
         canvas = plt.build()
