@@ -808,6 +808,15 @@ def bubble(
             table.add_column(col_name, justify="center")
 
         truncated_rows: list[tuple[int, str]] = []
+        shown_labels: list[str] = []
+        for row_idx, label in enumerate(spec.y_labels):
+            row_num = row_idx + 1
+            shown_label = _truncate_label(label)
+            shown_labels.append(shown_label)
+            if shown_label != label:
+                truncated_rows.append((row_num, label))
+
+        show_row_numbers = bool(truncated_rows)
         for row_idx, label in enumerate(spec.y_labels):
             row_num = row_idx + 1
             row_style = (
@@ -815,10 +824,8 @@ def bubble(
                 if color_map and row_idx < len(spec.color_keys)
                 else ""
             )
-            shown_label = _truncate_label(label)
-            if shown_label != label:
-                truncated_rows.append((row_num, label))
-            row_label = f"{row_num:>2}. {shown_label}"
+            shown_label = shown_labels[row_idx]
+            row_label = f"{row_num:>2}. {shown_label}" if show_row_numbers else shown_label
             label_cell = f"[{row_style}]{row_label}[/{row_style}]" if row_style else row_label
             cells = []
             row_symbol = (
