@@ -7,7 +7,7 @@ import sys
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
-from typing import Iterator, Literal
+from typing import Iterator, Literal, NoReturn
 
 from rich import print as rprint
 
@@ -38,7 +38,7 @@ def _ensure_well_formed_row(row: dict[str, str], row_number: int) -> None:
         )
 
 
-def _raise_missing_column(missing_col: str, row: dict[str, str]) -> None:
+def _raise_missing_column(missing_col: str, row: dict[str, str]) -> NoReturn:
     """Raise a helpful column-not-found error with available options."""
     raise KeyError(f"Column {missing_col!r} not found. Available: {', '.join(sorted(row.keys()))}")
 
@@ -359,6 +359,7 @@ def load_bar_data(
     max_rows: int | None = None,
     title: str = "csvplot",
     horizontal: bool = False,
+    show_labels: bool = False,
     wheres: list[tuple[str, str]] | None = None,
     where_nots: list[tuple[str, str]] | None = None,
     case_sensitive: bool = False,
@@ -413,6 +414,7 @@ def load_bar_data(
         values=[float(counts[k]) for k in order],
         title=title,
         horizontal=horizontal,
+        show_labels=show_labels,
     )
 
 

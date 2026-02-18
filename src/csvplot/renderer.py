@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import datetime
+from math import ceil
 
 import plotext as plt
 from rich import print as rprint
@@ -199,7 +200,8 @@ def render(spec: PlotSpec, build: bool = False) -> str | None:
                 legend_values_by_layer[layer_name].append(color_key)
                 seen_values.add(color_key)
 
-    # Layer marker styles: visually distinct per layer
+    # Marker order keeps the two most visually distinct glyphs first because
+    # most timelines use at most two layers.
     _LAYER_MARKERS = ["hd", "sd", "braille", "dot"]
 
     def _marker_for_layer(layer: int) -> str:
@@ -302,6 +304,29 @@ def render_bar(spec: BarSpec, build: bool = False) -> str | None:
     orientation = "horizontal" if spec.horizontal else "vertical"
     plt.bar(spec.labels, spec.values, color=colors, orientation=orientation)
 
+    # Count-based bars read better with integer ticks.
+    is_integer_series = all(float(v).is_integer() for v in spec.values)
+    if is_integer_series and spec.values:
+        max_val = max(int(v) for v in spec.values)
+        tick_count = 7
+        step = max(1, ceil(max_val / (tick_count - 1))) if max_val > 0 else 1
+        ticks = list(range(0, max_val + 1, step))
+        if ticks[-1] != max_val:
+            ticks.append(max_val)
+        tick_labels = [str(v) for v in ticks]
+        if spec.horizontal:
+            plt.xticks(ticks, tick_labels)
+        else:
+            plt.yticks(ticks, tick_labels)
+
+    if spec.show_labels:
+        for label, value in zip(spec.labels, spec.values):
+            value_str = str(int(value)) if float(value).is_integer() else f"{value:g}"
+            if spec.horizontal:
+                plt.text(value_str, x=float(value), y=label, color="white")
+            else:
+                plt.text(value_str, x=label, y=float(value), color="white")
+
     plt.title(spec.title)
 
     if build:
@@ -336,17 +361,19 @@ def render_line(spec: LineSpec, build: bool = False) -> str | None:
                 _date_form_for_range(parsed_dates[0], parsed_dates[-1]),
             )
 
+    show_legend = len(spec.y_series) > 1
     for i, (series_name, y_vals) in enumerate(spec.y_series.items()):
         color = PALETTE[i % len(PALETTE)]
+        line_label = series_name if show_legend else None
         if spec.x_is_date:
-            plt.plot(x_display, y_vals, marker="braille", color=color, label=series_name)
+            plt.plot(x_display, y_vals, marker="braille", color=color, label=line_label)
         else:
             plt.plot(
                 list(range(len(y_vals))),
                 y_vals,
                 marker="braille",
                 color=color,
-                label=series_name,
+                label=line_label,
             )
             plt.xticks(list(range(len(spec.x_values))), spec.x_values)
 

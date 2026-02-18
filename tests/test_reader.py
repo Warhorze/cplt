@@ -292,6 +292,14 @@ class TestLoadBarData:
         with pytest.raises(KeyError):
             load_bar_data(bar_csv, column="nonexistent")
 
+    def test_malformed_bar_data_raises_clear_error(self, tmp_path) -> None:
+        csv_content = "status,assignee\nopen\n"
+        csv_file = tmp_path / "malformed_bar.csv"
+        csv_file.write_text(csv_content)
+
+        with pytest.raises(ValueError, match="Failed to read CSV: row 2 has missing columns"):
+            load_bar_data(csv_file, column="status")
+
     def test_horizontal(self, bar_csv) -> None:
         spec = load_bar_data(bar_csv, column="status", horizontal=True)
         assert spec.horizontal is True
@@ -337,6 +345,14 @@ class TestLoadLineData:
     def test_missing_column(self, line_csv) -> None:
         with pytest.raises(KeyError):
             load_line_data(line_csv, x_col="nonexistent", y_cols=["temperature"])
+
+    def test_malformed_line_data_raises_clear_error(self, tmp_path) -> None:
+        csv_content = "date,temperature\n2024-01-01\n"
+        csv_file = tmp_path / "malformed_line.csv"
+        csv_file.write_text(csv_content)
+
+        with pytest.raises(ValueError, match="Failed to read CSV: row 2 has missing columns"):
+            load_line_data(csv_file, x_col="date", y_cols=["temperature"])
 
     def test_date_x_drops_invalid_rows(self, tmp_path) -> None:
         csv_content = "date,temperature\n2024-01-01,10\n,11\n2024-01-03,12\n"

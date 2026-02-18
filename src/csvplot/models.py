@@ -29,6 +29,7 @@ class BarSpec:
     values: list[float] = field(default_factory=list)
     title: str = "csvplot"
     horizontal: bool = False
+    show_labels: bool = False
 
 
 @dataclass

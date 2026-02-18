@@ -330,6 +330,10 @@ def bar(
         bool,
         typer.Option("--horizontal", help="Use horizontal bars (visual format only)"),
     ] = False,
+    labels: Annotated[
+        bool,
+        typer.Option("--labels", help="Show exact values on bars (visual format only)"),
+    ] = False,
     top: Annotated[
         int | None,
         typer.Option("--top", min=1, help="Show only the top N categories"),
@@ -389,6 +393,7 @@ def bar(
             max_rows=head,
             title=chart_title,
             horizontal=horizontal,
+            show_labels=labels,
             wheres=wheres or None,
             where_nots=where_nots or None,
         )

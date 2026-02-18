@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterator
 
-from csvplot.reader import filter_rows
+from csvplot.reader import _ensure_columns_exist, filter_rows
 
 FALSY_VALUES = frozenset({"", "0", "false", "no", "null", "none", "na", "nan"})
 
@@ -70,11 +70,7 @@ def load_bubble_data(
 
         for row_index, row in enumerate(rows, start=1):
             if row_index == 1:
-                for col in required_cols:
-                    if col not in row:
-                        raise KeyError(
-                            f"Column {col!r} not found. Available: {', '.join(sorted(row.keys()))}"
-                        )
+                _ensure_columns_exist(required_cols, row)
             total_rows += 1
             if max_rows is not None and len(selected_rows) >= max_rows:
                 continue

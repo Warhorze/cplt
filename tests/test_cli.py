@@ -205,3 +205,22 @@ def test_bubble_auto_truncates_large_output(monkeypatch, tmp_path: Path) -> None
     assert "... 20 more rows" in result.stdout
     assert "--head" in result.stdout
     assert "--sample" in result.stdout
+
+
+def test_bar_labels_option_is_accepted(bar_csv) -> None:
+    result = runner.invoke(
+        app,
+        [
+            "bar",
+            "-f",
+            str(bar_csv),
+            "-c",
+            "status",
+            "--labels",
+            "--format",
+            "compact",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "[COMPACT:bar]" in result.stdout

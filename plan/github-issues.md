@@ -214,6 +214,47 @@ path = Path(file_path).expanduser()
 
 ---
 
+## Priority 2: Code Review Feedback (2026-02-18)
+
+### U5 — reader.py + bubble.py + cli.py (column error messages)
+
+**Overall: Well implemented.**
+
+- `_raise_missing_column()` helper in `reader.py` gives a clean, consistent error format (`Column 'x' not found. Available: a, b, c`) applied across `load_segments()`, `load_bar_data()`, and `load_line_data()`.
+- `_format_key_error()` in `cli.py` extracts the message cleanly at the CLI layer; all five commands catch `KeyError`.
+- `bubble.py` has an inline duplicate of the same error message rather than calling a shared helper. Low impact but worth noting — if the error format ever changes, `bubble.py` will need a separate edit.
+- Test `test_unknown_column_lists_available()` covers the main path. No test for the bubble-specific inline path.
+
+### U6 — reader.py + completions.py (`--where` empty/null shorthand)
+
+**Overall: Comprehensive and correct.**
+
+- `parse_where()` maps `COL=` and `COL=(empty)` to `("")` sentinel. `_matches_values()` treats empty sentinel as matching `{"", "null", "none", "na", "nan"}` — good breadth.
+- Completions correctly append `"(empty)"` only when the column has at least one empty cell.
+- Three tests cover parsing, filtering, and autocompletion. Full path is validated end-to-end.
+- No gaps identified.
+
+### U1, U2, U3 — renderer.py / cli.py (integer ticks, bar labels, line legend)
+
+**Status: Implemented (2026-02-18).**
+
+- **U1 (integer ticks):** `render_bar()` now detects all-integer value series and applies integer tick labels via explicit `yticks`/`xticks`.
+- **U2 (`--labels` flag):** Added `--labels` in CLI, passed through `load_bar_data()` into `BarSpec.show_labels`, and rendered bar value labels in `render_bar()`.
+- **U3 (line legend):** `render_line()` now explicitly labels series only when there are multiple series and suppresses labels for single-series charts.
+
+**Follow-up tasks (see below).**
+
+---
+
+## Priority 2: Follow-up Tasks
+
+- [x] **U1**: Implemented integer tick formatting in `render_bar()` with tests (`test_render_bar_integer_ticks_use_integer_labels`).
+- [x] **U2**: Added `--labels` flag and rendered value labels in `render_bar()` with tests (`test_render_bar_with_labels_calls_text_for_each_bar`, `test_bar_labels_option_is_accepted`).
+- [x] **U3**: Added explicit multi-series label gating in `render_line()` with tests (`test_render_line_only_labels_multi_series`, `test_render_line_suppresses_single_series_legend_label`).
+- [x] **U5-bubble**: Replaced inline bubble missing-column error with shared `reader._ensure_columns_exist()` helper and added bubble missing-column message test.
+
+---
+
 ## Priority 3: Feature Requests (deferred/larger scope)
 
 These are valid but require more design work. Track separately.

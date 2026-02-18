@@ -70,8 +70,8 @@ class TestLoadBubbleData:
         spec = load_bubble_data(bubble_csv, cols=["feature_a"], y_col="name", max_rows=2)
         assert len(spec.y_labels) == 2
 
-    def test_missing_column_raises(self, bubble_csv: Path) -> None:
-        with pytest.raises(KeyError):
+    def test_missing_column_raises_with_available_columns(self, bubble_csv: Path) -> None:
+        with pytest.raises(KeyError, match="Available:"):
             load_bubble_data(bubble_csv, cols=["nonexistent"], y_col="name")
 
     def test_top_by_fill_rate(self, bubble_csv: Path) -> None:
