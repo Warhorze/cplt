@@ -116,3 +116,37 @@ class TestCompleteWhere:
         ctx = self._ctx({"file": bad})
         result = complete_where(ctx, [], "")
         assert isinstance(result, list)
+
+    def test_stage1_only_col_prefix_no_values(self, where_csv: Path) -> None:
+        """Stage 1 (no '=' typed) must return only COL= tokens, never COL=value.
+
+        Shells strip the common prefix from display, so after the user picks
+        'status=' and types it, the next tab shows 'open', 'closed', … — the
+        shell hides the 'status=' prefix.  Mixing full 'status=open' entries in
+        stage 1 with bare 'region=' entries is confusing.
+        """
+        ctx = self._ctx({"file": where_csv, "x": ["status"]})
+        result = complete_where(ctx, [], "")
+        assert all(r.endswith("=") for r in result), (
+            f"Stage-1 results must all end with '=', got: {result}"
+        )
+
+    def test_stage1_context_column_appears_first(self, where_csv: Path) -> None:
+        """Context column (from --y) should be listed before other columns."""
+        ctx = self._ctx({"file": where_csv, "y": ["region"], "x": []})
+        result = complete_where(ctx, [], "")
+        assert result, "Expected non-empty suggestions"
+        assert result[0] == "region=", (
+            f"Context column 'region=' should be first, got: {result[0]!r}"
+        )
+
+    def test_where_param_used_as_context_for_where_not(self, where_csv: Path) -> None:
+        """When --where already names a column, --where-not completion should
+        surface that same column first (natural include/exclude flow on one column).
+        """
+        ctx = self._ctx({"file": where_csv, "where": ["status=open"], "x": [], "y": []})
+        result = complete_where(ctx, [], "")
+        assert result, "Expected non-empty suggestions"
+        assert result[0] == "status=", (
+            f"Column from --where should be context for --where-not, got: {result[0]!r}"
+        )

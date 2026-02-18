@@ -179,8 +179,17 @@ def match_values(incomplete: str, values: list[str]) -> list[str]:
 
 
 def _last_context_column(ctx: click.Context) -> str | None:
-    """Find the last --x or --y column from context params for pre-filling."""
-    # Check --y first (more specific), then --x
+    """Find the most relevant column from context params for pre-filling.
+
+    Priority: --where (column already being filtered) > --y > --x.
+    This lets --where-not inherit the same column as a preceding --where.
+    """
+    # Check existing --where values first: extract COL from COL=value
+    where_vals = _ctx_param_values(ctx, "where")
+    for expr in reversed(where_vals):
+        if "=" in expr:
+            return expr.split("=", 1)[0]
+
     for param in ("y", "x"):
         vals = _ctx_param_values(ctx, param)
         if vals:
@@ -217,22 +226,24 @@ def complete_where(ctx: click.Context, args: list[str], incomplete: str) -> list
         matched = match_values(partial, values)
         return [f"{actual_col}={v}" for v in matched]
 
-    # No "=" yet — suggest COL= completions
-    # Pre-fill from last --x/--y context column
+    # No "=" yet — suggest COL= completions (column name only, no values).
+    # Shells strip the common prefix from display, so once the user picks
+    # "status=" and the next tab fires, values appear as "open", "closed", …
+    # Mixing full "status=open" entries here with bare "region=" entries is
+    # confusing; keep stage 1 uniform.
     context_col = _last_context_column(ctx)
     col_map = {c.lower(): c for c in columns}
     actual_context_col = col_map.get(context_col.lower()) if context_col else None
 
-    suggestions: list[str] = []
+    # Context column first, then remaining columns in CSV order
+    ordered: list[str] = []
     if actual_context_col:
-        # Pre-fill with context column values
-        values = _get_column_values(file_path, actual_context_col)
-        suggestions = [f"{actual_context_col}={v}" for v in values]
-
-    # Also suggest other columns as COL= format
+        ordered.append(actual_context_col)
     for col in columns:
         if col != actual_context_col:
-            suggestions.append(f"{col}=")
+            ordered.append(col)
+
+    suggestions = [f"{col}=" for col in ordered]
 
     if incomplete:
         lower = incomplete.lower()
