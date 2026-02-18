@@ -13,7 +13,7 @@ from rich.table import Table
 
 from csvplot.bubble import load_bubble_data
 from csvplot.completions import complete_column, complete_date_column, complete_where
-from csvplot.models import Marker, PlotSpec
+from csvplot.models import PlotSpec, VLine
 from csvplot.reader import (
     load_bar_data,
     load_line_data,
@@ -103,19 +103,19 @@ def timeline(
             rich_help_panel="Formatting",
         ),
     ] = None,
-    marker: Annotated[
+    vline: Annotated[
         str | None,
         typer.Option(
-            "--marker",
-            help="Vertical marker date (YYYY-MM-DD)",
+            "--vline",
+            help="Vertical reference line date (YYYY-MM-DD)",
             rich_help_panel="Formatting",
         ),
     ] = None,
-    marker_label: Annotated[
+    label: Annotated[
         str | None,
         typer.Option(
-            "--marker-label",
-            help="Label for the marker line",
+            "--label",
+            help="Label for the vertical reference line",
             rich_help_panel="Formatting",
         ),
     ] = None,
@@ -252,18 +252,18 @@ def timeline(
         rprint("[yellow]Warning:[/yellow] No valid segments found in the data.")
         raise typer.Exit(0)
 
-    # Warn if --marker-label is given without --marker
-    if marker_label and not marker:
-        rprint("[yellow]Warning:[/yellow] --marker-label has no effect without --marker.")
+    # Warn if --label is given without --vline
+    if label and not vline:
+        rprint("[yellow]Warning:[/yellow] --label has no effect without --vline.")
 
     # Build PlotSpec
-    markers: list[Marker] = []
-    if marker:
-        marker_dt = parse_datetime(marker)
-        if marker_dt is None:
-            rprint(f"[red]Error:[/red] Could not parse --marker date: {marker}")
+    vlines: list[VLine] = []
+    if vline:
+        vline_dt = parse_datetime(vline)
+        if vline_dt is None:
+            rprint(f"[red]Error:[/red] Could not parse --vline date: {vline}")
             raise typer.Exit(1)
-        markers.append(Marker(date=marker_dt, label=marker_label or ""))
+        vlines.append(VLine(date=vline_dt, label=label or ""))
 
     # Parse --from / --to view window
     view_start = None
@@ -284,7 +284,7 @@ def timeline(
 
     spec = PlotSpec(
         segments=segments,
-        markers=markers,
+        vlines=vlines,
         view_start=view_start,
         view_end=view_end,
         title=chart_title,

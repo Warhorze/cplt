@@ -145,15 +145,15 @@ def compact_timeline(spec: PlotSpec, width: int = 60) -> str:
 
     lines.append("---")
 
-    # Markers
-    if spec.markers:
-        marker_strs = []
-        for m in spec.markers:
-            s = m.date.strftime("%Y-%m-%d")
-            if m.label:
-                s += f' "{m.label}"'
-            marker_strs.append(s)
-        lines.append("markers: " + ", ".join(marker_strs))
+    # Vertical reference lines
+    if spec.vlines:
+        vline_strs = []
+        for vl in spec.vlines:
+            s = vl.date.strftime("%Y-%m-%d")
+            if vl.label:
+                s += f' "{vl.label}"'
+            vline_strs.append(s)
+        lines.append("vlines: " + ", ".join(vline_strs))
 
     # Legend (color keys)
     if spec.color_col_name:

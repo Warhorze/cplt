@@ -18,7 +18,7 @@ class Segment:
 
 
 @dataclass(frozen=True, slots=True)
-class Marker:
+class VLine:
     date: datetime
     label: str = ""
 
@@ -43,7 +43,7 @@ class LineSpec:
 @dataclass
 class PlotSpec:
     segments: list[Segment] = field(default_factory=list)
-    markers: list[Marker] = field(default_factory=list)
+    vlines: list[VLine] = field(default_factory=list)
     view_start: datetime | None = None
     view_end: datetime | None = None
     title: str = "csvplot"

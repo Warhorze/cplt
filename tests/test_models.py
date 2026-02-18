@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from csvplot.models import BarSpec, LineSpec, Marker, PlotSpec, Segment
+from csvplot.models import BarSpec, LineSpec, PlotSpec, Segment, VLine
 
 
 class TestSegment:
@@ -60,7 +60,7 @@ class TestPlotSpec:
     def test_defaults(self) -> None:
         spec = PlotSpec()
         assert spec.segments == []
-        assert spec.markers == []
+        assert spec.vlines == []
         assert spec.view_start is None
         assert spec.view_end is None
 
@@ -72,11 +72,11 @@ class TestPlotSpec:
             start=datetime(2024, 1, 1),
             end=datetime(2024, 2, 1),
         )
-        marker = Marker(date=datetime(2024, 1, 15), label="midpoint")
-        spec = PlotSpec(segments=[seg], markers=[marker])
+        vl = VLine(date=datetime(2024, 1, 15), label="midpoint")
+        spec = PlotSpec(segments=[seg], vlines=[vl])
         assert len(spec.segments) == 1
-        assert len(spec.markers) == 1
-        assert spec.markers[0].label == "midpoint"
+        assert len(spec.vlines) == 1
+        assert spec.vlines[0].label == "midpoint"
 
 
 class TestBarSpec:

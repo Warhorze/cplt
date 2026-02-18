@@ -43,8 +43,8 @@ class TestTimelineOptions:
         assert "█" in result.stdout
         assert "#" in result.stdout
 
-    def test_marker(self, timeline_csv: Path) -> None:
-        """--marker and --marker-label appear in compact output."""
+    def test_vline(self, timeline_csv: Path) -> None:
+        """--vline and --label appear in compact output."""
         result = invoke(
             "timeline",
             "-f",
@@ -55,9 +55,9 @@ class TestTimelineOptions:
             "end",
             "--y",
             "name",
-            "--marker",
+            "--vline",
             "2024-02-15",
-            "--marker-label",
+            "--label",
             "deadline",
             "--format",
             "compact",

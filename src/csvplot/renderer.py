@@ -240,13 +240,13 @@ def render(spec: PlotSpec, build: bool = False) -> str | None:
             label=None,
         )
 
-    # Plot markers as vertical lines
-    for marker in spec.markers:
-        dt_str = _dt_to_str(marker.date)
+    # Plot vertical reference lines
+    for vl in spec.vlines:
+        dt_str = _dt_to_str(vl.date)
         plt.vline(dt_str, color="red+")
-        if marker.label:
+        if vl.label:
             plt.text(
-                marker.label,
+                vl.label,
                 x=dt_str,
                 y=max_y + 0.3,
                 color="red+",

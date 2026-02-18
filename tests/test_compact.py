@@ -13,7 +13,7 @@ from csvplot.compact import (
     compact_timeline,
     rle_encode,
 )
-from csvplot.models import BarSpec, LineSpec, Marker, PlotSpec, Segment
+from csvplot.models import BarSpec, LineSpec, PlotSpec, Segment, VLine
 from csvplot.summarise import ColumnSummary
 
 
@@ -92,15 +92,15 @@ class TestCompactTimeline:
         assert len(a_lines) == 1
         assert len(b_lines) == 1
 
-    def test_markers_section(self):
-        """Markers appear in the output."""
+    def test_vlines_section(self):
+        """Vertical reference lines appear in the output."""
         spec = PlotSpec(
             segments=[Segment(0, 0, "A", _dt(1), _dt(6))],
-            markers=[Marker(date=_dt(3, 15), label="deadline")],
+            vlines=[VLine(date=_dt(3, 15), label="deadline")],
             title="Test",
         )
         out = compact_timeline(spec, width=20)
-        assert "markers:" in out
+        assert "vlines:" in out
         assert "deadline" in out
 
     def test_view_window(self):
