@@ -24,17 +24,17 @@ runner = CliRunner()
 # - label column for --txt
 # ---------------------------------------------------------------------------
 TIMELINE_CSV = """\
-name,start,end,category,detail,label
-Alpha,2024-01-01,2024-01-15,backend,api,Launch
-Alpha,2024-02-01,2024-02-20,backend,db,Migration
-Bravo,2024-01-10,2024-01-25,frontend,ui,Sprint 1
-Charlie,2024-02-10,2024-03-01,backend,api,Refactor
-Delta,2024-03-01,2024-03-20,frontend,ui,Sprint 2
-Echo,2024-03-15,,backend,api,Ongoing
-Foxtrot,2024-01-05,2024-01-20,data,etl,Pipeline
-Golf,2024-02-15,2024-03-10,data,etl,Batch
-Hotel,2024-01-20,2024-02-05,frontend,ui,Sprint 1.5
-India,2024-03-10,2024-03-25,data,ml,Training
+name,start,end,category,detail,label,due_date
+Alpha,2024-01-01,2024-01-15,backend,api,Launch,2024-01-10
+Alpha,2024-02-01,2024-02-20,backend,db,Migration,2024-02-15
+Bravo,2024-01-10,2024-01-25,frontend,ui,Sprint 1,2024-01-20
+Charlie,2024-02-10,2024-03-01,backend,api,Refactor,
+Delta,2024-03-01,2024-03-20,frontend,ui,Sprint 2,2024-03-15
+Echo,2024-03-15,,backend,api,Ongoing,2024-03-20
+Foxtrot,2024-01-05,2024-01-20,data,etl,Pipeline,2024-01-12
+Golf,2024-02-15,2024-03-10,data,etl,Batch,2024-02-28
+Hotel,2024-01-20,2024-02-05,frontend,ui,Sprint 1.5,2024-01-28
+India,2024-03-10,2024-03-25,data,ml,Training,2024-03-18
 """
 
 

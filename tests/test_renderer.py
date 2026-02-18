@@ -212,7 +212,9 @@ def test_render_dots_calls_scatter(monkeypatch) -> None:
     original_scatter = renderer.plt.scatter
 
     def _capture_scatter(*args, **kwargs):
-        scatter_calls.append((args[0] if args else kwargs.get("x"), args[1] if len(args) > 1 else kwargs.get("y")))
+        x_val = args[0] if args else kwargs.get("x")
+        y_val = args[1] if len(args) > 1 else kwargs.get("y")
+        scatter_calls.append((x_val, y_val))
         return original_scatter(*args, **kwargs)
 
     monkeypatch.setattr(renderer.plt, "scatter", _capture_scatter)

@@ -13,9 +13,10 @@ from rich.table import Table
 
 from csvplot.bubble import load_bubble_data
 from csvplot.completions import complete_column, complete_date_column, complete_where
-from csvplot.models import PlotSpec, VLine
+from csvplot.models import Dot, PlotSpec, VLine
 from csvplot.reader import (
     load_bar_data,
+    load_dots,
     load_line_data,
     load_segments,
     parse_datetime,
@@ -116,6 +117,15 @@ def timeline(
         typer.Option(
             "--label",
             help="Label for the vertical reference line",
+            rich_help_panel="Formatting",
+        ),
+    ] = None,
+    dot: Annotated[
+        Optional[list[str]],
+        typer.Option(
+            "--dot",
+            help="Date column(s) to render as per-row dot markers",
+            autocompletion=complete_date_column,
             rich_help_panel="Formatting",
         ),
     ] = None,
@@ -279,6 +289,24 @@ def timeline(
             rprint(f"[red]Error:[/red] Could not parse --to date: {view_to}")
             raise typer.Exit(1)
 
+    # Load dots
+    dot_cols = dot or []
+    dots: list[Dot] = []
+    if dot_cols:
+        try:
+            dots = load_dots(
+                path=file,
+                dot_cols=dot_cols,
+                y_col=y,
+                color_col=color,
+                max_rows=head,
+                wheres=wheres or None,
+                where_nots=where_nots or None,
+            )
+        except KeyError as e:
+            rprint(f"[red]Error:[/red] {_format_key_error(e)}")
+            raise typer.Exit(1)
+
     # Determine chart title
     chart_title = title if title else file.stem
 
@@ -290,6 +318,8 @@ def timeline(
         title=chart_title,
         x_pair_names=x_pairs,
         color_col_name=color or None,
+        dots=dots,
+        dot_col_names=dot_cols,
     )
 
     # Render

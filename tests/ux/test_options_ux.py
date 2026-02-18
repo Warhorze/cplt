@@ -241,6 +241,27 @@ class TestTimelineOptions:
         # Composite labels join with " | "
         assert " | " in result.stdout
 
+    def test_dot(self, timeline_csv: Path) -> None:
+        """--dot renders dot markers in compact output."""
+        result = invoke(
+            "timeline",
+            "-f",
+            str(timeline_csv),
+            "--x",
+            "start",
+            "--x",
+            "end",
+            "--y",
+            "name",
+            "--dot",
+            "due_date",
+            "--format",
+            "compact",
+        )
+        assert result.exit_code == 0
+        assert "◆" in result.stdout
+        assert "due_date" in result.stdout
+
     def test_title(self, timeline_csv: Path) -> None:
         """--title appears in output."""
         result = invoke(
