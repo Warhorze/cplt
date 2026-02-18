@@ -46,6 +46,79 @@ uv run ruff format src/ tests/
 uv run pyright
 ```
 
+## CLI Path Map
+
+Every invocation follows: `csvplot <command> -f <file> <required args> [optional args] --format <fmt>`
+
+```
+csvplot
+├── timeline -f FILE
+│   ├── --x COL --x COL                          ← required, must be even count (pairs)
+│   │   └── [--x COL --x COL ...]                ← additional layers (layer 1, 2, ...)
+│   ├── --y COL                                   ← required (at least 1)
+│   │   └── [--y COL ...]                         ← combine into composite label "A | B"
+│   ├── [--color COL]                             ← color segments by column value
+│   ├── [--txt COL]                               ← label segments (visual only)
+│   ├── [--y-detail COL]                          ← sub-group within --y
+│   ├── [--marker DATE]                           ← vertical marker line
+│   │   └── [--marker-label TEXT]                 ← label for marker (requires --marker)
+│   ├── [--open-end / --no-open-end]              ← null end → today (default: on)
+│   ├── [--from DATE] [--to DATE]                 ← zoom into date range
+│   └── [--format {visual|compact|semantic}]      ← output mode (default: visual)
+│
+├── bar -f FILE
+│   ├── --column COL / -c COL                     ← required
+│   ├── [--sort {value|label|none}]               ← sort order (default: value)
+│   ├── [--horizontal]                            ← horizontal bars (visual only)
+│   ├── [--top N]                                 ← show only top N categories
+│   └── [--format {visual|compact|semantic}]
+│
+├── line -f FILE
+│   ├── --x COL                                   ← required (single x-axis column)
+│   ├── --y COL                                   ← required (at least 1)
+│   │   └── [--y COL ...]                         ← multiple series on same chart
+│   ├── [--color COL]                             ← split into grouped lines
+│   └── [--format {visual|compact|semantic}]
+│
+├── bubble -f FILE
+│   ├── --cols COL                                ← required (at least 1)
+│   │   └── [--cols COL ...]                      ← additional matrix columns
+│   ├── --y COL                                   ← required (row label column)
+│   ├── [--color COL]                             ← color rows by column
+│   ├── [--top N]                                 ← top N columns by fill-rate
+│   └── [--format {visual|compact|semantic}]
+│
+└── summarise -f FILE
+    ├── [--sample N]                              ← show N random rows below summary
+    └── [--format {visual|compact|semantic}]
+```
+
+### Shared options (all commands)
+
+| Option | Type | Default | Notes |
+|--------|------|---------|-------|
+| `-f` / `--file` | PATH | required | must exist, must be file |
+| `--head` | int | none | limit CSV rows read |
+| `--where` | COL=VAL | none | repeatable, same-col = OR, cross-col = AND |
+| `--where-not` | COL=VAL | none | repeatable, exclude matching rows |
+| `--format` | choice | `visual` | `visual` / `compact` / `semantic` |
+| `--title` | str | filename | not on `summarise` |
+
+### Option interactions
+
+```
+--marker-label ──requires──▶ --marker
+--txt ──────────only affects──▶ --format visual
+--horizontal ───only affects──▶ --format visual
+--open-end ─────only affects──▶ timeline
+--sample ───────only affects──▶ summarise
+--y-detail ─────only affects──▶ timeline
+--top ──────────only on──▶ bar, bubble (different semantics)
+--color ────────on──▶ timeline (segment color), line (group-by), bubble (row color)
+--x ────────────on──▶ timeline (date pairs, even count), line (single column)
+--y ────────────on──▶ timeline (list, composite), line (list, multi-series), bubble (single, label)
+```
+
 ## UX Review
 
 ### Manual visual review
