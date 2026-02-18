@@ -240,6 +240,29 @@ def render(spec: PlotSpec, build: bool = False) -> str | None:
             label=None,
         )
 
+    # Plot dots as scatter points
+    for dot in spec.dots:
+        if dot.y_label in y_base:
+            y_pos = y_base[dot.y_label]
+            color = _resolve_color(
+                Segment(
+                    row_index=dot.row_index,
+                    layer=0,
+                    y_label=dot.y_label,
+                    start=dot.date,
+                    end=dot.date,
+                    color_key=dot.color_key,
+                ),
+                "white",
+            )
+            plt.scatter(
+                [_dt_to_str(dot.date)],
+                [y_pos],
+                marker="x",
+                color=color,
+                label=None,
+            )
+
     # Plot vertical reference lines
     for vl in spec.vlines:
         dt_str = _dt_to_str(vl.date)
@@ -276,6 +299,10 @@ def render(spec: PlotSpec, build: bool = False) -> str | None:
             legend_entries.append(f"{layer_name}{marker_note} ({values})")
         else:
             legend_entries.append(f"{layer_name}{marker_note}")
+
+    # Add dot column names to legend
+    for dot_name in spec.dot_col_names:
+        legend_entries.append(f"{dot_name} [marker=x]")
 
     if build:
         canvas = plt.build()

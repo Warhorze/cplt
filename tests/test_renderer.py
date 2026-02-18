@@ -6,7 +6,7 @@ import re
 from datetime import datetime
 
 import csvplot.renderer as renderer
-from csvplot.models import BarSpec, LineSpec, PlotSpec, Segment
+from csvplot.models import BarSpec, Dot, LineSpec, PlotSpec, Segment
 from csvplot.renderer import render, render_bar, render_line
 
 
@@ -204,3 +204,40 @@ def test_render_line_suppresses_single_series_legend_label(monkeypatch) -> None:
     out = render_line(spec, build=True)
     assert out is not None
     assert labels == [None]
+
+
+def test_render_dots_calls_scatter(monkeypatch) -> None:
+    """Dots in spec cause plt.scatter to be called."""
+    scatter_calls: list[tuple[list, list]] = []
+    original_scatter = renderer.plt.scatter
+
+    def _capture_scatter(*args, **kwargs):
+        scatter_calls.append((args[0] if args else kwargs.get("x"), args[1] if len(args) > 1 else kwargs.get("y")))
+        return original_scatter(*args, **kwargs)
+
+    monkeypatch.setattr(renderer.plt, "scatter", _capture_scatter)
+    spec = PlotSpec(
+        segments=[
+            Segment(
+                row_index=1,
+                layer=0,
+                y_label="task-a",
+                start=datetime(2024, 1, 1),
+                end=datetime(2024, 1, 30),
+            ),
+        ],
+        dots=[
+            Dot(
+                row_index=1,
+                layer=0,
+                y_label="task-a",
+                date=datetime(2024, 1, 15),
+            ),
+        ],
+        dot_col_names=["due"],
+        title="dot-test",
+    )
+
+    out = render(spec, build=True)
+    assert out is not None
+    assert len(scatter_calls) >= 1
