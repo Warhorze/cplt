@@ -10,6 +10,7 @@ from csvplot.reader import (
     detect_date_columns,
     detect_numeric_columns,
     load_bar_data,
+    load_dots,
     load_line_data,
     load_segments,
     parse_datetime,
@@ -363,3 +364,105 @@ class TestLoadLineData:
         assert spec.x_is_date is True
         assert spec.x_values == ["2024-01-01", "2024-01-03"]
         assert spec.y_series["temperature"] == [10.0, 12.0]
+
+
+class TestLoadDots:
+    def test_basic_loading(self, tmp_path) -> None:
+        csv_content = (
+            "name,start,end,due_date\n"
+            "Alpha,2024-01-01,2024-01-15,2024-01-10\n"
+            "Bravo,2024-02-01,2024-02-20,2024-02-15\n"
+        )
+        csv_file = tmp_path / "dots.csv"
+        csv_file.write_text(csv_content)
+
+        dots = load_dots(csv_file, dot_cols=["due_date"], y_col=["name"])
+        assert len(dots) == 2
+        assert dots[0].y_label == "Alpha"
+        assert dots[0].date == datetime(2024, 1, 10)
+        assert dots[0].layer == 0
+        assert dots[1].y_label == "Bravo"
+
+    def test_skip_empty_dates(self, tmp_path) -> None:
+        csv_content = (
+            "name,start,end,due_date\n"
+            "Alpha,2024-01-01,2024-01-15,2024-01-10\n"
+            "Bravo,2024-02-01,2024-02-20,\n"
+            "Charlie,2024-03-01,2024-03-15,2024-03-10\n"
+        )
+        csv_file = tmp_path / "dots.csv"
+        csv_file.write_text(csv_content)
+
+        dots = load_dots(csv_file, dot_cols=["due_date"], y_col=["name"])
+        assert len(dots) == 2
+        assert dots[0].y_label == "Alpha"
+        assert dots[1].y_label == "Charlie"
+
+    def test_multiple_dot_cols(self, tmp_path) -> None:
+        csv_content = (
+            "name,due_date,review_date\n"
+            "Alpha,2024-01-10,2024-01-12\n"
+            "Bravo,2024-02-15,\n"
+        )
+        csv_file = tmp_path / "dots.csv"
+        csv_file.write_text(csv_content)
+
+        dots = load_dots(csv_file, dot_cols=["due_date", "review_date"], y_col=["name"])
+        assert len(dots) == 3
+        # Alpha has both due_date (layer 0) and review_date (layer 1)
+        alpha_dots = [d for d in dots if d.y_label == "Alpha"]
+        assert len(alpha_dots) == 2
+        assert alpha_dots[0].layer == 0
+        assert alpha_dots[1].layer == 1
+        # Bravo has only due_date (layer 0), review_date is empty
+        bravo_dots = [d for d in dots if d.y_label == "Bravo"]
+        assert len(bravo_dots) == 1
+        assert bravo_dots[0].layer == 0
+
+    def test_with_color_col(self, tmp_path) -> None:
+        csv_content = (
+            "name,due_date,category\n"
+            "Alpha,2024-01-10,backend\n"
+            "Bravo,2024-02-15,frontend\n"
+        )
+        csv_file = tmp_path / "dots.csv"
+        csv_file.write_text(csv_content)
+
+        dots = load_dots(
+            csv_file, dot_cols=["due_date"], y_col=["name"], color_col="category"
+        )
+        assert len(dots) == 2
+        assert dots[0].color_key == "backend"
+        assert dots[1].color_key == "frontend"
+
+    def test_with_filter(self, tmp_path) -> None:
+        csv_content = (
+            "name,due_date,category\n"
+            "Alpha,2024-01-10,backend\n"
+            "Bravo,2024-02-15,frontend\n"
+            "Charlie,2024-03-10,backend\n"
+        )
+        csv_file = tmp_path / "dots.csv"
+        csv_file.write_text(csv_content)
+
+        dots = load_dots(
+            csv_file,
+            dot_cols=["due_date"],
+            y_col=["name"],
+            wheres=[("category", "backend")],
+        )
+        assert len(dots) == 2
+        assert dots[0].y_label == "Alpha"
+        assert dots[1].y_label == "Charlie"
+
+    def test_composite_y_label(self, tmp_path) -> None:
+        csv_content = (
+            "name,category,due_date\n"
+            "Alpha,backend,2024-01-10\n"
+        )
+        csv_file = tmp_path / "dots.csv"
+        csv_file.write_text(csv_content)
+
+        dots = load_dots(csv_file, dot_cols=["due_date"], y_col=["name", "category"])
+        assert len(dots) == 1
+        assert dots[0].y_label == "Alpha | backend"

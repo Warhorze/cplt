@@ -11,7 +11,7 @@ from typing import Iterator, Literal, NoReturn
 
 from rich import print as rprint
 
-from csvplot.models import BarSpec, LineSpec, Segment
+from csvplot.models import BarSpec, Dot, LineSpec, Segment
 
 DATETIME_FORMATS = [
     "%Y-%m-%d %H:%M:%S.%f",
@@ -348,6 +348,64 @@ def load_segments(
         sys.stderr.write(f"Warning: skipped {skipped_unparseable} row(s) with unparseable dates\n")
 
     return segments
+
+
+def load_dots(
+    path: str | Path,
+    dot_cols: list[str],
+    y_col: list[str],
+    *,
+    color_col: str | None = None,
+    max_rows: int | None = None,
+    wheres: list[tuple[str, str]] | None = None,
+    where_nots: list[tuple[str, str]] | None = None,
+    case_sensitive: bool = False,
+) -> list[Dot]:
+    """Load per-row single-date dots from CSV columns.
+
+    Each dot_col is a date column; each produces dots at layer 0, 1, etc.
+    Rows with empty/unparseable dates in a given column are skipped for that column.
+    """
+    dots: list[Dot] = []
+
+    with open(path, newline="") as f:
+        reader = csv.DictReader(f)
+        rows: Iterator[dict[str, str]] = reader
+        if wheres or where_nots:
+            rows = filter_rows(
+                rows, wheres=wheres, where_nots=where_nots, case_sensitive=case_sensitive
+            )
+        required_cols = list(dot_cols) + list(y_col)
+        if color_col:
+            required_cols.append(color_col)
+        for row_index, row in enumerate(rows, start=1):
+            _ensure_well_formed_row(row, row_index + 1)
+            if row_index == 1:
+                _ensure_columns_exist(required_cols, row)
+            if max_rows is not None and row_index > max_rows:
+                break
+
+            y_label = " | ".join(row[col] for col in y_col)
+            color_key: str | None = None
+            if color_col:
+                color_raw = row[color_col].strip()
+                color_key = color_raw if color_raw else MISSING_GROUP
+
+            for layer_index, dot_col in enumerate(dot_cols):
+                dt = parse_datetime(row[dot_col])
+                if dt is None:
+                    continue
+                dots.append(
+                    Dot(
+                        row_index=row_index,
+                        layer=layer_index,
+                        y_label=y_label,
+                        date=dt,
+                        color_key=color_key,
+                    )
+                )
+
+    return dots
 
 
 def load_bar_data(
