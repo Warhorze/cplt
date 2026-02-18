@@ -14,7 +14,7 @@ src/csvplot/
   reader.py       # timeline/bar/line CSV loaders + datetime parsing + row filters
   bubble.py       # bubble matrix loader + falsy detection
   summarise.py    # CSV summary/profiling logic
-  models.py       # Segment/Marker/PlotSpec/BarSpec/LineSpec dataclasses
+  models.py       # Segment/VLine/PlotSpec/BarSpec/LineSpec dataclasses
   renderer.py     # plotext visual rendering (timeline/bar/line)
   compact.py      # compact token-efficient rendering
   semantic.py     # ANSI-stripped rendering helpers

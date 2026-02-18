@@ -50,8 +50,8 @@ Plot timeline/Gantt-style ranges from a CSV file.
 | --y | TEXT | Yes | Yes |  | Categorical Y-axis column(s); repeat to combine |
 | --color | TEXT | No | No |  | Color rows by this column |
 | --txt | TEXT | No | No |  | Label segments with this column's value (visual format only) |
-| --marker | TEXT | No | No |  | Vertical marker date (YYYY-MM-DD) |
-| --marker-label | TEXT | No | No |  | Label for the marker line |
+| --vline | TEXT | No | No |  | Vertical reference line date (YYYY-MM-DD) |
+| --label | TEXT | No | No |  | Label for the vertical reference line |
 | --open-end / --no-open-end | BOOLEAN | No | No | True | Replace NULL/sentinel end dates with today |
 | --y-detail | TEXT | No | No |  | Sub-group within --y by appending this column's value |
 | --head | INTEGER RANGE | No | No |  | Only read the first N CSV rows |
