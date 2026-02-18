@@ -46,6 +46,11 @@ class TestParseWhere:
         with pytest.raises(ValueError, match="Empty column"):
             parse_where("=value")
 
+    def test_empty_placeholder_maps_to_empty(self):
+        col, val = parse_where("status=(empty)")
+        assert col == "status"
+        assert val == ""
+
 
 class TestFilterRows:
     def _rows(self, csv_text: str) -> list[dict[str, str]]:
@@ -119,6 +124,20 @@ class TestFilterRows:
         rows = self._rows(FILTER_CSV)
         with pytest.raises(KeyError, match="nonexistent"):
             list(filter_rows(iter(rows), wheres=[("nonexistent", "val")]))
+
+    def test_empty_where_matches_empty_and_null_like_values(self):
+        csv_text = (
+            "name,status\n"
+            "a,\n"
+            "b,NULL\n"
+            "c,None\n"
+            "d,NA\n"
+            "e,nan\n"
+            "f,open\n"
+        )
+        rows = self._rows(csv_text)
+        result = list(filter_rows(iter(rows), wheres=[("status", "")]))
+        assert {r["name"] for r in result} == {"a", "b", "c", "d", "e"}
 
 
 class TestLoadSegmentsWithFilter:

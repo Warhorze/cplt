@@ -64,7 +64,17 @@ def load_bubble_data(
                 rows, wheres=wheres, where_nots=where_nots, case_sensitive=case_sensitive
             )
 
-        for row in rows:
+        required_cols = [*cols, y_col]
+        if color_col:
+            required_cols.append(color_col)
+
+        for row_index, row in enumerate(rows, start=1):
+            if row_index == 1:
+                for col in required_cols:
+                    if col not in row:
+                        raise KeyError(
+                            f"Column {col!r} not found. Available: {', '.join(sorted(row.keys()))}"
+                        )
             total_rows += 1
             if max_rows is not None and len(selected_rows) >= max_rows:
                 continue

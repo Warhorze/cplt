@@ -132,15 +132,21 @@ def _get_column_values(
         try:
             seen: set[str] = set()
             values: list[str] = []
+            has_empty = False
             with open(key[0], newline="") as f:
                 reader = csv.DictReader(f)
                 for i, row in enumerate(reader):
                     if i >= max_rows:
                         break
                     val = row.get(column, "").strip()
-                    if val and val not in seen:
+                    if not val:
+                        has_empty = True
+                        continue
+                    if val not in seen:
                         seen.add(val)
                         values.append(val)
+            if has_empty:
+                values.append("(empty)")
             _value_cache[cache_key] = values
         except Exception:
             return []

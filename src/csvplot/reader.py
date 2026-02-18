@@ -27,6 +27,7 @@ DATETIME_FORMATS = [
 
 SENTINEL_YEAR = 9999
 MISSING_GROUP = "(missing)"
+EMPTY_WHERE_MATCH_VALUES = {"", "null", "none", "na", "nan"}
 
 
 def _ensure_well_formed_row(row: dict[str, str], row_number: int) -> None:
@@ -35,6 +36,18 @@ def _ensure_well_formed_row(row: dict[str, str], row_number: int) -> None:
         raise ValueError(
             f"Failed to read CSV: row {row_number} has missing columns. Check file format."
         )
+
+
+def _raise_missing_column(missing_col: str, row: dict[str, str]) -> None:
+    """Raise a helpful column-not-found error with available options."""
+    raise KeyError(f"Column {missing_col!r} not found. Available: {', '.join(sorted(row.keys()))}")
+
+
+def _ensure_columns_exist(required_cols: list[str], row: dict[str, str]) -> None:
+    """Ensure all required columns exist in the row mapping."""
+    for col in required_cols:
+        if col not in row:
+            _raise_missing_column(col, row)
 
 
 def read_csv_header(path: str | Path) -> list[str]:
@@ -131,6 +144,8 @@ def parse_where(expr: str) -> tuple[str, str]:
     col, val = expr.split("=", 1)
     if not col:
         raise ValueError(f"Empty column name in {expr!r}")
+    if val.strip().lower() == "(empty)":
+        val = ""
     return col, val
 
 
@@ -141,10 +156,7 @@ def _resolve_filter_columns(
     if case_sensitive:
         missing = [col for col in requested_cols if col not in row]
         if missing:
-            missing_col = missing[0]
-            raise KeyError(
-                f"Column {missing_col!r} not found. Available: {', '.join(sorted(row.keys()))}"
-            )
+            _raise_missing_column(missing[0], row)
         return {col: col for col in requested_cols}
 
     # Case-insensitive column matching, preserving actual key casing.
@@ -153,7 +165,7 @@ def _resolve_filter_columns(
     for col in requested_cols:
         actual = key_map.get(col.lower())
         if actual is None:
-            raise KeyError(f"Column {col!r} not found. Available: {', '.join(sorted(row.keys()))}")
+            _raise_missing_column(col, row)
         resolved[col] = actual
     return resolved
 
@@ -189,6 +201,13 @@ def filter_rows(
     for col, val in where_nots:
         where_not_groups[col].append(val if case_sensitive else val.lower())
 
+    def _matches_values(row_raw: str, vals: list[str]) -> bool:
+        if "" in vals and row_raw.strip().lower() in EMPTY_WHERE_MATCH_VALUES:
+            return True
+        if case_sensitive:
+            return row_raw in vals
+        return row_raw.lower() in vals
+
     resolved_cols: dict[str, str] | None = None
     for row in rows:
         # Validate column names on first row and resolve case-insensitive aliases.
@@ -203,8 +222,7 @@ def filter_rows(
         match = True
         for col, vals in where_groups.items():
             actual_col = resolved_cols[col]
-            row_val = row[actual_col] if case_sensitive else row[actual_col].lower()
-            if row_val not in vals:
+            if not _matches_values(row[actual_col], vals):
                 match = False
                 break
 
@@ -215,8 +233,7 @@ def filter_rows(
         excluded = False
         for col, vals in where_not_groups.items():
             actual_col = resolved_cols[col]
-            row_val = row[actual_col] if case_sensitive else row[actual_col].lower()
-            if row_val in vals:
+            if _matches_values(row[actual_col], vals):
                 excluded = True
                 break
 
@@ -272,8 +289,18 @@ def load_segments(
             rows = filter_rows(
                 rows, wheres=wheres, where_nots=where_nots, case_sensitive=case_sensitive
             )
+        required_cols = [col for pair in x_pairs for col in pair]
+        required_cols.extend(y_cols)
+        if color_col:
+            required_cols.append(color_col)
+        if txt_col:
+            required_cols.append(txt_col)
+        if y_detail_col:
+            required_cols.append(y_detail_col)
         for row_index, row in enumerate(rows, start=1):
             _ensure_well_formed_row(row, row_index + 1)
+            if row_index == 1:
+                _ensure_columns_exist(required_cols, row)
             if max_rows is not None and row_index > max_rows:
                 break
 
@@ -359,6 +386,8 @@ def load_bar_data(
             )
         for i, row in enumerate(rows, start=1):
             _ensure_well_formed_row(row, i + 1)
+            if i == 1:
+                _ensure_columns_exist([column], row)
             if max_rows is not None and i > max_rows:
                 break
             raw_val = row[column]
@@ -418,8 +447,13 @@ def load_line_data(
             rows = filter_rows(
                 rows, wheres=wheres, where_nots=where_nots, case_sensitive=case_sensitive
             )
+        required_cols = [x_col, *y_cols]
+        if color_col:
+            required_cols.append(color_col)
         for i, row in enumerate(rows, start=1):
             _ensure_well_formed_row(row, i + 1)
+            if i == 1:
+                _ensure_columns_exist(required_cols, row)
             if max_rows is not None and i > max_rows:
                 break
             raw_rows.append(row)

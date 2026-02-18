@@ -48,6 +48,13 @@ def _require_canvas(canvas: str | None) -> str:
     return canvas
 
 
+def _format_key_error(exc: KeyError) -> str:
+    """Return a readable KeyError message without Python repr noise."""
+    if exc.args:
+        return str(exc.args[0])
+    return str(exc)
+
+
 @app.callback()
 def main() -> None:
     """Plot data from CSV files directly in the terminal."""
@@ -233,7 +240,7 @@ def timeline(
             where_nots=where_nots or None,
         )
     except KeyError as e:
-        rprint(f"[red]Error:[/red] Column not found in CSV: {e}")
+        rprint(f"[red]Error:[/red] {_format_key_error(e)}")
         raise typer.Exit(1)
     except Exception as e:
         rprint(f"[red]Error:[/red] Failed to read CSV: {e}")
@@ -386,7 +393,7 @@ def bar(
             where_nots=where_nots or None,
         )
     except KeyError as e:
-        rprint(f"[red]Error:[/red] Column not found in CSV: {e}")
+        rprint(f"[red]Error:[/red] {_format_key_error(e)}")
         raise typer.Exit(1)
     except ValueError as e:
         rprint(f"[red]Error:[/red] {e}")
@@ -496,7 +503,7 @@ def line(
             where_nots=where_nots or None,
         )
     except KeyError as e:
-        rprint(f"[red]Error:[/red] Column not found in CSV: {e}")
+        rprint(f"[red]Error:[/red] {_format_key_error(e)}")
         raise typer.Exit(1)
     except ValueError as e:
         rprint(f"[red]Error:[/red] {e}")
@@ -583,7 +590,7 @@ def summarise(
                 max_rows=head,
             )
     except KeyError as e:
-        rprint(f"[red]Error:[/red] Column not found in CSV: {e}")
+        rprint(f"[red]Error:[/red] {_format_key_error(e)}")
         raise typer.Exit(1)
     except ValueError as e:
         rprint(f"[red]Error:[/red] {e}")
@@ -736,6 +743,8 @@ def bubble(
         auto_max_rows: int | None = None
         if head is None and sample is None and format_opt in {"visual", "semantic"}:
             terminal_lines = shutil.get_terminal_size((120, 24)).lines
+            # Auto-cap visual/semantic output by terminal height. If --sample is set,
+            # we intentionally disable this cap so explicit sampling controls row count.
             auto_max_rows = max(10, terminal_lines - 10)
 
         spec = load_bubble_data(
@@ -750,7 +759,7 @@ def bubble(
             where_nots=where_nots or None,
         )
     except KeyError as e:
-        rprint(f"[red]Error:[/red] Column not found in CSV: {e}")
+        rprint(f"[red]Error:[/red] {_format_key_error(e)}")
         raise typer.Exit(1)
     except ValueError as e:
         rprint(f"[red]Error:[/red] {e}")

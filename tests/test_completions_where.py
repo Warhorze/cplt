@@ -18,6 +18,7 @@ bob,closed,south
 charlie,open,north
 dave,pending,south
 eve,Open,west
+frank,,east
 """
 
 
@@ -79,6 +80,7 @@ class TestCompleteWhere:
         ctx = self._ctx({"file": where_csv, "x": ["status"]})
         result = complete_where(ctx, [], "status=")
         assert any("open" in r.lower() for r in result)
+        assert "status=(empty)" in result
 
     def test_with_partial_value(self, where_csv: Path) -> None:
         ctx = self._ctx({"file": where_csv, "x": ["status"]})
