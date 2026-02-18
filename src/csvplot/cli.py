@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Annotated, Literal, Optional, cast
@@ -78,7 +79,7 @@ def timeline(
         ),
     ],
     color: Annotated[
-        Optional[str],
+        str | None,
         typer.Option(
             "--color",
             help="Color rows by this column",
@@ -87,7 +88,7 @@ def timeline(
         ),
     ] = None,
     txt: Annotated[
-        Optional[str],
+        str | None,
         typer.Option(
             "--txt",
             help="Label segments with this column's value (visual format only)",
@@ -96,7 +97,7 @@ def timeline(
         ),
     ] = None,
     marker: Annotated[
-        Optional[str],
+        str | None,
         typer.Option(
             "--marker",
             help="Vertical marker date (YYYY-MM-DD)",
@@ -104,7 +105,7 @@ def timeline(
         ),
     ] = None,
     marker_label: Annotated[
-        Optional[str],
+        str | None,
         typer.Option(
             "--marker-label",
             help="Label for the marker line",
@@ -120,7 +121,7 @@ def timeline(
         ),
     ] = True,
     y_detail: Annotated[
-        Optional[str],
+        str | None,
         typer.Option(
             "--y-detail",
             help="Sub-group within --y by appending this column's value",
@@ -129,7 +130,7 @@ def timeline(
         ),
     ] = None,
     head: Annotated[
-        Optional[int],
+        int | None,
         typer.Option(
             "--head",
             min=1,
@@ -138,7 +139,7 @@ def timeline(
         ),
     ] = None,
     view_from: Annotated[
-        Optional[str],
+        str | None,
         typer.Option(
             "--from",
             help="Zoom start date (YYYY-MM-DD), only show data from this date",
@@ -146,7 +147,7 @@ def timeline(
         ),
     ] = None,
     view_to: Annotated[
-        Optional[str],
+        str | None,
         typer.Option(
             "--to",
             help="Zoom end date (YYYY-MM-DD), only show data up to this date",
@@ -154,7 +155,7 @@ def timeline(
         ),
     ] = None,
     title: Annotated[
-        Optional[str],
+        str | None,
         typer.Option(
             "--title",
             help="Chart title (defaults to filename)",
@@ -323,15 +324,15 @@ def bar(
         typer.Option("--horizontal", help="Use horizontal bars (visual format only)"),
     ] = False,
     top: Annotated[
-        Optional[int],
+        int | None,
         typer.Option("--top", min=1, help="Show only the top N categories"),
     ] = None,
     head: Annotated[
-        Optional[int],
+        int | None,
         typer.Option("--head", min=1, help="Only read the first N CSV rows"),
     ] = None,
     title: Annotated[
-        Optional[str],
+        str | None,
         typer.Option("--title", help="Chart title (defaults to filename)"),
     ] = None,
     where: Annotated[
@@ -431,7 +432,7 @@ def line(
         ),
     ],
     color: Annotated[
-        Optional[str],
+        str | None,
         typer.Option(
             "--color",
             help="Group into separate lines by this column",
@@ -439,11 +440,11 @@ def line(
         ),
     ] = None,
     head: Annotated[
-        Optional[int],
+        int | None,
         typer.Option("--head", min=1, help="Only read the first N CSV rows"),
     ] = None,
     title: Annotated[
-        Optional[str],
+        str | None,
         typer.Option("--title", help="Chart title (defaults to filename)"),
     ] = None,
     where: Annotated[
@@ -525,11 +526,11 @@ def summarise(
         typer.Option("--file", "-f", help="Path to CSV file", exists=True, dir_okay=False),
     ],
     head: Annotated[
-        Optional[int],
+        int | None,
         typer.Option("--head", min=1, help="Only read the first N CSV rows"),
     ] = None,
     sample: Annotated[
-        Optional[int],
+        int | None,
         typer.Option("--sample", min=1, help="Show N random sample rows as preview"),
     ] = None,
     where: Annotated[
@@ -673,7 +674,7 @@ def bubble(
         ),
     ],
     color: Annotated[
-        Optional[str],
+        str | None,
         typer.Option(
             "--color",
             help="Color rows by this column",
@@ -681,15 +682,19 @@ def bubble(
         ),
     ] = None,
     top: Annotated[
-        Optional[int],
+        int | None,
         typer.Option("--top", min=1, help="Show only top N columns by fill-rate"),
     ] = None,
     head: Annotated[
-        Optional[int],
+        int | None,
         typer.Option("--head", min=1, help="Only read the first N CSV rows"),
     ] = None,
+    sample: Annotated[
+        int | None,
+        typer.Option("--sample", min=1, help="Show N random rows in bubble output"),
+    ] = None,
     title: Annotated[
-        Optional[str],
+        str | None,
         typer.Option("--title", help="Chart title (defaults to filename)"),
     ] = None,
     where: Annotated[
@@ -728,12 +733,18 @@ def bubble(
         raise typer.Exit(1)
 
     try:
+        auto_max_rows: int | None = None
+        if head is None and sample is None and format_opt in {"visual", "semantic"}:
+            terminal_lines = shutil.get_terminal_size((120, 24)).lines
+            auto_max_rows = max(10, terminal_lines - 10)
+
         spec = load_bubble_data(
             path=file,
             cols=cols,
             y_col=y,
             color_col=color,
-            max_rows=head,
+            max_rows=head if head is not None else auto_max_rows,
+            sample_n=sample,
             top=top,
             wheres=wheres or None,
             where_nots=where_nots or None,
@@ -851,6 +862,10 @@ def bubble(
             label_map_table.add_column("Full label")
             for row_num, full_label in truncated_rows:
                 label_map_table.add_row(str(row_num), full_label)
+
+        hidden_rows = max(0, spec.total_rows - len(spec.y_labels))
+        if hidden_rows > 0 and head is None and sample is None:
+            table.caption = f"... {hidden_rows} more rows (use --head or --sample)"
 
         if format_opt == "semantic":
             from csvplot.semantic import semantic_rich

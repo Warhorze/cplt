@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import csv
+import random
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterator
@@ -18,6 +19,7 @@ class BubbleSpec:
     col_names: list[str] = field(default_factory=list)
     matrix: list[list[bool]] = field(default_factory=list)
     color_keys: list[str] = field(default_factory=list)
+    total_rows: int = 0
 
 
 def is_falsy(value: str) -> bool:
@@ -32,6 +34,7 @@ def load_bubble_data(
     *,
     color_col: str | None = None,
     max_rows: int | None = None,
+    sample_n: int | None = None,
     top: int | None = None,
     wheres: list[tuple[str, str]] | None = None,
     where_nots: list[tuple[str, str]] | None = None,
@@ -50,10 +53,8 @@ def load_bubble_data(
         where_nots: Exclusion conditions.
         case_sensitive: Whether filters are case-sensitive.
     """
-    y_labels: list[str] = []
-    color_keys: list[str] = []
-    # matrix[row_idx][col_idx] = True/False
-    raw_matrix: list[list[bool]] = []
+    selected_rows: list[dict[str, str]] = []
+    total_rows = 0
 
     with open(path, newline="") as f:
         reader = csv.DictReader(f)
@@ -63,14 +64,23 @@ def load_bubble_data(
                 rows, wheres=wheres, where_nots=where_nots, case_sensitive=case_sensitive
             )
 
-        for i, row in enumerate(rows, start=1):
-            if max_rows is not None and i > max_rows:
-                break
+        for row in rows:
+            total_rows += 1
+            if max_rows is not None and len(selected_rows) >= max_rows:
+                continue
+            selected_rows.append(row)
 
-            y_labels.append(row[y_col])
-            if color_col:
-                color_keys.append(row[color_col])
-            raw_matrix.append([not is_falsy(row[col]) for col in cols])
+    if sample_n is not None and sample_n < len(selected_rows):
+        selected_rows = random.sample(selected_rows, sample_n)
+
+    y_labels: list[str] = []
+    color_keys: list[str] = []
+    raw_matrix: list[list[bool]] = []
+    for row in selected_rows:
+        y_labels.append(row[y_col])
+        if color_col:
+            color_keys.append(row[color_col])
+        raw_matrix.append([not is_falsy(row[col]) for col in cols])
 
     # Apply --top N by fill-rate
     active_cols = list(range(len(cols)))
@@ -90,4 +100,5 @@ def load_bubble_data(
         col_names=col_names,
         matrix=matrix,
         color_keys=color_keys,
+        total_rows=total_rows,
     )

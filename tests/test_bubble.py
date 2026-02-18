@@ -94,3 +94,13 @@ class TestLoadBubbleData:
             color_col="category",
         )
         assert spec.color_keys == ["admin", "user", "admin", "user", "admin"]
+
+    def test_sample_rows(self, bubble_csv: Path) -> None:
+        spec = load_bubble_data(
+            bubble_csv,
+            cols=["feature_a"],
+            y_col="name",
+            sample_n=3,
+        )
+        assert len(spec.y_labels) == 3
+        assert spec.total_rows == 5

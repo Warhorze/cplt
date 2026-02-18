@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from typer.testing import CliRunner
@@ -140,3 +141,67 @@ def test_bubble_numbers_rows_when_labels_are_truncated(tmp_path: Path) -> None:
     assert result.exit_code == 0
     assert "1. " in result.stdout
     assert "Row Labels" in result.stdout
+
+
+def test_bubble_supports_sample_option(tmp_path: Path) -> None:
+    csv_file = tmp_path / "sample_rows.csv"
+    csv_file.write_text(
+        "name,flag\n"
+        "n1,yes\n"
+        "n2,\n"
+        "n3,yes\n"
+        "n4,\n"
+        "n5,yes\n"
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "bubble",
+            "-f",
+            str(csv_file),
+            "--cols",
+            "flag",
+            "--y",
+            "name",
+            "--sample",
+            "3",
+            "--format",
+            "semantic",
+        ],
+    )
+
+    assert result.exit_code == 0
+    present = sum(name in result.stdout for name in ("n1", "n2", "n3", "n4", "n5"))
+    assert present == 3
+
+
+def test_bubble_auto_truncates_large_output(monkeypatch, tmp_path: Path) -> None:
+    csv_file = tmp_path / "many_rows.csv"
+    rows = "\n".join(f"name{i},yes" for i in range(30))
+    csv_file.write_text("name,flag\n" + rows + "\n")
+
+    monkeypatch.setattr(
+        "csvplot.cli.shutil.get_terminal_size",
+        lambda _fallback: os.terminal_size((120, 15)),
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "bubble",
+            "-f",
+            str(csv_file),
+            "--cols",
+            "flag",
+            "--y",
+            "name",
+            "--format",
+            "semantic",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "... 20 more rows" in result.stdout
+    assert "--head" in result.stdout
+    assert "--sample" in result.stdout
