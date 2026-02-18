@@ -6,6 +6,7 @@ Visual/semantic only used for exit-code checks where relevant.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import pytest
@@ -185,6 +186,40 @@ class TestTimelineOptions:
         )
         assert result.exit_code == 0
 
+    def test_txt_compact_is_noop(self, timeline_csv: Path) -> None:
+        """--txt has no effect in compact format (feedback #8)."""
+        base = invoke(
+            "timeline",
+            "-f",
+            str(timeline_csv),
+            "--x",
+            "start",
+            "--x",
+            "end",
+            "--y",
+            "name",
+            "--format",
+            "compact",
+        )
+        with_txt = invoke(
+            "timeline",
+            "-f",
+            str(timeline_csv),
+            "--x",
+            "start",
+            "--x",
+            "end",
+            "--y",
+            "name",
+            "--txt",
+            "label",
+            "--format",
+            "compact",
+        )
+        assert base.exit_code == 0
+        assert with_txt.exit_code == 0
+        assert base.stdout == with_txt.stdout
+
     def test_multi_y(self, timeline_csv: Path) -> None:
         """Multiple --y values form composite labels."""
         result = invoke(
@@ -292,6 +327,31 @@ class TestBarOptions:
         )
         assert result.exit_code == 0
 
+    def test_horizontal_compact_is_noop(self, ux_bar_csv: Path) -> None:
+        """--horizontal has no effect in compact format (feedback #9)."""
+        base = invoke(
+            "bar",
+            "-f",
+            str(ux_bar_csv),
+            "-c",
+            "status",
+            "--format",
+            "compact",
+        )
+        horiz = invoke(
+            "bar",
+            "-f",
+            str(ux_bar_csv),
+            "-c",
+            "status",
+            "--horizontal",
+            "--format",
+            "compact",
+        )
+        assert base.exit_code == 0
+        assert horiz.exit_code == 0
+        assert base.stdout == horiz.stdout
+
     def test_title(self, ux_bar_csv: Path) -> None:
         """--title appears in output."""
         result = invoke(
@@ -352,6 +412,28 @@ class TestLineOptions:
         assert result.exit_code == 0
         assert "north" in result.stdout
         assert "south" in result.stdout
+
+    def test_compact_decimal_precision(self, ux_line_csv: Path) -> None:
+        """Compact line min/max values should not have excessive decimals (feedback #7)."""
+        result = invoke(
+            "line",
+            "-f",
+            str(ux_line_csv),
+            "--x",
+            "date",
+            "--y",
+            "temp",
+            "--format",
+            "compact",
+        )
+        assert result.exit_code == 0
+        # Find all decimal numbers in the output.
+        decimals = re.findall(r"\d+\.(\d+)", result.stdout)
+        for frac in decimals:
+            assert len(frac) <= 4, (
+                f"Excessive decimal precision ({len(frac)} places) in compact output:\n"
+                f"{result.stdout}"
+            )
 
     def test_title(self, ux_line_csv: Path) -> None:
         """--title appears in output."""
@@ -487,6 +569,22 @@ class TestBubbleOptions:
 
 
 class TestSummariseOptions:
+    def test_top_values_notation_explained(self, ux_summarise_csv: Path) -> None:
+        """Top-value frequency notation should be self-explanatory (feedback #5)."""
+        result = invoke(
+            "summarise",
+            "-f",
+            str(ux_summarise_csv),
+            "--format",
+            "compact",
+        )
+        assert result.exit_code == 0
+        out = result.stdout.lower()
+        # The output should either explain the (N) notation or use a clear header.
+        assert "freq" in out or "count" in out or "top" in out, (
+            f"No legend or explanation for top-value notation:\n{result.stdout}"
+        )
+
     def test_sample(self, ux_summarise_csv: Path) -> None:
         """--sample 3 produces a Sample section with rows."""
         result = invoke(

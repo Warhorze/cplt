@@ -7,6 +7,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from tests.ux.conftest import invoke
 
 
@@ -112,6 +114,50 @@ class TestExistingErrorPaths:
             result = invoke(cmd, "-f", csv_path, *args, "--format", "invalid")
             assert result.exit_code == 1, f"{cmd}: exit_code={result.exit_code}"
             assert "format" in result.stdout.lower(), f"{cmd}: no 'format' in error"
+
+
+class TestFeedbackDrivenErrors:
+    """Tests derived from tester feedback (feedback.md)."""
+
+    def test_no_matching_data_warns(self, ux_bar_csv: Path) -> None:
+        """--where with no matches produces a warning, not a crash (feedback validation)."""
+        result = invoke(
+            "bar",
+            "-f",
+            str(ux_bar_csv),
+            "-c",
+            "status",
+            "--where",
+            "assignee=nonexistent",
+            "--format",
+            "compact",
+        )
+        out = result.stdout.lower()
+        assert "warning" in out or "no data" in out, (
+            f"No warning for zero-match filter:\n{result.stdout}"
+        )
+
+    @pytest.mark.xfail(reason="Feedback #4: unparseable end dates silently dropped, no warning")
+    def test_unparseable_end_date_warns(self, tmp_path: Path) -> None:
+        """Rows with unparseable end dates should produce a warning (feedback #4)."""
+        csv = tmp_path / "bad_end.csv"
+        csv.write_text("name,start,end\nA,2024-01-01,2024-01-10\nB,2024-02-01,baddate\n")
+        result = invoke(
+            "timeline",
+            "-f",
+            str(csv),
+            "--x",
+            "start",
+            "--x",
+            "end",
+            "--y",
+            "name",
+            "--format",
+            "compact",
+        )
+        out = result.stdout.lower()
+        # Should warn about skipped/unparseable rows.
+        assert "warning" in out or "skip" in out or "parse" in out
 
 
 class TestErrorQualityImprovements:
