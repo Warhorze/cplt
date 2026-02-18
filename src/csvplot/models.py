@@ -23,6 +23,15 @@ class VLine:
     label: str = ""
 
 
+@dataclass(frozen=True, slots=True)
+class Dot:
+    row_index: int
+    layer: int
+    y_label: str
+    date: datetime
+    color_key: str | None = None
+
+
 @dataclass
 class BarSpec:
     labels: list[str] = field(default_factory=list)
@@ -49,3 +58,5 @@ class PlotSpec:
     title: str = "csvplot"
     x_pair_names: list[tuple[str, str]] = field(default_factory=list)
     color_col_name: str | None = None
+    dots: list[Dot] = field(default_factory=list)
+    dot_col_names: list[str] = field(default_factory=list)

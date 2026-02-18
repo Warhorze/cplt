@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from csvplot.models import BarSpec, LineSpec, PlotSpec, Segment, VLine
+from csvplot.models import BarSpec, Dot, LineSpec, PlotSpec, Segment, VLine
 
 
 class TestSegment:
@@ -77,6 +77,56 @@ class TestPlotSpec:
         assert len(spec.segments) == 1
         assert len(spec.vlines) == 1
         assert spec.vlines[0].label == "midpoint"
+
+
+class TestDot:
+    def test_creation(self) -> None:
+        dot = Dot(
+            row_index=1,
+            layer=0,
+            y_label="task1",
+            date=datetime(2024, 3, 15),
+            color_key="red",
+        )
+        assert dot.row_index == 1
+        assert dot.layer == 0
+        assert dot.y_label == "task1"
+        assert dot.date == datetime(2024, 3, 15)
+        assert dot.color_key == "red"
+
+    def test_default_color_key(self) -> None:
+        dot = Dot(
+            row_index=1,
+            layer=0,
+            y_label="task1",
+            date=datetime(2024, 3, 15),
+        )
+        assert dot.color_key is None
+
+    def test_frozen(self) -> None:
+        dot = Dot(
+            row_index=1,
+            layer=0,
+            y_label="task1",
+            date=datetime(2024, 3, 15),
+        )
+        import pytest
+
+        with pytest.raises(AttributeError):
+            dot.y_label = "changed"  # type: ignore[misc]
+
+
+class TestPlotSpecDots:
+    def test_defaults(self) -> None:
+        spec = PlotSpec()
+        assert spec.dots == []
+        assert spec.dot_col_names == []
+
+    def test_with_dots(self) -> None:
+        dot = Dot(row_index=1, layer=0, y_label="A", date=datetime(2024, 3, 15))
+        spec = PlotSpec(dots=[dot], dot_col_names=["due_date"])
+        assert len(spec.dots) == 1
+        assert spec.dot_col_names == ["due_date"]
 
 
 class TestBarSpec:
