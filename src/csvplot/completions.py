@@ -40,7 +40,7 @@ def _ctx_param_values(ctx: click.Context, name: str) -> list[str]:
 
 
 def _cache_key(file_path: str | Path) -> tuple[str, float] | None:
-    path = Path(file_path)
+    path = Path(file_path).expanduser()
     if not path.is_file():
         return None
     return (str(path.resolve()), path.stat().st_mtime)
@@ -55,7 +55,7 @@ def _get_columns(file_path: str | Path | None) -> list[str]:
         return []
     if key not in _header_cache:
         try:
-            _header_cache[key] = read_csv_header(file_path)
+            _header_cache[key] = read_csv_header(key[0])
         except Exception:
             return []
     return _header_cache[key]
@@ -70,7 +70,7 @@ def _get_date_columns(file_path: str | Path | None) -> list[str]:
         return []
     if key not in _date_col_cache:
         try:
-            _date_col_cache[key] = detect_date_columns(file_path)
+            _date_col_cache[key] = detect_date_columns(key[0])
         except Exception:
             return []
     return _date_col_cache[key]
@@ -132,7 +132,7 @@ def _get_column_values(
         try:
             seen: set[str] = set()
             values: list[str] = []
-            with open(file_path, newline="") as f:
+            with open(key[0], newline="") as f:
                 reader = csv.DictReader(f)
                 for i, row in enumerate(reader):
                     if i >= max_rows:

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
@@ -88,6 +89,20 @@ class TestCompleteColumn:
         ctx.params = {"file": None}
         result = complete_column(ctx, [], "")
         assert result == []
+
+    def test_tilde_path_is_resolved(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+        home = tmp_path / "home"
+        csv_dir = home / "data"
+        csv_dir.mkdir(parents=True)
+        csv_path = csv_dir / "sample.csv"
+        csv_path.write_text("name,age\nalice,30\n")
+        monkeypatch.setenv("HOME", str(home))
+
+        ctx = MagicMock()
+        ctx.params = {"file": "~/data/sample.csv"}
+        result = complete_column(ctx, [], "")
+        assert "name" in result
+        assert "age" in result
 
 
 class TestCompleteDateColumn:
