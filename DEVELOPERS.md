@@ -39,6 +39,7 @@ Tracked in `plan/improvements.md`:
 
 ```bash
 uv sync --extra dev          # install with dev deps
+bash scripts/run_cli_smoke.sh  # one-shot CLI smoke checks
 uv run pytest                # run all tests
 uv run pytest tests/ux/      # run UX tests only
 uv run ruff check src/ tests/
