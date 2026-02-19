@@ -1,14 +1,12 @@
 """Cross-stage option combination tests for the bar command.
 
 Phase 1 tests lock in current working behavior.
-Phase 2 tests (xfail) define desired behavior for broken combinations.
+Phase 2 tests lock in previously broken combinations that are now fixed.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
-
-import pytest
 
 from tests.ux.conftest import invoke
 
@@ -114,14 +112,13 @@ class TestBarCrossStageGreen:
 
 
 # ============================================================================
-# Phase 2: Tests for desired behavior (xfail — currently broken)
+# Phase 2: Tests for behavior that previously failed and is now fixed
 # ============================================================================
 
 
-class TestBarCrossStageBroken:
-    """Combinations that are currently broken."""
+class TestBarCrossStageFixed:
+    """Combinations that were previously broken."""
 
-    @pytest.mark.xfail(reason="--top + --sort label selects alpha-first, not count-first")
     def test_top_plus_sort_label(self, ux_bar_csv: Path) -> None:
         """--top N should always select by count first, then --sort label the selected set.
 

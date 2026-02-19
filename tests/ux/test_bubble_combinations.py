@@ -1,14 +1,12 @@
 """Cross-stage option combination tests for the bubble command.
 
 Phase 1 tests lock in current working behavior.
-Phase 2 tests (xfail) define desired behavior for broken/missing combinations.
+Phase 2 tests lock in formerly broken combinations that are now fixed.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
-
-import pytest
 
 from tests.ux.conftest import invoke
 
@@ -188,14 +186,13 @@ class TestBubbleCrossStageGreen:
 
 
 # ============================================================================
-# Phase 2: Tests for desired behavior (xfail — currently broken/missing)
+# Phase 2: Tests for behavior that previously failed and is now fixed
 # ============================================================================
 
 
-class TestBubbleCrossStageBroken:
-    """Combinations that are currently broken or missing."""
+class TestBubbleCrossStageFixed:
+    """Combinations that were previously broken or missing."""
 
-    @pytest.mark.xfail(reason="group-by takes separate code path, sort is ignored")
     def test_group_by_plus_sort(self, ux_bubble_csv: Path) -> None:
         """Stage 5→6: --group-by + --sort should sort groups by fill-rate."""
         base = invoke(
@@ -216,7 +213,6 @@ class TestBubbleCrossStageBroken:
         # Sort should reorder groups — output must differ from unsorted
         assert base.stdout != sorted_result.stdout
 
-    @pytest.mark.xfail(reason="group-by takes separate code path, transpose is ignored")
     def test_group_by_plus_transpose(self, ux_bubble_csv: Path) -> None:
         """Stage 5→6: --group-by + --transpose should transpose the group table."""
         base = invoke(
@@ -237,7 +233,6 @@ class TestBubbleCrossStageBroken:
         # Transpose should swap the layout — output must differ
         assert base.stdout != transposed.stdout
 
-    @pytest.mark.xfail(reason="group-by ignores --sample, should error")
     def test_group_by_plus_sample_errors(self, ux_bubble_csv: Path) -> None:
         """Stage 3+5: --group-by + --sample should produce an error."""
         result = invoke(
@@ -249,7 +244,6 @@ class TestBubbleCrossStageBroken:
         assert result.exit_code != 0
         assert "sample" in result.stdout.lower() or "sample" in (result.stderr or "").lower()
 
-    @pytest.mark.xfail(reason="group-by ignores --head, should pass through to limit input")
     def test_group_by_plus_head(self, ux_bubble_csv: Path) -> None:
         """Stage 1+5: --group-by + --head should limit input rows."""
         full = invoke(
@@ -270,7 +264,6 @@ class TestBubbleCrossStageBroken:
         # The total rows count should differ
         assert full.stdout != limited.stdout
 
-    @pytest.mark.xfail(reason="binary encode currently uses plain col name, should use col=value")
     def test_encode_binary_col_value_format(self, ux_bubble_csv: Path) -> None:
         """Stage 4: binary encode (<=2 unique) should use col=value format with 1/0."""
         result = invoke(
@@ -283,7 +276,6 @@ class TestBubbleCrossStageBroken:
         # Binary (2 unique: frontend, backend) should produce category=frontend, category=backend
         assert "category=frontend" in result.stdout or "category=backend" in result.stdout
 
-    @pytest.mark.xfail(reason="encode auto-cap at 20 not implemented")
     def test_encode_auto_cap_at_20(self, high_card_bubble_csv: Path) -> None:
         """Stage 4: >20 encoded columns should auto-cap at 20 with warning."""
         result = invoke(
@@ -299,7 +291,6 @@ class TestBubbleCrossStageBroken:
         col_count = col_line[0].count("|") + 1
         assert col_count <= 20
 
-    @pytest.mark.xfail(reason="--no-encode toggle should be removed, just use --encode flag")
     def test_no_encode_flag_removed(self, ux_bubble_csv: Path) -> None:
         """--no-encode should not be a valid option (dead toggle)."""
         result = invoke(
@@ -311,7 +302,6 @@ class TestBubbleCrossStageBroken:
         # Should fail because --no-encode is removed
         assert result.exit_code != 0
 
-    @pytest.mark.xfail(reason="--no-transpose toggle should be removed, just use --transpose flag")
     def test_no_transpose_flag_removed(self, ux_bubble_csv: Path) -> None:
         """--no-transpose should not be a valid option (dead toggle)."""
         result = invoke(
