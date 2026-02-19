@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from csvplot.bubble import is_falsy, load_bubble_data
+from csvplot.bubble import BubbleSpec, is_falsy, load_bubble_data
 
 BUBBLE_CSV = """\
 name,feature_a,feature_b,feature_c,category
@@ -137,6 +137,14 @@ class TestSortBubble:
         sorted_spec = sort_bubble_spec(spec, "name")
         assert sorted_spec.y_labels == ["alice", "bob", "charlie", "dave", "eve"]
 
+    def test_sort_preserves_total_rows(self, bubble_csv: Path) -> None:
+        """Sort preserves total_rows count."""
+        from csvplot.bubble import sort_bubble_spec
+
+        spec = load_bubble_data(bubble_csv, cols=["feature_a"], y_col="name")
+        sorted_spec = sort_bubble_spec(spec, "fill")
+        assert sorted_spec.total_rows == spec.total_rows
+
     def test_sort_preserves_color_keys(self, bubble_csv: Path) -> None:
         """Sort keeps color_keys aligned with y_labels."""
         from csvplot.bubble import sort_bubble_spec
@@ -147,3 +155,22 @@ class TestSortBubble:
         # eve is first (admin), dave is last (user)
         assert sorted_spec.color_keys[0] == "admin"
         assert sorted_spec.color_keys[-1] == "user"
+
+
+class TestColumnFillRates:
+    def test_fill_rates(self, bubble_csv: Path) -> None:
+        """Compute per-column fill-rate percentages."""
+        from csvplot.bubble import column_fill_rates
+
+        cols = ["feature_a", "feature_b", "feature_c"]
+        spec = load_bubble_data(bubble_csv, cols=cols, y_col="name")
+        rates = column_fill_rates(spec)
+        # feature_a: alice=T, bob=F, charlie=T, dave=F, eve=T → 3/5=60%
+        assert rates == {"feature_a": 60, "feature_b": 60, "feature_c": 40}
+
+    def test_fill_rates_empty(self) -> None:
+        from csvplot.bubble import column_fill_rates
+
+        spec = BubbleSpec()
+        rates = column_fill_rates(spec)
+        assert rates == {}

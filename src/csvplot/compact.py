@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 
-from csvplot.bubble import BubbleSpec
+from csvplot.bubble import BubbleSpec, column_fill_rates
 from csvplot.models import BarSpec, Dot, LineSpec, PlotSpec, Segment
 from csvplot.summarise import ColumnSummary
 
@@ -299,6 +299,9 @@ def compact_bubble(spec: BubbleSpec, title: str = "csvplot") -> str:
         padded = label.rjust(max_label_width)
         lines.append(f"{padded}  |{cells}|")
 
+    rates = column_fill_rates(spec)
+    fill_parts = [f"{col}:{pct}%" for col, pct in rates.items()]
+    lines.append("fill: " + " | ".join(fill_parts))
     if spec.total_rows > len(spec.y_labels):
         lines.append(f"Showing {len(spec.y_labels)} of {spec.total_rows} rows")
     lines.append("---")

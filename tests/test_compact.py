@@ -432,6 +432,20 @@ class TestCompactBubble:
         assert al_line.index("|") == bobby_line.index("|")
 
 
+    def test_fill_rate_footer(self):
+        """Compact bubble includes a fill-rate footer row."""
+        spec = BubbleSpec(
+            y_labels=["Alice", "Bob"],
+            col_names=["Age", "City"],
+            matrix=[[True, False], [True, True]],
+            total_rows=2,
+        )
+        out = compact_bubble(spec, title="Test")
+        assert "fill:" in out
+        assert "Age:100%" in out
+        assert "City:50%" in out
+
+
 class TestCompactSummarise:
     def test_basic_output(self):
         """Basic summary table renders with header and columns."""

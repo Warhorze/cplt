@@ -110,6 +110,18 @@ def load_bubble_data(
     )
 
 
+def column_fill_rates(spec: BubbleSpec) -> dict[str, int]:
+    """Return per-column fill-rate as integer percentages (0-100)."""
+    if not spec.matrix:
+        return {}
+    n = len(spec.matrix)
+    result: dict[str, int] = {}
+    for col_idx, col_name in enumerate(spec.col_names):
+        truthy = sum(1 for row in spec.matrix if row[col_idx])
+        result[col_name] = round(truthy / n * 100)
+    return result
+
+
 def sort_bubble_spec(spec: BubbleSpec, sort: str) -> BubbleSpec:
     """Return a new BubbleSpec with rows sorted.
 

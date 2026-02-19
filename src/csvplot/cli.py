@@ -923,6 +923,14 @@ def bubble(
                     cells.append("")
             table.add_row(label_cell, *cells)
 
+        # Add TOTAL footer row with per-column fill-rates
+        from csvplot.bubble import column_fill_rates
+
+        rates = column_fill_rates(spec)
+        total_cells = [f"[dim]{rates[col]}%[/dim]" for col in spec.col_names]
+        table.add_section()
+        table.add_row("[bold]TOTAL[/bold]", *total_cells)
+
         if truncated_rows:
             label_map_table = Table(title="Row Labels")
             label_map_table.add_column("#", justify="right")
