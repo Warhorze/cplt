@@ -5,6 +5,9 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT_DIR="$ROOT_DIR/assets/review"
 RAW_DIR="$OUT_DIR/raw"
 IMG_DIR="$OUT_DIR/images"
+UX_LOG="$OUT_DIR/ux-flow.log"
+REPORT_FILE="$OUT_DIR/REPORT.md"
+SCENARIOS_FILE="$OUT_DIR/SCENARIOS.md"
 
 if [[ -x "$ROOT_DIR/.venv/bin/python" ]]; then
   PYTHON_BIN="$ROOT_DIR/.venv/bin/python"
@@ -39,86 +42,200 @@ if ! "$RENDER_PYTHON" -c "import PIL" >/dev/null 2>&1; then
 fi
 
 mkdir -p "$RAW_DIR" "$IMG_DIR"
+rm -f "$RAW_DIR"/*.txt "$IMG_DIR"/*.png "$UX_LOG"
 
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
+
+SCENARIO_LINK_ROWS="$TMP_DIR/scenario-link-rows.md"
+SCENARIO_REPORT_ROWS="$TMP_DIR/scenario-report-rows.md"
+SCENARIO_CMD_ROWS="$TMP_DIR/scenario-cmd-rows.md"
+CHECK_ROWS="$TMP_DIR/check-rows.md"
+> "$SCENARIO_LINK_ROWS"
+> "$SCENARIO_REPORT_ROWS"
+> "$SCENARIO_CMD_ROWS"
+> "$CHECK_ROWS"
 
 run_csvplot() {
   PYTHONPATH="$ROOT_DIR/src${PYTHONPATH:+:$PYTHONPATH}" \
     "$PYTHON_BIN" -m csvplot "$@"
 }
 
-render_visual_png() {
-  local slug="$1"
-  local title="$2"
-  shift 2
-  local visual_txt="$RAW_DIR/${slug}.visual.txt"
-
-  run_csvplot "$@" --format visual > "$visual_txt"
-  "$RENDER_PYTHON" "$ROOT_DIR/scripts/render_terminal_png.py" \
-    "$visual_txt" "$IMG_DIR/${slug}.png" --title "$title"
+log_step() {
+  local title="$1"
+  echo "== $title ==" | tee -a "$UX_LOG"
 }
 
-# Timeline
-render_visual_png timeline_legend "timeline legend review" \
+record_scenario() {
+  local group="$1"
+  local slug="$2"
+  local purpose="$3"
+  shift 3
+  local cmd_display
+  cmd_display="csvplot $(printf '%q ' "$@")"
+  cmd_display="${cmd_display% }"
+
+  printf '| %s | [%s.png](images/%s.png) | [visual](raw/%s.visual.txt) / [compact](raw/%s.compact.txt) / [semantic](raw/%s.semantic.txt) | %s |\n' \
+    "$group" "$slug" "$slug" "$slug" "$slug" "$slug" "$purpose" >> "$SCENARIO_LINK_ROWS"
+
+  printf '| %s | [%s.png](images/%s.png) | [visual](raw/%s.visual.txt) / [compact](raw/%s.compact.txt) / [semantic](raw/%s.semantic.txt) | `%s` | %s |\n' \
+    "$group" "$slug" "$slug" "$slug" "$slug" "$slug" "$cmd_display" "$purpose" >> "$SCENARIO_REPORT_ROWS"
+
+  printf '| %s | %s | `%s` | %s |\n' \
+    "$group" "$slug" "$cmd_display" "$purpose" >> "$SCENARIO_CMD_ROWS"
+}
+
+capture_scenario() {
+  local group="$1"
+  local slug="$2"
+  local title="$3"
+  local purpose="$4"
+  shift 4
+
+  log_step "$group :: $slug"
+  run_csvplot "$@" --format visual > "$RAW_DIR/${slug}.visual.txt"
+  run_csvplot "$@" --format compact > "$RAW_DIR/${slug}.compact.txt"
+  run_csvplot "$@" --format semantic > "$RAW_DIR/${slug}.semantic.txt"
+
+  "$RENDER_PYTHON" "$ROOT_DIR/scripts/render_terminal_png.py" \
+    "$RAW_DIR/${slug}.visual.txt" "$IMG_DIR/${slug}.png" --title "$title"
+
+  record_scenario "$group" "$slug" "$purpose" "$@"
+}
+
+append_diff_check() {
+  local label="$1"
+  local a="$2"
+  local b="$3"
+  if cmp -s "$a" "$b"; then
+    printf -- '- %s: FAIL (outputs are identical)\n' "$label" >> "$CHECK_ROWS"
+  else
+    printf -- '- %s: PASS (outputs differ)\n' "$label" >> "$CHECK_ROWS"
+  fi
+}
+
+log_step "timeline scenario matrix"
+capture_scenario "timeline" "timeline_layers_color_vline" "timeline layers color vline" \
+  "2-layer timeline with color legend and reference line" \
   timeline -f "$ROOT_DIR/data/timeplot.csv" \
   --x DH_PV_STARTDATUM --x DH_PV_EINDDATUM \
   --x EN_START_DATETIME --x EA_END_DATETIME \
   --y DH_FACING_NUMMER --color SH_ARTIKEL_S1 \
-  --head 12 --marker 2025-01-22 --marker-label wissel-datum
+  --head 12 --vline 2025-01-22 --label wissel-datum
 
-render_visual_png timeline_zoom "timeline zoom review" \
-  timeline -f "$ROOT_DIR/data/projects.csv" \
-  --x start_date --x end_date --y project --color status \
-  --from 2026-01-01 --to 2026-04-01
+capture_scenario "timeline" "timeline_dot_window" "timeline dot window" \
+  "dot markers plus view window clipping" \
+  timeline -f "$ROOT_DIR/data/timeplot.csv" \
+  --x DH_PV_STARTDATUM --x DH_PV_EINDDATUM \
+  --y DH_FACING_NUMMER --dot EN_START_DATETIME \
+  --head 12 --from 2024-01-01 --to 2025-12-31
 
-# Bar
-render_visual_png bar_distribution "bar distribution review" \
-  bar -f "$ROOT_DIR/data/titanic.csv" -c Pclass --sort value
+log_step "bar scenario matrix"
+capture_scenario "bar" "bar_labels_value" "bar labels value" \
+  "value sort baseline distribution" \
+  bar -f "$ROOT_DIR/data/titanic.csv" -c Sex --sort value
 
-render_visual_png bar_sort_top "bar sort top review" \
-  bar -f "$ROOT_DIR/data/titanic.csv" -c Embarked --sort label --top 3
+capture_scenario "bar" "bar_horizontal_top_label" "bar horizontal top label" \
+  "horizontal top-N with label sort" \
+  bar -f "$ROOT_DIR/data/titanic.csv" -c Embarked --sort label --top 3 --horizontal
 
-# Line
-render_visual_png line_trend "line trend review" \
-  line -f "$ROOT_DIR/data/temperatures.csv" --x Date --y Temp
+log_step "line scenario matrix"
+capture_scenario "line" "line_single_temp" "line single series" \
+  "single-series temperature trend" \
+  line -f "$ROOT_DIR/data/temperatures.csv" --x Date --y Temp --head 120
 
-render_visual_png line_head "line head review" \
-  line -f "$ROOT_DIR/data/temperatures.csv" --x Date --y Temp --head 100
+capture_scenario "line" "line_multi_color" "line multi color" \
+  "multi-y line grouped by color column" \
+  line -f "$ROOT_DIR/data/timeplot.csv" \
+  --x DH_PV_STARTDATUM --y MH_AANTAL_FACINGS --y MH_AANTAL_PER_FACING \
+  --color SH_ARTIKELSOORT --head 120
 
-# Bubble
-render_visual_png bubble_matrix "bubble matrix review" \
-  bubble -f "$ROOT_DIR/data/titanic.csv" \
-  --cols Cabin --cols Age --cols Embarked --y Name --head 12
+log_step "bubble scenario matrix"
+capture_scenario "bubble" "bubble_base" "bubble base matrix" \
+  "baseline matrix for compare/diff checks" \
+  bubble -f "$ROOT_DIR/data/titanic.csv" --cols Cabin --cols Age --cols Embarked --y Name --head 12
 
-render_visual_png bubble_top "bubble top review" \
-  bubble -f "$ROOT_DIR/data/titanic.csv" \
-  --cols Cabin --cols Age --cols Embarked --y Name --top 2 --head 12
+capture_scenario "bubble" "bubble_color" "bubble color matrix" \
+  "row color encoding and legend" \
+  bubble -f "$ROOT_DIR/data/titanic.csv" --cols Cabin --cols Age --cols Embarked --y Name --color Pclass --head 12
 
-# Bubble color behavior check (visual mode diff).
-run_csvplot bubble -f "$ROOT_DIR/data/titanic.csv" \
-  --cols Cabin --cols Age --cols Embarked --y Name --head 12 \
-  > "$RAW_DIR/bubble_color_off.visual.txt"
+capture_scenario "bubble" "bubble_sort_fill" "bubble sort fill" \
+  "row reorder by fill rate" \
+  bubble -f "$ROOT_DIR/data/titanic.csv" --cols Cabin --cols Age --cols Embarked --y Name --sort fill --head 12
 
-run_csvplot bubble -f "$ROOT_DIR/data/titanic.csv" \
-  --cols Cabin --cols Age --cols Embarked --y Name --color Pclass --head 12 \
-  > "$RAW_DIR/bubble_color_on.visual.txt"
+capture_scenario "bubble" "bubble_grouped_base" "bubble grouped base" \
+  "group-by aggregation baseline" \
+  bubble -f "$ROOT_DIR/data/titanic.csv" --cols Cabin --cols Age --cols Embarked --y Name --group-by Sex --top 3
 
-if cmp -s "$RAW_DIR/bubble_color_off.visual.txt" "$RAW_DIR/bubble_color_on.visual.txt"; then
-  BUBBLE_COLOR_CHECK="FAIL (visual outputs are identical)"
-else
-  BUBBLE_COLOR_CHECK="PASS (visual outputs differ)"
+capture_scenario "bubble" "bubble_grouped_sorted" "bubble grouped sorted" \
+  "group-by with sort fill" \
+  bubble -f "$ROOT_DIR/data/titanic.csv" --cols Cabin --cols Age --cols Embarked --y Name --group-by Sex --top 3 --sort fill
+
+capture_scenario "bubble" "bubble_grouped_transpose" "bubble grouped transpose" \
+  "group-by with transpose" \
+  bubble -f "$ROOT_DIR/data/titanic.csv" --cols Cabin --cols Age --cols Embarked --y Name --group-by Sex --top 3 --transpose
+
+capture_scenario "bubble" "bubble_encode_base" "bubble encode base" \
+  "encoded columns without transpose" \
+  bubble -f "$ROOT_DIR/data/titanic.csv" --cols Cabin --cols Embarked --y Name --encode --top 8 --head 20
+
+capture_scenario "bubble" "bubble_encode_transpose" "bubble encode transpose" \
+  "encoded columns with transpose" \
+  bubble -f "$ROOT_DIR/data/titanic.csv" --cols Cabin --cols Embarked --y Name --encode --top 8 --head 20 --transpose
+
+log_step "visual diff checks"
+append_diff_check "Bubble --color changes visual output" \
+  "$RAW_DIR/bubble_base.visual.txt" "$RAW_DIR/bubble_color.visual.txt"
+append_diff_check "Bubble grouped sort changes compact output" \
+  "$RAW_DIR/bubble_grouped_base.compact.txt" "$RAW_DIR/bubble_grouped_sorted.compact.txt"
+append_diff_check "Bubble encode transpose changes compact output" \
+  "$RAW_DIR/bubble_encode_base.compact.txt" "$RAW_DIR/bubble_encode_transpose.compact.txt"
+
+RUN_UX_TESTS="${RUN_UX_TESTS:-1}"
+UX_FLOW_CHECK="SKIP (set RUN_UX_TESTS=1 to run)"
+if [[ "$RUN_UX_TESTS" == "1" ]]; then
+  log_step "combination-first ux flow"
+  if UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/ux/test_bubble_combinations.py -q >> "$UX_LOG" 2>&1 \
+    && UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/ux/test_scale_ux.py -q >> "$UX_LOG" 2>&1 \
+    && UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/ux/test_timeline_combinations.py -q >> "$UX_LOG" 2>&1 \
+    && UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/ux/test_bar_combinations.py -q >> "$UX_LOG" 2>&1 \
+    && UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/ux/test_line_combinations.py -q >> "$UX_LOG" 2>&1 \
+    && UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/ux/test_summarise_combinations.py -q >> "$UX_LOG" 2>&1 \
+    && UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/ux/ -q -rXx >> "$UX_LOG" 2>&1; then
+    UX_FLOW_CHECK="PASS"
+  else
+    UX_FLOW_CHECK="FAIL (see ux-flow.log)"
+  fi
 fi
 
-render_visual_png bubble_color_effect "bubble color effect review" \
-  bubble -f "$ROOT_DIR/data/titanic.csv" \
-  --cols Cabin --cols Age --cols Embarked --y Name --color Pclass --head 12
+cat > "$SCENARIOS_FILE" <<EOF2
+# Design Review Scenario Manifest
+
+## Purpose
+
+- SCENARIOS.md defines what to run: canonical scenario list, exact commands, and intent.
+- REPORT.md shows what was produced from this run: artifact links, previews, and check results.
+
+Generated by:
+
+\`bash scripts/generate_design_review_images.sh\`
+
+Each scenario is run in all formats (visual, compact, semantic), with PNG rendering from visual output.
+
+| Group | Slug | Command | Purpose |
+|---|---|---|---|
+$(cat "$SCENARIO_CMD_ROWS")
+EOF2
 
 GENERATED_AT="$(date -u +'%Y-%m-%d %H:%M:%S UTC')"
-REPORT_FILE="$OUT_DIR/REPORT.md"
 
-cat > "$REPORT_FILE" <<EOF
+cat > "$REPORT_FILE" <<EOF3
 # Design Review Artifacts
+
+## Purpose
+
+- REPORT.md is run output: generated images/raw files plus automated check outcomes.
+- SCENARIOS.md is the scenario spec: exact commands and intent for each scenario.
 
 Generated: $GENERATED_AT
 
@@ -130,33 +247,32 @@ bash scripts/generate_design_review_images.sh
 
 ## Scenario Artifacts
 
-- Timeline: [timeline_legend.png](images/timeline_legend.png), [timeline_zoom.png](images/timeline_zoom.png)
-- Bar: [bar_distribution.png](images/bar_distribution.png), [bar_sort_top.png](images/bar_sort_top.png)
-- Line: [line_trend.png](images/line_trend.png), [line_head.png](images/line_head.png)
-- Bubble: [bubble_matrix.png](images/bubble_matrix.png), [bubble_top.png](images/bubble_top.png), [bubble_color_effect.png](images/bubble_color_effect.png)
+| Group | Visual PNG | Raw outputs | Command | Why this exists |
+|---|---|---|---|---|
+$(cat "$SCENARIO_REPORT_ROWS")
 
-### Timeline Preview
-![timeline_legend](images/timeline_legend.png)
-![timeline_zoom](images/timeline_zoom.png)
+See full scenario definitions in [SCENARIOS.md](SCENARIOS.md).
 
-### Bar Preview
-![bar_distribution](images/bar_distribution.png)
-![bar_sort_top](images/bar_sort_top.png)
-
-### Line Preview
-![line_trend](images/line_trend.png)
-![line_head](images/line_head.png)
-
-### Bubble Preview
-![bubble_matrix](images/bubble_matrix.png)
-![bubble_top](images/bubble_top.png)
-![bubble_color_effect](images/bubble_color_effect.png)
+## Visual Preview
+$(for img in $(find "$IMG_DIR" -maxdepth 1 -type f -name '*.png' -printf '%f\n' | sort); do echo "![${img%.*}](images/$img)"; done)
 
 Raw command outputs are in \`raw/\`.
+UX test flow output is in \`ux-flow.log\`.
 
 ## Automated Checks
 
-- Bubble \`--color\` effect: $BUBBLE_COLOR_CHECK
-EOF
+$(cat "$CHECK_ROWS")
+- Combination-first UX flow: $UX_FLOW_CHECK
+
+## UX Flow Used
+
+1. \`tests/ux/test_bubble_combinations.py\`
+2. \`tests/ux/test_scale_ux.py\`
+3. \`tests/ux/test_timeline_combinations.py\`
+4. \`tests/ux/test_bar_combinations.py\`
+5. \`tests/ux/test_line_combinations.py\`
+6. \`tests/ux/test_summarise_combinations.py\`
+7. \`tests/ux/ -rXx\`
+EOF3
 
 echo "Design review artifacts updated in $OUT_DIR"
