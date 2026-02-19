@@ -826,6 +826,10 @@ def bubble(
             autocompletion=complete_where,
         ),
     ] = None,
+    transpose: Annotated[
+        bool,
+        typer.Option("--transpose/--no-transpose", help="Swap rows and columns"),
+    ] = False,
     sort: Annotated[
         str | None,
         typer.Option("--sort", help="Sort rows: fill (most complete first), fill-asc, name"),
@@ -920,6 +924,11 @@ def bubble(
         except ValueError as e:
             rprint(f"[red]Error:[/red] {e}")
             raise typer.Exit(1)
+
+    if transpose:
+        from csvplot.bubble import transpose_bubble_spec
+
+        spec = transpose_bubble_spec(spec)
 
     if not spec.y_labels:
         rprint("[yellow]Warning:[/yellow] No data found.")

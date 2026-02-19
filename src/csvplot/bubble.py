@@ -131,6 +131,22 @@ def column_fill_rates(spec: BubbleSpec) -> dict[str, int]:
     return result
 
 
+def transpose_bubble_spec(spec: BubbleSpec) -> BubbleSpec:
+    """Transpose a BubbleSpec: columns become rows, rows become columns."""
+    n_rows = len(spec.y_labels)
+    n_cols = len(spec.col_names)
+    transposed_matrix = [
+        [spec.matrix[r][c] for r in range(n_rows)] for c in range(n_cols)
+    ]
+    return BubbleSpec(
+        y_labels=list(spec.col_names),
+        col_names=list(spec.y_labels),
+        matrix=transposed_matrix,
+        color_keys=[],  # color_keys don't map after transpose
+        total_rows=spec.total_rows,
+    )
+
+
 def sort_bubble_spec(spec: BubbleSpec, sort: str) -> BubbleSpec:
     """Return a new BubbleSpec with rows sorted.
 

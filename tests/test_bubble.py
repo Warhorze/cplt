@@ -202,6 +202,30 @@ class TestLoadBubbleGrouped:
         assert spec.group_sizes[admin_idx] == 2
 
 
+class TestTransposeBubble:
+    def test_transpose(self, bubble_csv: Path) -> None:
+        """Transpose swaps rows and columns."""
+        from csvplot.bubble import transpose_bubble_spec
+
+        cols = ["feature_a", "feature_b", "feature_c"]
+        spec = load_bubble_data(bubble_csv, cols=cols, y_col="name")
+        tspec = transpose_bubble_spec(spec)
+        # Original: 5 rows x 3 cols → transposed: 3 rows x 5 cols
+        assert tspec.y_labels == ["feature_a", "feature_b", "feature_c"]
+        assert tspec.col_names == ["alice", "bob", "charlie", "dave", "eve"]
+        assert len(tspec.matrix) == 3
+        assert len(tspec.matrix[0]) == 5
+        # feature_a row: alice=T, bob=F, charlie=T, dave=F, eve=T
+        assert tspec.matrix[0] == [True, False, True, False, True]
+
+    def test_transpose_preserves_total_rows(self, bubble_csv: Path) -> None:
+        from csvplot.bubble import transpose_bubble_spec
+
+        spec = load_bubble_data(bubble_csv, cols=["feature_a"], y_col="name")
+        tspec = transpose_bubble_spec(spec)
+        assert tspec.total_rows == spec.total_rows
+
+
 class TestColumnFillRates:
     def test_fill_rates(self, bubble_csv: Path) -> None:
         """Compute per-column fill-rate percentages."""

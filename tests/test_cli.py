@@ -175,6 +175,38 @@ def test_bubble_supports_sample_option(tmp_path: Path) -> None:
     assert present == 3
 
 
+def test_bubble_transpose_compact(tmp_path: Path) -> None:
+    """--transpose swaps rows and columns in compact output."""
+    csv_file = tmp_path / "t.csv"
+    csv_file.write_text("name,a,b\nX,1,\nY,1,1\n")
+
+    result = runner.invoke(
+        app,
+        [
+            "bubble",
+            "-f",
+            str(csv_file),
+            "--cols",
+            "a",
+            "--cols",
+            "b",
+            "--y",
+            "name",
+            "--transpose",
+            "--format",
+            "compact",
+        ],
+    )
+
+    assert result.exit_code == 0
+    # Transposed: cols are now "X | Y", rows are "a" and "b"
+    assert "cols: X | Y" in result.stdout
+    # "a" row: X=T, Y=T → ●●
+    assert "|●●|" in result.stdout
+    # "b" row: X=F, Y=T → ·●
+    assert "|·●|" in result.stdout
+
+
 def test_bubble_group_by_compact(tmp_path: Path) -> None:
     """--group-by produces grouped compact output with percentages and counts."""
     csv_file = tmp_path / "group.csv"
