@@ -583,6 +583,235 @@ class TestBubbleOptions:
         assert result.exit_code == 0
         assert "Features" in result.stdout
 
+    def test_sort_fill_reorders_rows(self, ux_bubble_csv: Path) -> None:
+        """--sort fill puts most-complete rows first."""
+        base = invoke(
+            "bubble",
+            "-f",
+            str(ux_bubble_csv),
+            "--cols",
+            "feat_a",
+            "--cols",
+            "feat_b",
+            "--cols",
+            "feat_c",
+            "--y",
+            "name",
+            "--format",
+            "compact",
+        )
+        sorted_result = invoke(
+            "bubble",
+            "-f",
+            str(ux_bubble_csv),
+            "--cols",
+            "feat_a",
+            "--cols",
+            "feat_b",
+            "--cols",
+            "feat_c",
+            "--y",
+            "name",
+            "--sort",
+            "fill",
+            "--format",
+            "compact",
+        )
+        assert base.exit_code == 0
+        assert sorted_result.exit_code == 0
+        assert base.stdout != sorted_result.stdout
+
+    def test_sort_name_alphabetical(self, ux_bubble_csv: Path) -> None:
+        """--sort name orders rows alphabetically."""
+        result = invoke(
+            "bubble",
+            "-f",
+            str(ux_bubble_csv),
+            "--cols",
+            "feat_a",
+            "--y",
+            "name",
+            "--sort",
+            "name",
+            "--format",
+            "compact",
+        )
+        assert result.exit_code == 0
+        # Extract row labels (lines with | but not header/footer)
+        lines = result.stdout.split("\n")
+        row_lines = [
+            ln for ln in lines
+            if "|" in ln and "cols:" not in ln and "fill:" not in ln
+        ]
+        labels = [ln.split("|")[0].strip() for ln in row_lines]
+        assert labels == sorted(labels, key=str.lower)
+
+    def test_group_by_shows_categories(self, ux_bubble_csv: Path) -> None:
+        """--group-by category shows one row per category with fill-rates."""
+        result = invoke(
+            "bubble",
+            "-f",
+            str(ux_bubble_csv),
+            "--cols",
+            "feat_a",
+            "--cols",
+            "feat_b",
+            "--cols",
+            "feat_c",
+            "--y",
+            "name",
+            "--group-by",
+            "category",
+            "--format",
+            "compact",
+        )
+        assert result.exit_code == 0
+        assert "frontend" in result.stdout
+        assert "backend" in result.stdout
+        assert "%" in result.stdout
+        assert "overall:" in result.stdout
+
+    def test_group_by_with_where(self, ux_bubble_csv: Path) -> None:
+        """--group-by + --where filters before grouping."""
+        result = invoke(
+            "bubble",
+            "-f",
+            str(ux_bubble_csv),
+            "--cols",
+            "feat_a",
+            "--y",
+            "name",
+            "--group-by",
+            "category",
+            "--where",
+            "feat_a=yes",
+            "--format",
+            "compact",
+        )
+        assert result.exit_code == 0
+        assert "%" in result.stdout
+
+    def test_group_by_visual_has_block_chars(self, ux_bubble_csv: Path) -> None:
+        """--group-by in visual/semantic format uses block characters."""
+        result = invoke(
+            "bubble",
+            "-f",
+            str(ux_bubble_csv),
+            "--cols",
+            "feat_a",
+            "--cols",
+            "feat_b",
+            "--y",
+            "name",
+            "--group-by",
+            "category",
+            "--format",
+            "semantic",
+        )
+        assert result.exit_code == 0
+        assert "%" in result.stdout
+        assert "TOTAL" in result.stdout
+
+    def test_transpose_swaps_axes(self, ux_bubble_csv: Path) -> None:
+        """--transpose puts column names as row labels."""
+        result = invoke(
+            "bubble",
+            "-f",
+            str(ux_bubble_csv),
+            "--cols",
+            "feat_a",
+            "--cols",
+            "feat_b",
+            "--cols",
+            "feat_c",
+            "--y",
+            "name",
+            "--transpose",
+            "--format",
+            "compact",
+        )
+        assert result.exit_code == 0
+        # After transpose, cols header should show entity names
+        out = result.stdout
+        assert "cols:" in out
+        # Original column names should now be row labels
+        assert "feat_a" in out
+        assert "feat_b" in out
+
+    def test_transpose_with_sort(self, ux_bubble_csv: Path) -> None:
+        """--transpose + --sort work together."""
+        result = invoke(
+            "bubble",
+            "-f",
+            str(ux_bubble_csv),
+            "--cols",
+            "feat_a",
+            "--cols",
+            "feat_b",
+            "--y",
+            "name",
+            "--transpose",
+            "--sort",
+            "fill",
+            "--format",
+            "compact",
+        )
+        assert result.exit_code == 0
+
+    def test_fill_rate_footer_always_shown(self, ux_bubble_csv: Path) -> None:
+        """Compact output always includes a fill-rate footer line."""
+        result = invoke(
+            "bubble",
+            "-f",
+            str(ux_bubble_csv),
+            "--cols",
+            "feat_a",
+            "--cols",
+            "feat_b",
+            "--y",
+            "name",
+            "--format",
+            "compact",
+        )
+        assert result.exit_code == 0
+        assert "fill:" in result.stdout
+        assert "%" in result.stdout
+
+    def test_fill_rate_semantic_has_total(self, ux_bubble_csv: Path) -> None:
+        """Semantic output shows a TOTAL row with fill-rates."""
+        result = invoke(
+            "bubble",
+            "-f",
+            str(ux_bubble_csv),
+            "--cols",
+            "feat_a",
+            "--y",
+            "name",
+            "--format",
+            "semantic",
+        )
+        assert result.exit_code == 0
+        assert "TOTAL" in result.stdout
+        assert "%" in result.stdout
+
+    def test_head_shows_truncation_footer(self, ux_bubble_csv: Path) -> None:
+        """--head with fewer rows than total shows 'Showing X of Y rows'."""
+        result = invoke(
+            "bubble",
+            "-f",
+            str(ux_bubble_csv),
+            "--cols",
+            "feat_a",
+            "--y",
+            "name",
+            "--head",
+            "3",
+            "--format",
+            "compact",
+        )
+        assert result.exit_code == 0
+        assert "Showing 3 of 10 rows" in result.stdout
+
 
 # ============================================================================
 # Summarise option tests

@@ -51,11 +51,12 @@ def scale_bar_csv(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def scale_bubble_csv(tmp_path: Path) -> Path:
-    """2000 rows, 3 feature columns."""
+    """2000 rows, 3 feature columns + category."""
     p = tmp_path / "scale_bubble.csv"
+    categories = ["alpha", "beta", "gamma", "delta"]
     with p.open("w", newline="") as f:
         w = csv.writer(f)
-        w.writerow(["name", "feat_a", "feat_b", "feat_c"])
+        w.writerow(["name", "feat_a", "feat_b", "feat_c", "category"])
         for i in range(2000):
             w.writerow(
                 [
@@ -63,6 +64,7 @@ def scale_bubble_csv(tmp_path: Path) -> Path:
                     random.choice(["yes", "no", ""]),
                     random.choice(["true", "false", ""]),
                     random.choice(["1", "0", ""]),
+                    random.choice(categories),
                 ]
             )
     return p
@@ -122,6 +124,66 @@ class TestScale:
             "feat_c",
             "--y",
             "name",
+            "--format",
+            "compact",
+        )
+        assert result.exit_code == 0, f"exit_code={result.exit_code}\n{result.stdout}"
+
+    def test_bubble_2k_rows_sorted(self, scale_bubble_csv: Path) -> None:
+        result = invoke(
+            "bubble",
+            "-f",
+            str(scale_bubble_csv),
+            "--cols",
+            "feat_a",
+            "--cols",
+            "feat_b",
+            "--cols",
+            "feat_c",
+            "--y",
+            "name",
+            "--sort",
+            "fill",
+            "--format",
+            "compact",
+        )
+        assert result.exit_code == 0, f"exit_code={result.exit_code}\n{result.stdout}"
+
+    def test_bubble_2k_rows_grouped(self, scale_bubble_csv: Path) -> None:
+        result = invoke(
+            "bubble",
+            "-f",
+            str(scale_bubble_csv),
+            "--cols",
+            "feat_a",
+            "--cols",
+            "feat_b",
+            "--cols",
+            "feat_c",
+            "--y",
+            "name",
+            "--group-by",
+            "category",
+            "--format",
+            "compact",
+        )
+        assert result.exit_code == 0, f"exit_code={result.exit_code}\n{result.stdout}"
+        assert "overall:" in result.stdout
+
+    def test_bubble_2k_rows_transposed(self, scale_bubble_csv: Path) -> None:
+        result = invoke(
+            "bubble",
+            "-f",
+            str(scale_bubble_csv),
+            "--cols",
+            "feat_a",
+            "--cols",
+            "feat_b",
+            "--cols",
+            "feat_c",
+            "--y",
+            "name",
+            "--transpose",
             "--format",
             "compact",
         )

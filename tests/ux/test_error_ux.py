@@ -116,6 +116,48 @@ class TestExistingErrorPaths:
             assert "format" in result.stdout.lower(), f"{cmd}: no 'format' in error"
 
 
+    def test_invalid_sort_value(self, ux_bubble_csv: Path) -> None:
+        """Invalid --sort value produces an error."""
+        result = invoke(
+            "bubble",
+            "-f",
+            str(ux_bubble_csv),
+            "--cols",
+            "feat_a",
+            "--y",
+            "name",
+            "--sort",
+            "invalid",
+            "--format",
+            "compact",
+        )
+        assert result.exit_code != 0
+        out = result.stdout.lower()
+        assert "sort" in out or "unknown" in out, (
+            f"Error doesn't mention sort:\n{result.stdout}"
+        )
+
+    def test_group_by_nonexistent_column(self, ux_bubble_csv: Path) -> None:
+        """--group-by with a nonexistent column produces an error with available columns."""
+        result = invoke(
+            "bubble",
+            "-f",
+            str(ux_bubble_csv),
+            "--cols",
+            "feat_a",
+            "--y",
+            "name",
+            "--group-by",
+            "nonexistent",
+            "--format",
+            "compact",
+        )
+        assert result.exit_code != 0
+        assert "available" in result.stdout.lower(), (
+            f"Error doesn't list available columns:\n{result.stdout}"
+        )
+
+
 class TestFeedbackDrivenErrors:
     """Tests derived from tester feedback (feedback.md)."""
 
