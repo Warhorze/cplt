@@ -459,13 +459,15 @@ def load_bar_data(
     if sort_by not in {"value", "label", "none"}:
         raise ValueError(f"Invalid sort_by {sort_by!r}; expected 'value', 'label', or 'none'.")
 
+    # Always select top N by count first, then apply sort to the selected set
+    if top is not None:
+        order.sort(key=lambda k: counts[k], reverse=True)
+        order = order[:top]
+
     if sort_by == "value":
         order.sort(key=lambda k: counts[k], reverse=True)
     elif sort_by == "label":
         order.sort()
-
-    if top is not None:
-        order = order[:top]
 
     return BarSpec(
         labels=order,
