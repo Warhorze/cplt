@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 from typer.testing import CliRunner
@@ -176,6 +175,62 @@ def test_bubble_supports_sample_option(tmp_path: Path) -> None:
     assert present == 3
 
 
+def test_bubble_group_by_compact(tmp_path: Path) -> None:
+    """--group-by produces grouped compact output with percentages and counts."""
+    csv_file = tmp_path / "group.csv"
+    csv_file.write_text("name,feature,category\na,1,x\nb,,x\nc,1,y\n")
+
+    result = runner.invoke(
+        app,
+        [
+            "bubble",
+            "-f",
+            str(csv_file),
+            "--cols",
+            "feature",
+            "--y",
+            "name",
+            "--group-by",
+            "category",
+            "--format",
+            "compact",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "x:50%(1/2)" in result.stdout
+    assert "y:100%(1/1)" in result.stdout
+
+
+def test_bubble_group_by_semantic(tmp_path: Path) -> None:
+    """--group-by produces semantic output with block characters."""
+    csv_file = tmp_path / "group.csv"
+    csv_file.write_text("name,feature,category\na,1,x\nb,,x\nc,1,y\n")
+
+    result = runner.invoke(
+        app,
+        [
+            "bubble",
+            "-f",
+            str(csv_file),
+            "--cols",
+            "feature",
+            "--y",
+            "name",
+            "--group-by",
+            "category",
+            "--format",
+            "semantic",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "x" in result.stdout
+    assert "y" in result.stdout
+    assert "50%" in result.stdout
+    assert "100%" in result.stdout
+
+
 def test_bubble_fill_rate_footer_in_semantic(tmp_path: Path) -> None:
     """Semantic bubble output includes a fill-rate TOTAL row."""
     csv_file = tmp_path / "fill.csv"
@@ -233,8 +288,8 @@ def test_bubble_sort_by_fill(tmp_path: Path) -> None:
     assert result.exit_code == 0
     lines = result.stdout.strip().split("\n")
     # Find rows: full (3/3) should be before half (1/3) which is before empty (0/3)
-    row_lines = [l for l in lines if "|" in l and "cols:" not in l and "fill:" not in l]
-    labels = [l.split("|")[0].strip() for l in row_lines]
+    row_lines = [ln for ln in lines if "|" in ln and "cols:" not in ln and "fill:" not in ln]
+    labels = [ln.split("|")[0].strip() for ln in row_lines]
     assert labels == ["full", "half", "empty"]
 
 

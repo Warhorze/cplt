@@ -22,6 +22,15 @@ class BubbleSpec:
     total_rows: int = 0
 
 
+@dataclass
+class GroupedBubbleSpec:
+    group_labels: list[str] = field(default_factory=list)
+    col_names: list[str] = field(default_factory=list)
+    counts: list[list[int]] = field(default_factory=list)  # [group][col] = truthy count
+    group_sizes: list[int] = field(default_factory=list)  # rows per group
+    total_rows: int = 0
+
+
 def is_falsy(value: str) -> bool:
     """Check if a value is considered falsy for bubble matrix purposes."""
     return value.strip().lower() in FALSY_VALUES
@@ -145,4 +154,76 @@ def sort_bubble_spec(spec: BubbleSpec, sort: str) -> BubbleSpec:
         matrix=[spec.matrix[i] for i in indices],
         color_keys=[spec.color_keys[i] for i in indices] if spec.color_keys else [],
         total_rows=spec.total_rows,
+    )
+
+
+def load_bubble_grouped(
+    path: str | Path,
+    cols: list[str],
+    y_col: str,
+    *,
+    group_by: str,
+    top: int | None = None,
+    wheres: list[tuple[str, str]] | None = None,
+    where_nots: list[tuple[str, str]] | None = None,
+    case_sensitive: bool = False,
+) -> GroupedBubbleSpec:
+    """Load CSV and build a grouped fill-rate matrix.
+
+    Instead of one row per entity, produces one row per unique group value.
+    Each cell contains the count of truthy values in that group.
+    """
+    from collections import OrderedDict
+
+    groups: OrderedDict[str, list[dict[str, str]]] = OrderedDict()
+    total_rows = 0
+
+    with open(path, newline="") as f:
+        reader = csv.DictReader(f)
+        rows: Iterator[dict[str, str]] = reader
+        if wheres or where_nots:
+            rows = filter_rows(
+                rows, wheres=wheres, where_nots=where_nots, case_sensitive=case_sensitive
+            )
+
+        required_cols = [*cols, y_col, group_by]
+
+        for row_index, row in enumerate(rows, start=1):
+            if row_index == 1:
+                _ensure_columns_exist(required_cols, row)
+            total_rows += 1
+            key = row[group_by]
+            groups.setdefault(key, []).append(row)
+
+    group_labels = list(groups.keys())
+    group_sizes = [len(groups[g]) for g in group_labels]
+
+    # Build counts matrix
+    counts: list[list[int]] = []
+    for g in group_labels:
+        row_counts = []
+        for col in cols:
+            truthy = sum(1 for r in groups[g] if not is_falsy(r[col]))
+            row_counts.append(truthy)
+        counts.append(row_counts)
+
+    # Apply --top N by overall fill-rate
+    active_cols = list(range(len(cols)))
+    if top is not None and top < len(cols) and counts:
+        n_groups = len(group_labels)
+        overall = [
+            (sum(counts[g][c] for g in range(n_groups)), c) for c in range(len(cols))
+        ]
+        overall.sort(key=lambda x: x[0], reverse=True)
+        active_cols = [idx for _, idx in overall[:top]]
+
+    col_names = [cols[i] for i in active_cols]
+    filtered_counts = [[row[i] for i in active_cols] for row in counts]
+
+    return GroupedBubbleSpec(
+        group_labels=group_labels,
+        col_names=col_names,
+        counts=filtered_counts,
+        group_sizes=group_sizes,
+        total_rows=total_rows,
     )

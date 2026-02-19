@@ -446,6 +446,45 @@ class TestCompactBubble:
         assert "City:50%" in out
 
 
+class TestCompactBubbleGrouped:
+    def test_basic_grouped_output(self):
+        """Grouped compact bubble shows percentages and counts."""
+        from csvplot.bubble import GroupedBubbleSpec
+        from csvplot.compact import compact_bubble_grouped
+
+        spec = GroupedBubbleSpec(
+            group_labels=["admin", "user"],
+            col_names=["Cabin", "Age"],
+            counts=[[1, 3], [0, 2]],
+            group_sizes=[3, 2],
+            total_rows=5,
+        )
+        out = compact_bubble_grouped(spec, title="Test")
+        assert "[COMPACT:bubble] Test" in out
+        assert "group:" in out
+        assert "admin" in out
+        assert "33%(1/3)" in out  # Cabin: 1/3
+        assert "100%(3/3)" in out  # Age: 3/3
+        assert "0%(0/2)" in out  # Cabin: 0/2
+        assert "100%(2/2)" in out  # Age: 2/2
+
+    def test_overall_fill_rate(self):
+        """Grouped output includes overall fill-rate line."""
+        from csvplot.bubble import GroupedBubbleSpec
+        from csvplot.compact import compact_bubble_grouped
+
+        spec = GroupedBubbleSpec(
+            group_labels=["a", "b"],
+            col_names=["X"],
+            counts=[[2], [1]],
+            group_sizes=[3, 2],
+            total_rows=5,
+        )
+        out = compact_bubble_grouped(spec, title="Test")
+        assert "overall:" in out
+        assert "X:60%(3/5)" in out  # 2+1=3 out of 3+2=5
+
+
 class TestCompactSummarise:
     def test_basic_output(self):
         """Basic summary table renders with header and columns."""

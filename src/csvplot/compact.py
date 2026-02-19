@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 
-from csvplot.bubble import BubbleSpec, column_fill_rates
+from csvplot.bubble import BubbleSpec, GroupedBubbleSpec, column_fill_rates
 from csvplot.models import BarSpec, Dot, LineSpec, PlotSpec, Segment
 from csvplot.summarise import ColumnSummary
 
@@ -304,6 +304,44 @@ def compact_bubble(spec: BubbleSpec, title: str = "csvplot") -> str:
     lines.append("fill: " + " | ".join(fill_parts))
     if spec.total_rows > len(spec.y_labels):
         lines.append(f"Showing {len(spec.y_labels)} of {spec.total_rows} rows")
+    lines.append("---")
+    return "\n".join(lines)
+
+
+def compact_bubble_grouped(spec: GroupedBubbleSpec, title: str = "csvplot") -> str:
+    """Render a GroupedBubbleSpec as compact column-major summary."""
+    lines: list[str] = []
+    lines.append(f"[COMPACT:bubble] {title}")
+
+    if not spec.group_labels:
+        lines.append("---")
+        lines.append("(no data)")
+        lines.append("---")
+        return "\n".join(lines)
+
+    lines.append(f"group: {' | '.join(spec.group_labels)} ({spec.total_rows} rows)")
+    lines.append("---")
+
+    max_col_width = max(len(c) for c in spec.col_names)
+
+    for col_idx, col_name in enumerate(spec.col_names):
+        parts = []
+        for g_idx in range(len(spec.group_labels)):
+            count = spec.counts[g_idx][col_idx]
+            size = spec.group_sizes[g_idx]
+            pct = round(count / size * 100) if size > 0 else 0
+            parts.append(f"{spec.group_labels[g_idx]}:{pct}%({count}/{size})")
+        padded = col_name.rjust(max_col_width)
+        lines.append(f"{padded} | {' '.join(parts)}")
+
+    # Overall fill-rate
+    overall_parts = []
+    total_size = sum(spec.group_sizes)
+    for col_idx, col_name in enumerate(spec.col_names):
+        total_count = sum(spec.counts[g][col_idx] for g in range(len(spec.group_labels)))
+        pct = round(total_count / total_size * 100) if total_size > 0 else 0
+        overall_parts.append(f"{col_name}:{pct}%({total_count}/{total_size})")
+    lines.append("overall: " + " | ".join(overall_parts))
     lines.append("---")
     return "\n".join(lines)
 

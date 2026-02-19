@@ -157,6 +157,51 @@ class TestSortBubble:
         assert sorted_spec.color_keys[-1] == "user"
 
 
+class TestLoadBubbleGrouped:
+    def test_basic_grouping(self, bubble_csv: Path) -> None:
+        """Group by category and check fill-rates per group."""
+        from csvplot.bubble import GroupedBubbleSpec, load_bubble_grouped
+
+        cols = ["feature_a", "feature_b", "feature_c"]
+        spec = load_bubble_grouped(bubble_csv, cols=cols, y_col="name", group_by="category")
+        assert isinstance(spec, GroupedBubbleSpec)
+        assert set(spec.group_labels) == {"admin", "user"}
+        assert spec.col_names == cols
+        # admin: alice, charlie, eve (3 rows)
+        # feature_a: alice=T, charlie=T, eve=T → 3/3
+        admin_idx = spec.group_labels.index("admin")
+        assert spec.counts[admin_idx][0] == 3  # feature_a count
+        assert spec.group_sizes[admin_idx] == 3
+
+    def test_group_counts(self, bubble_csv: Path) -> None:
+        """Verify absolute counts and group sizes."""
+        from csvplot.bubble import load_bubble_grouped
+
+        cols = ["feature_a", "feature_b", "feature_c"]
+        spec = load_bubble_grouped(bubble_csv, cols=cols, y_col="name", group_by="category")
+        # user: bob, dave (2 rows)
+        user_idx = spec.group_labels.index("user")
+        # feature_a: bob=F, dave=F → 0/2
+        assert spec.counts[user_idx][0] == 0
+        assert spec.group_sizes[user_idx] == 2
+
+    def test_grouped_with_where(self, bubble_csv: Path) -> None:
+        """--where filters apply before grouping."""
+        from csvplot.bubble import load_bubble_grouped
+
+        spec = load_bubble_grouped(
+            bubble_csv,
+            cols=["feature_a"],
+            y_col="name",
+            group_by="category",
+            wheres=[("feature_a", "yes")],
+        )
+        # Only alice and eve match feature_a=yes, both admin
+        assert "admin" in spec.group_labels
+        admin_idx = spec.group_labels.index("admin")
+        assert spec.group_sizes[admin_idx] == 2
+
+
 class TestColumnFillRates:
     def test_fill_rates(self, bubble_csv: Path) -> None:
         """Compute per-column fill-rate percentages."""

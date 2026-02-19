@@ -706,6 +706,64 @@ def summarise(
                 rprint(sample_table)
 
 
+BLOCK_CHARS = ["░", "▒", "▓", "█"]
+
+
+def _fill_block(pct: int) -> str:
+    """Return a block character for a fill-rate percentage."""
+    if pct <= 0:
+        return " "
+    elif pct <= 25:
+        return BLOCK_CHARS[0]
+    elif pct <= 50:
+        return BLOCK_CHARS[1]
+    elif pct <= 75:
+        return BLOCK_CHARS[2]
+    else:
+        return BLOCK_CHARS[3]
+
+
+def _render_grouped_bubble(
+    gspec: "GroupedBubbleSpec",  # noqa: F821
+    chart_title: str,
+    format_opt: str,
+) -> None:
+    """Render a GroupedBubbleSpec as a Rich table (visual or semantic)."""
+    table = Table(title=chart_title)
+    table.add_column("Group", style="bold")
+    table.add_column("N", justify="right")
+    for col_name in gspec.col_names:
+        table.add_column(col_name, justify="center")
+
+    for g_idx, label in enumerate(gspec.group_labels):
+        size = gspec.group_sizes[g_idx]
+        cells = []
+        for col_idx in range(len(gspec.col_names)):
+            count = gspec.counts[g_idx][col_idx]
+            pct = round(count / size * 100) if size > 0 else 0
+            block = _fill_block(pct)
+            cells.append(f"{block} {pct}% ({count}/{size})")
+        table.add_row(label, str(size), *cells)
+
+    # Overall footer
+    total_size = sum(gspec.group_sizes)
+    overall_cells = []
+    for col_idx in range(len(gspec.col_names)):
+        total_count = sum(gspec.counts[g][col_idx] for g in range(len(gspec.group_labels)))
+        pct = round(total_count / total_size * 100) if total_size > 0 else 0
+        block = _fill_block(pct)
+        overall_cells.append(f"[dim]{block} {pct}% ({total_count}/{total_size})[/dim]")
+    table.add_section()
+    table.add_row("[bold]TOTAL[/bold]", str(total_size), *overall_cells)
+
+    if format_opt == "semantic":
+        from csvplot.semantic import semantic_rich
+
+        print(semantic_rich(table), end="")
+    else:
+        rprint(table)
+
+
 @app.command()
 def bubble(
     file: Annotated[
@@ -772,6 +830,14 @@ def bubble(
         str | None,
         typer.Option("--sort", help="Sort rows: fill (most complete first), fill-asc, name"),
     ] = None,
+    group_by: Annotated[
+        str | None,
+        typer.Option(
+            "--group-by",
+            help="Aggregate by column: show fill-rate per group instead of per row",
+            autocompletion=complete_column,
+        ),
+    ] = None,
     format_opt: Annotated[
         str,
         typer.Option("--format", help="Output format: visual, semantic, or compact"),
@@ -794,6 +860,38 @@ def bubble(
     except ValueError as e:
         rprint(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
+
+    chart_title = title if title else file.stem
+
+    # --group-by takes a completely separate code path
+    if group_by:
+        from csvplot.bubble import load_bubble_grouped
+
+        try:
+            gspec = load_bubble_grouped(
+                path=file,
+                cols=cols,
+                y_col=y,
+                group_by=group_by,
+                top=top,
+                wheres=wheres or None,
+                where_nots=where_nots or None,
+            )
+        except KeyError as e:
+            rprint(f"[red]Error:[/red] {_format_key_error(e)}")
+            raise typer.Exit(1)
+
+        if not gspec.group_labels:
+            rprint("[yellow]Warning:[/yellow] No data found.")
+            raise typer.Exit(0)
+
+        if format_opt == "compact":
+            from csvplot.compact import compact_bubble_grouped
+
+            print(compact_bubble_grouped(gspec, title=chart_title))
+        else:
+            _render_grouped_bubble(gspec, chart_title, format_opt)
+        return
 
     try:
         spec = load_bubble_data(
@@ -826,8 +924,6 @@ def bubble(
     if not spec.y_labels:
         rprint("[yellow]Warning:[/yellow] No data found.")
         raise typer.Exit(0)
-
-    chart_title = title if title else file.stem
 
     if format_opt == "compact":
         from csvplot.compact import compact_bubble
