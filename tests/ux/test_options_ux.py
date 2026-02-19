@@ -812,8 +812,8 @@ class TestBubbleOptions:
         assert result.exit_code == 0
         assert "Showing 3 of 10 rows" in result.stdout
 
-    def test_encode_binary_passthrough(self, ux_bubble_csv: Path) -> None:
-        """--encode with binary column (category=2 unique) stays as-is."""
+    def test_encode_binary_col_value(self, ux_bubble_csv: Path) -> None:
+        """--encode with binary column (category=2 unique) uses col=value format."""
         result = invoke(
             "bubble",
             "-f",
@@ -827,9 +827,8 @@ class TestBubbleOptions:
             "compact",
         )
         assert result.exit_code == 0
-        # Binary → stays as "category", not expanded
-        assert "category=" not in result.stdout
-        assert "category" in result.stdout
+        # Binary → col=value format
+        assert "category=frontend" in result.stdout or "category=backend" in result.stdout
 
     def test_encode_categorical_expands(self, encode_bubble_csv: Path) -> None:
         """--encode with >2 unique values one-hot encodes into col=value columns."""
@@ -867,9 +866,8 @@ class TestBubbleOptions:
             "compact",
         )
         assert result.exit_code == 0
-        # active is binary → plain
-        assert "active" in result.stdout
-        assert "active=" not in result.stdout
+        # active is binary → col=value format
+        assert "active=yes" in result.stdout
         # role is categorical → expanded
         assert "role=dev" in result.stdout
 

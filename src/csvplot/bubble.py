@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import random
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterator
@@ -11,6 +12,8 @@ from typing import Iterator
 from csvplot.reader import _ensure_columns_exist, filter_rows
 
 FALSY_VALUES = frozenset({"", "0", "false", "no", "null", "none", "na", "nan"})
+
+ENCODE_AUTO_CAP = 20
 
 # Expand spec types: ("plain", col) or ("onehot", col, value)
 # value=None means the empty/falsy bucket
@@ -44,17 +47,19 @@ def _expand_cols(
     unique: dict[str, list[str]],
     has_empty: dict[str, bool],
 ) -> list[ExpandSpec]:
-    """Expand columns into plain or one-hot specs based on cardinality."""
+    """Expand columns into one-hot specs based on cardinality.
+
+    All columns produce col=value format. Binary (<=2 unique) and
+    categorical (>2 unique) are treated the same way. Empty/falsy bucket
+    is only added for categorical columns (>2 unique) that have empties.
+    """
     result: list[ExpandSpec] = []
     for col in cols:
         vals = unique[col]
-        if len(vals) <= 2:
-            result.append(("plain", col))
-        else:
-            for v in vals:
-                result.append(("onehot", col, v))
-            if has_empty[col]:
-                result.append(("onehot", col, None))  # type: ignore[arg-type]
+        for v in vals:
+            result.append(("onehot", col, v))
+        if has_empty[col] and len(vals) > 2:
+            result.append(("onehot", col, None))  # type: ignore[arg-type]
     return result
 
 
@@ -98,6 +103,7 @@ class GroupedBubbleSpec:
     counts: list[list[int]] = field(default_factory=list)  # [group][col] = truthy count
     group_sizes: list[int] = field(default_factory=list)  # rows per group
     total_rows: int = 0
+    col_denoms: list[int] = field(default_factory=list)  # per-column denominators (transposed)
 
 
 def is_falsy(value: str) -> bool:
@@ -162,6 +168,14 @@ def load_bubble_data(
     if encode:
         unique, has_empty = _scan_unique_values(selected_rows, cols)
         expand_specs = _expand_cols(cols, unique, has_empty)
+        # Auto-cap at ENCODE_AUTO_CAP when --top not explicitly set
+        if top is None and len(expand_specs) > ENCODE_AUTO_CAP:
+            print(
+                f"Warning: --encode produced {len(expand_specs)} columns, "
+                f"auto-capping to top {ENCODE_AUTO_CAP}. Use --top to override.",
+                file=sys.stderr,
+            )
+            top = ENCODE_AUTO_CAP
     else:
         expand_specs = [("plain", col) for col in cols]
 
@@ -251,12 +265,71 @@ def sort_bubble_spec(spec: BubbleSpec, sort: str) -> BubbleSpec:
     )
 
 
+def sort_grouped_spec(spec: GroupedBubbleSpec, sort: str) -> GroupedBubbleSpec:
+    """Return a new GroupedBubbleSpec with groups sorted.
+
+    sort values: "fill" (descending avg fill-rate), "fill-asc" (ascending), "name" (alpha).
+    """
+    n = len(spec.group_labels)
+    indices = list(range(n))
+
+    if sort == "fill":
+
+        def _fill_rate(i: int) -> float:
+            s = spec.group_sizes[i]
+            return sum(spec.counts[i]) / s if s > 0 else 0.0
+
+        indices.sort(key=_fill_rate, reverse=True)
+    elif sort == "fill-asc":
+
+        def _fill_rate_asc(i: int) -> float:
+            s = spec.group_sizes[i]
+            return sum(spec.counts[i]) / s if s > 0 else 0.0
+
+        indices.sort(key=_fill_rate_asc)
+    elif sort == "name":
+        indices.sort(key=lambda i: spec.group_labels[i].lower())
+    else:
+        raise ValueError(f"Unknown sort value: {sort!r}")
+
+    return GroupedBubbleSpec(
+        group_labels=[spec.group_labels[i] for i in indices],
+        col_names=spec.col_names,
+        counts=[spec.counts[i] for i in indices],
+        group_sizes=[spec.group_sizes[i] for i in indices],
+        total_rows=spec.total_rows,
+        col_denoms=spec.col_denoms,
+    )
+
+
+def transpose_grouped_spec(spec: GroupedBubbleSpec) -> GroupedBubbleSpec:
+    """Transpose a GroupedBubbleSpec: groups become columns, columns become groups.
+
+    After transpose, col_denoms stores the original group_sizes so that
+    percentage calculations use per-column denominators instead of per-row.
+    """
+    n_groups = len(spec.group_labels)
+    n_cols = len(spec.col_names)
+    transposed_counts = [
+        [spec.counts[g][c] for g in range(n_groups)] for c in range(n_cols)
+    ]
+    return GroupedBubbleSpec(
+        group_labels=list(spec.col_names),
+        col_names=list(spec.group_labels),
+        counts=transposed_counts,
+        group_sizes=[],
+        total_rows=spec.total_rows,
+        col_denoms=list(spec.group_sizes),
+    )
+
+
 def load_bubble_grouped(
     path: str | Path,
     cols: list[str],
     y_col: str,
     *,
     group_by: str,
+    max_rows: int | None = None,
     top: int | None = None,
     wheres: list[tuple[str, str]] | None = None,
     where_nots: list[tuple[str, str]] | None = None,
@@ -272,6 +345,7 @@ def load_bubble_grouped(
 
     groups: OrderedDict[str, list[dict[str, str]]] = OrderedDict()
     total_rows = 0
+    selected_count = 0
 
     with open(path, newline="") as f:
         reader = csv.DictReader(f)
@@ -287,6 +361,9 @@ def load_bubble_grouped(
             if row_index == 1:
                 _ensure_columns_exist(required_cols, row)
             total_rows += 1
+            if max_rows is not None and selected_count >= max_rows:
+                continue
+            selected_count += 1
             key = row[group_by]
             groups.setdefault(key, []).append(row)
 
@@ -298,6 +375,13 @@ def load_bubble_grouped(
     if encode:
         unique, has_empty = _scan_unique_values(all_rows, cols)
         expand_specs = _expand_cols(cols, unique, has_empty)
+        if top is None and len(expand_specs) > ENCODE_AUTO_CAP:
+            print(
+                f"Warning: --encode produced {len(expand_specs)} columns, "
+                f"auto-capping to top {ENCODE_AUTO_CAP}. Use --top to override.",
+                file=sys.stderr,
+            )
+            top = ENCODE_AUTO_CAP
     else:
         expand_specs = [("plain", col) for col in cols]
 

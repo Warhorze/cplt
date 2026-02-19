@@ -328,7 +328,10 @@ def compact_bubble_grouped(spec: GroupedBubbleSpec, title: str = "csvplot") -> s
         parts = []
         for g_idx in range(len(spec.group_labels)):
             count = spec.counts[g_idx][col_idx]
-            size = spec.group_sizes[g_idx]
+            if spec.col_denoms:
+                size = spec.col_denoms[col_idx]
+            else:
+                size = spec.group_sizes[g_idx]
             pct = round(count / size * 100) if size > 0 else 0
             parts.append(f"{spec.group_labels[g_idx]}:{pct}%({count}/{size})")
         padded = col_name.rjust(max_col_width)
@@ -336,9 +339,14 @@ def compact_bubble_grouped(spec: GroupedBubbleSpec, title: str = "csvplot") -> s
 
     # Overall fill-rate
     overall_parts = []
-    total_size = sum(spec.group_sizes)
+    if spec.col_denoms:
+        total_size = sum(spec.col_denoms)
+    else:
+        total_size = sum(spec.group_sizes)
     for col_idx, col_name in enumerate(spec.col_names):
-        total_count = sum(spec.counts[g][col_idx] for g in range(len(spec.group_labels)))
+        total_count = sum(
+            spec.counts[g][col_idx] for g in range(len(spec.group_labels))
+        )
         pct = round(total_count / total_size * 100) if total_size > 0 else 0
         overall_parts.append(f"{col_name}:{pct}%({total_count}/{total_size})")
     lines.append("overall: " + " | ".join(overall_parts))

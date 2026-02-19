@@ -270,14 +270,15 @@ def encode_csv(tmp_path: Path) -> Path:
 class TestExpandCols:
     """Unit tests for _expand_cols helper."""
 
-    def test_binary_column_kept_plain(self) -> None:
+    def test_binary_column_expanded(self) -> None:
         from csvplot.bubble import _expand_cols
 
-        # active has 2 unique non-empty values (yes, no) → binary → plain
+        # active has 2 unique non-empty values → col=value format (no empty bucket)
         unique = {"active": ["yes", "no"]}
         has_empty = {"active": True}
         result = _expand_cols(["active"], unique, has_empty)
-        assert result == [("plain", "active")]
+        # Binary: no empty bucket even with empties
+        assert result == [("onehot", "active", "yes"), ("onehot", "active", "no")]
 
     def test_categorical_column_expanded(self) -> None:
         from csvplot.bubble import _expand_cols
@@ -306,29 +307,36 @@ class TestExpandCols:
         unique = {"active": ["yes", "no"], "role": ["dev", "pm", "design"]}
         has_empty = {"active": False, "role": False}
         result = _expand_cols(["active", "role"], unique, has_empty)
-        assert result[0] == ("plain", "active")
-        assert result[1] == ("onehot", "role", "dev")
+        assert result[0] == ("onehot", "active", "yes")
+        assert result[1] == ("onehot", "active", "no")
+        assert result[2] == ("onehot", "role", "dev")
 
-    def test_single_unique_value_is_binary(self) -> None:
+    def test_single_unique_value_expanded(self) -> None:
         from csvplot.bubble import _expand_cols
 
-        # Only 1 unique value → binary → plain
+        # Only 1 unique value → col=value format
         unique = {"flag": ["yes"]}
         has_empty = {"flag": False}
         result = _expand_cols(["flag"], unique, has_empty)
-        assert result == [("plain", "flag")]
+        assert result == [("onehot", "flag", "yes")]
 
 
 class TestEncodeBubbleData:
     """Tests for load_bubble_data with encode=True."""
 
-    def test_binary_column_passthrough(self, encode_csv: Path) -> None:
-        """Binary columns (<=2 unique) stay as-is with encode=True."""
+    def test_binary_column_expanded(self, encode_csv: Path) -> None:
+        """Binary columns (<=2 unique) use col=value format with encode=True."""
         spec = load_bubble_data(encode_csv, cols=["active"], y_col="name", encode=True)
-        assert spec.col_names == ["active"]
-        # alice: yes=T, bob: ""=F, charlie: no=F, dave: yes=T, eve: yes=T, frank: ""=F
-        assert spec.matrix[0] == [True]
-        assert spec.matrix[1] == [False]
+        # active has values: yes, "", no, yes, yes, ""
+        # "no" is falsy → only "yes" is a unique non-falsy value → active=yes
+        assert "active=yes" in spec.col_names
+        yes_idx = spec.col_names.index("active=yes")
+        # alice: active=yes → True
+        assert spec.matrix[0][yes_idx] is True
+        # bob: active="" → False
+        assert spec.matrix[1][yes_idx] is False
+        # charlie: active=no (falsy) → False
+        assert spec.matrix[2][yes_idx] is False
 
     def test_categorical_column_expanded(self, encode_csv: Path) -> None:
         """Categorical columns (>2 unique) get one-hot encoded."""
@@ -382,8 +390,8 @@ class TestEncodeBubbleData:
         spec = load_bubble_data(
             encode_csv, cols=["active", "role"], y_col="name", encode=True
         )
-        # active is binary → stays as-is
-        assert "active" in spec.col_names
+        # active: "no" is falsy, so only "yes" is a unique non-falsy value
+        assert "active=yes" in spec.col_names
         # role is categorical → expanded
         assert "role=dev" in spec.col_names
         assert "role=pm" in spec.col_names
@@ -411,8 +419,9 @@ class TestEncodeBubbleData:
             wheres=[("team", "alpha")],
         )
         # alpha team: alice(dev), bob(pm), eve(pm) — only 2 unique roles
-        # <=2 unique → binary → stays plain
-        assert spec.col_names == ["role"]
+        # <=2 unique → col=value format
+        assert "role=dev" in spec.col_names
+        assert "role=pm" in spec.col_names
         assert len(spec.y_labels) == 3
 
 

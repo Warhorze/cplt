@@ -736,20 +736,29 @@ def _render_grouped_bubble(
         table.add_column(col_name, justify="center")
 
     for g_idx, label in enumerate(gspec.group_labels):
-        size = gspec.group_sizes[g_idx]
         cells = []
         for col_idx in range(len(gspec.col_names)):
             count = gspec.counts[g_idx][col_idx]
+            if gspec.col_denoms:
+                size = gspec.col_denoms[col_idx]
+            else:
+                size = gspec.group_sizes[g_idx]
             pct = round(count / size * 100) if size > 0 else 0
             block = _fill_block(pct)
             cells.append(f"{block} {pct}% ({count}/{size})")
-        table.add_row(label, str(size), *cells)
+        n_str = str(gspec.group_sizes[g_idx]) if gspec.group_sizes else ""
+        table.add_row(label, n_str, *cells)
 
     # Overall footer
-    total_size = sum(gspec.group_sizes)
+    if gspec.col_denoms:
+        total_size = sum(gspec.col_denoms)
+    else:
+        total_size = sum(gspec.group_sizes)
     overall_cells = []
     for col_idx in range(len(gspec.col_names)):
-        total_count = sum(gspec.counts[g][col_idx] for g in range(len(gspec.group_labels)))
+        total_count = sum(
+            gspec.counts[g][col_idx] for g in range(len(gspec.group_labels))
+        )
         pct = round(total_count / total_size * 100) if total_size > 0 else 0
         block = _fill_block(pct)
         overall_cells.append(f"[dim]{block} {pct}% ({total_count}/{total_size})[/dim]")
@@ -828,7 +837,7 @@ def bubble(
     ] = None,
     transpose: Annotated[
         bool,
-        typer.Option("--transpose/--no-transpose", help="Swap rows and columns"),
+        typer.Option("--transpose", help="Swap rows and columns"),
     ] = False,
     sort: Annotated[
         str | None,
@@ -837,8 +846,8 @@ def bubble(
     encode: Annotated[
         bool,
         typer.Option(
-            "--encode/--no-encode",
-            help="Auto-encode: <=2 unique → binary, >2 → one-hot",
+            "--encode",
+            help="Auto-encode columns to col=value format",
         ),
     ] = False,
     group_by: Annotated[
@@ -874,9 +883,21 @@ def bubble(
 
     chart_title = title if title else file.stem
 
-    # --group-by takes a completely separate code path
+    # --group-by + --sample is incompatible (aggregation needs all rows)
+    if group_by and sample:
+        rprint(
+            "[red]Error:[/red] Cannot use --sample with --group-by"
+            " (aggregation needs all rows)."
+        )
+        raise typer.Exit(1)
+
+    # --group-by path: load grouped, then flow through sort/transpose
     if group_by:
-        from csvplot.bubble import load_bubble_grouped
+        from csvplot.bubble import (
+            load_bubble_grouped,
+            sort_grouped_spec,
+            transpose_grouped_spec,
+        )
 
         try:
             gspec = load_bubble_grouped(
@@ -884,6 +905,7 @@ def bubble(
                 cols=cols,
                 y_col=y,
                 group_by=group_by,
+                max_rows=head,
                 top=top,
                 wheres=wheres or None,
                 where_nots=where_nots or None,
@@ -892,6 +914,16 @@ def bubble(
         except KeyError as e:
             rprint(f"[red]Error:[/red] {_format_key_error(e)}")
             raise typer.Exit(1)
+
+        if sort:
+            try:
+                gspec = sort_grouped_spec(gspec, sort)
+            except ValueError as e:
+                rprint(f"[red]Error:[/red] {e}")
+                raise typer.Exit(1)
+
+        if transpose:
+            gspec = transpose_grouped_spec(gspec)
 
         if not gspec.group_labels:
             rprint("[yellow]Warning:[/yellow] No data found.")

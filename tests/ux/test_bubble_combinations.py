@@ -42,7 +42,7 @@ class TestBubbleCrossStageGreen:
     def test_where_plus_encode(self, encode_bubble_csv: Path) -> None:
         """Stage 2→4: --where filters before encode sees cardinality."""
         # Filter to team=alpha (alice=dev, bob=pm, eve=pm) → role has 2 unique (dev, pm)
-        # With 2 unique, encode treats as binary → plain column name
+        # With 2 unique, encode uses col=value format
         result = invoke(
             "bubble", "-f", str(encode_bubble_csv),
             "--cols", "role", "--y", "name",
@@ -50,9 +50,11 @@ class TestBubbleCrossStageGreen:
             "--format", "compact",
         )
         assert result.exit_code == 0
-        # 2 unique values in filtered set → binary → plain "role"
-        assert "role" in result.stdout
-        assert "role=" not in result.stdout
+        # 2 unique values in filtered set → col=value format
+        assert "role=dev" in result.stdout
+        assert "role=pm" in result.stdout
+        # No design (filtered out)
+        assert "role=design" not in result.stdout
 
     def test_where_plus_encode_categorical(self, encode_bubble_csv: Path) -> None:
         """Stage 2→4: without filter, full cardinality triggers one-hot."""
