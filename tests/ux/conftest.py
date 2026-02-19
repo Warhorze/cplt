@@ -190,6 +190,24 @@ def ux_summarise_csv(tmp_path: Path) -> Path:
 
 
 # ---------------------------------------------------------------------------
+# High-cardinality Bubble CSV: 25 rows
+# - "tag" column has 25 unique values → tests encode auto-cap at 20
+# - "flag" column has 2 unique values → binary encode
+# ---------------------------------------------------------------------------
+HIGH_CARD_BUBBLE_CSV = "\n".join(
+    ["name,tag,flag"]
+    + [f"item_{i:02d},cat_{i:02d},{'yes' if i % 2 == 0 else 'no'}" for i in range(1, 26)]
+) + "\n"
+
+
+@pytest.fixture
+def high_card_bubble_csv(tmp_path: Path) -> Path:
+    p = tmp_path / "high_card_bubble.csv"
+    p.write_text(HIGH_CARD_BUBBLE_CSV)
+    return p
+
+
+# ---------------------------------------------------------------------------
 # Dict fixture for parameterized format matrix
 # ---------------------------------------------------------------------------
 @pytest.fixture
