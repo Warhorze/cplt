@@ -768,6 +768,10 @@ def bubble(
             autocompletion=complete_where,
         ),
     ] = None,
+    sort: Annotated[
+        str | None,
+        typer.Option("--sort", help="Sort rows: fill (most complete first), fill-asc, name"),
+    ] = None,
     format_opt: Annotated[
         str,
         typer.Option("--format", help="Output format: visual, semantic, or compact"),
@@ -809,6 +813,15 @@ def bubble(
     except ValueError as e:
         rprint(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
+
+    if sort:
+        from csvplot.bubble import sort_bubble_spec
+
+        try:
+            spec = sort_bubble_spec(spec, sort)
+        except ValueError as e:
+            rprint(f"[red]Error:[/red] {e}")
+            raise typer.Exit(1)
 
     if not spec.y_labels:
         rprint("[yellow]Warning:[/yellow] No data found.")

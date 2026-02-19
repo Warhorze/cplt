@@ -108,3 +108,29 @@ def load_bubble_data(
         color_keys=color_keys,
         total_rows=total_rows,
     )
+
+
+def sort_bubble_spec(spec: BubbleSpec, sort: str) -> BubbleSpec:
+    """Return a new BubbleSpec with rows sorted.
+
+    sort values: "fill" (descending), "fill-asc" (ascending), "name" (alphabetical).
+    """
+    n = len(spec.y_labels)
+    indices = list(range(n))
+
+    if sort == "fill":
+        indices.sort(key=lambda i: sum(spec.matrix[i]), reverse=True)
+    elif sort == "fill-asc":
+        indices.sort(key=lambda i: sum(spec.matrix[i]))
+    elif sort == "name":
+        indices.sort(key=lambda i: spec.y_labels[i].lower())
+    else:
+        raise ValueError(f"Unknown sort value: {sort!r}")
+
+    return BubbleSpec(
+        y_labels=[spec.y_labels[i] for i in indices],
+        col_names=spec.col_names,
+        matrix=[spec.matrix[i] for i in indices],
+        color_keys=[spec.color_keys[i] for i in indices] if spec.color_keys else [],
+        total_rows=spec.total_rows,
+    )

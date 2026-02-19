@@ -176,6 +176,40 @@ def test_bubble_supports_sample_option(tmp_path: Path) -> None:
     assert present == 3
 
 
+def test_bubble_sort_by_fill(tmp_path: Path) -> None:
+    """--sort fill puts most-complete rows first in compact output."""
+    csv_file = tmp_path / "sort.csv"
+    csv_file.write_text("name,a,b,c\nfull,1,1,1\nempty,,,\nhalf,1,,\n")
+
+    result = runner.invoke(
+        app,
+        [
+            "bubble",
+            "-f",
+            str(csv_file),
+            "--cols",
+            "a",
+            "--cols",
+            "b",
+            "--cols",
+            "c",
+            "--y",
+            "name",
+            "--sort",
+            "fill",
+            "--format",
+            "compact",
+        ],
+    )
+
+    assert result.exit_code == 0
+    lines = result.stdout.strip().split("\n")
+    # Find rows: full (3/3) should be before half (1/3) which is before empty (0/3)
+    row_lines = [l for l in lines if "|" in l and "cols:" not in l]
+    labels = [l.split("|")[0].strip() for l in row_lines]
+    assert labels == ["full", "half", "empty"]
+
+
 def test_bubble_shows_all_rows_without_auto_cap(tmp_path: Path) -> None:
     """Bubble output is never auto-capped; all rows are shown by default."""
     csv_file = tmp_path / "many_rows.csv"

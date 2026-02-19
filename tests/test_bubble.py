@@ -104,3 +104,46 @@ class TestLoadBubbleData:
         )
         assert len(spec.y_labels) == 3
         assert spec.total_rows == 5
+
+
+class TestSortBubble:
+    def test_sort_fill_descending(self, bubble_csv: Path) -> None:
+        """Sort by fill-rate descending: most complete rows first."""
+        from csvplot.bubble import sort_bubble_spec
+
+        cols = ["feature_a", "feature_b", "feature_c"]
+        spec = load_bubble_data(bubble_csv, cols=cols, y_col="name")
+        sorted_spec = sort_bubble_spec(spec, "fill")
+        # eve has 3/3, alice has 2/3, charlie has 2/3, bob has 1/3, dave has 0/3
+        assert sorted_spec.y_labels[0] == "eve"
+        assert sorted_spec.y_labels[-1] == "dave"
+
+    def test_sort_fill_ascending(self, bubble_csv: Path) -> None:
+        """Sort by fill-rate ascending: least complete rows first."""
+        from csvplot.bubble import sort_bubble_spec
+
+        cols = ["feature_a", "feature_b", "feature_c"]
+        spec = load_bubble_data(bubble_csv, cols=cols, y_col="name")
+        sorted_spec = sort_bubble_spec(spec, "fill-asc")
+        assert sorted_spec.y_labels[0] == "dave"
+        assert sorted_spec.y_labels[-1] == "eve"
+
+    def test_sort_name(self, bubble_csv: Path) -> None:
+        """Sort alphabetically by y-label."""
+        from csvplot.bubble import sort_bubble_spec
+
+        cols = ["feature_a", "feature_b", "feature_c"]
+        spec = load_bubble_data(bubble_csv, cols=cols, y_col="name")
+        sorted_spec = sort_bubble_spec(spec, "name")
+        assert sorted_spec.y_labels == ["alice", "bob", "charlie", "dave", "eve"]
+
+    def test_sort_preserves_color_keys(self, bubble_csv: Path) -> None:
+        """Sort keeps color_keys aligned with y_labels."""
+        from csvplot.bubble import sort_bubble_spec
+
+        cols = ["feature_a", "feature_b", "feature_c"]
+        spec = load_bubble_data(bubble_csv, cols=cols, y_col="name", color_col="category")
+        sorted_spec = sort_bubble_spec(spec, "fill")
+        # eve is first (admin), dave is last (user)
+        assert sorted_spec.color_keys[0] == "admin"
+        assert sorted_spec.color_keys[-1] == "user"
