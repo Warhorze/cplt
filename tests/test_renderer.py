@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from datetime import datetime
+from typing import Any
 
 import csvplot.renderer as renderer
 from csvplot.models import BarSpec, Dot, LineSpec, PlotSpec, Segment
@@ -208,12 +209,14 @@ def test_render_line_suppresses_single_series_legend_label(monkeypatch) -> None:
 
 def test_render_dots_calls_scatter(monkeypatch) -> None:
     """Dots in spec cause plt.scatter to be called."""
-    scatter_calls: list[tuple[list, list]] = []
+    scatter_calls: list[tuple[list[Any], list[Any]]] = []
     original_scatter = renderer.plt.scatter
 
-    def _capture_scatter(*args, **kwargs):
+    def _capture_scatter(*args: Any, **kwargs: Any):
         x_val = args[0] if args else kwargs.get("x")
         y_val = args[1] if len(args) > 1 else kwargs.get("y")
+        if not isinstance(x_val, list) or not isinstance(y_val, list):
+            raise AssertionError("scatter should be called with list x/y values")
         scatter_calls.append((x_val, y_val))
         return original_scatter(*args, **kwargs)
 

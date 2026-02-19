@@ -10,7 +10,7 @@ import typer
 from rich import print as rprint
 from rich.table import Table
 
-from csvplot.bubble import load_bubble_data
+from csvplot.bubble import GroupedBubbleSpec, load_bubble_data
 from csvplot.completions import complete_column, complete_date_column, complete_where
 from csvplot.models import Dot, PlotSpec, VLine
 from csvplot.reader import (
@@ -724,7 +724,7 @@ def _fill_block(pct: int) -> str:
 
 
 def _render_grouped_bubble(
-    gspec: "GroupedBubbleSpec",  # noqa: F821
+    gspec: GroupedBubbleSpec,
     chart_title: str,
     format_opt: str,
 ) -> None:
@@ -834,6 +834,13 @@ def bubble(
         str | None,
         typer.Option("--sort", help="Sort rows: fill (most complete first), fill-asc, name"),
     ] = None,
+    encode: Annotated[
+        bool,
+        typer.Option(
+            "--encode/--no-encode",
+            help="Auto-encode: <=2 unique → binary, >2 → one-hot",
+        ),
+    ] = False,
     group_by: Annotated[
         str | None,
         typer.Option(
@@ -880,6 +887,7 @@ def bubble(
                 top=top,
                 wheres=wheres or None,
                 where_nots=where_nots or None,
+                encode=encode,
             )
         except KeyError as e:
             rprint(f"[red]Error:[/red] {_format_key_error(e)}")
@@ -908,6 +916,7 @@ def bubble(
             top=top,
             wheres=wheres or None,
             where_nots=where_nots or None,
+            encode=encode,
         )
     except KeyError as e:
         rprint(f"[red]Error:[/red] {_format_key_error(e)}")

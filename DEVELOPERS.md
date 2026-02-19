@@ -49,7 +49,8 @@ uv run pyright
 
 ## CLI Path Map
 
-Every invocation follows: `csvplot <command> -f <file> <required args> [optional args] --format <fmt>`
+Every invocation follows: `csvplot <command> -f <file> <required args> [optional args]`
+`--format <fmt>` is optional on every command (default: `visual`).
 
 ```
 csvplot
@@ -61,25 +62,24 @@ csvplot
 │   ├── [--color COL]                             ← color segments by column value
 │   ├── [--txt COL]                               ← label segments (visual only)
 │   ├── [--y-detail COL]                          ← sub-group within --y
-│   ├── [--marker DATE]                           ← vertical marker line
-│   │   └── [--marker-label TEXT]                 ← label for marker (requires --marker)
+│   ├── [--vline DATE]                             ← vertical reference line
+│   │   └── [--label TEXT]                        ← label for vline (has effect only with --vline)
+│   ├── [--dot COL]                                ← per-row date markers (repeatable)
 │   ├── [--open-end / --no-open-end]              ← null end → today (default: on)
-│   ├── [--from DATE] [--to DATE]                 ← zoom into date range
-│   └── [--format {visual|compact|semantic}]      ← output mode (default: visual)
+│   └── [--from DATE] [--to DATE]                 ← zoom into date range
 │
 ├── bar -f FILE
 │   ├── --column COL / -c COL                     ← required
 │   ├── [--sort {value|label|none}]               ← sort order (default: value)
 │   ├── [--horizontal]                            ← horizontal bars (visual only)
-│   ├── [--top N]                                 ← show only top N categories
-│   └── [--format {visual|compact|semantic}]
+│   ├── [--labels]                                ← show bar value labels (visual only)
+│   └── [--top N]                                 ← show only top N categories
 │
 ├── line -f FILE
 │   ├── --x COL                                   ← required (single x-axis column)
 │   ├── --y COL                                   ← required (at least 1)
 │   │   └── [--y COL ...]                         ← multiple series on same chart
-│   ├── [--color COL]                             ← split into grouped lines
-│   └── [--format {visual|compact|semantic}]
+│   └── [--color COL]                             ← split into grouped lines
 │
 ├── bubble -f FILE
 │   ├── --cols COL                                ← required (at least 1)
@@ -87,11 +87,13 @@ csvplot
 │   ├── --y COL                                   ← required (row label column)
 │   ├── [--color COL]                             ← color rows by column
 │   ├── [--top N]                                 ← top N columns by fill-rate
-│   └── [--format {visual|compact|semantic}]
+│   ├── [--sort {fill|fill-asc|name}]             ← sort rows by fill-rate or name
+│   ├── [--transpose / --no-transpose]            ← swap rows and columns
+│   ├── [--group-by COL]                          ← aggregate fill-rates per group
+│   └── [--encode / --no-encode]                  ← auto-encode: ≤2 unique → binary, >2 → one-hot
 │
 └── summarise -f FILE
-    ├── [--sample N]                              ← show N random rows below summary
-    └── [--format {visual|compact|semantic}]
+    └── [--sample N]                              ← show N random rows below summary
 ```
 
 ### Shared options (all commands)
@@ -108,9 +110,11 @@ csvplot
 ### Option interactions
 
 ```
---marker-label ──requires──▶ --marker
+--label ────────requires──▶ --vline
+--dot ──────────only affects──▶ timeline
 --txt ──────────only affects──▶ --format visual
 --horizontal ───only affects──▶ --format visual
+--labels ───────only affects──▶ --format visual
 --open-end ─────only affects──▶ timeline
 --sample ───────only affects──▶ summarise
 --y-detail ─────only affects──▶ timeline
@@ -118,6 +122,10 @@ csvplot
 --color ────────on──▶ timeline (segment color), line (group-by), bubble (row color)
 --x ────────────on──▶ timeline (date pairs, even count), line (single column)
 --y ────────────on──▶ timeline (list, composite), line (list, multi-series), bubble (single, label)
+--sort ─────────only on──▶ bar (value/label/none), bubble (fill/fill-asc/name)
+--transpose ───only on──▶ bubble
+--group-by ────only on──▶ bubble (aggregates per group, separate code path)
+--encode ──────only on──▶ bubble (≤2 unique → binary passthrough, >2 → one-hot col=value)
 ```
 
 ## UX Review
@@ -171,7 +179,7 @@ Each plot type has acceptance criteria for visual review. Full docs with feedbac
 - Clear x-axis date progression; readable composite y-labels
 - Multi-layer segments are visually distinguishable (different glyphs per layer)
 - Legend maps encodings to source columns/values when `--color` is used
-- Marker line and label are visible and positioned correctly
+- Vline and label are visible and positioned correctly
 - Rows skipped due to invalid dates should surface a warning
 
 ### Bar
@@ -194,6 +202,10 @@ Each plot type has acceptance criteria for visual review. Full docs with feedbac
 - Row labels and column headers remain legible at default terminal width
 - `--top N` returns the most-filled columns
 - `--color` visibly changes visual output (Legend section appears)
+- `--sort` reorders rows correctly (fill/fill-asc by fill-rate, name alphabetical)
+- `--transpose` swaps rows ↔ columns; fill-rate footer adapts
+- `--group-by` shows one row per group with fill-rate percentages and TOTAL footer
+- `--encode` expands categorical columns (>2 unique) into `col=value` one-hot columns; binary columns (≤2 unique) pass through unchanged; empty values get `col=(empty)`
 
 ### Summarise
 

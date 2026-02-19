@@ -243,3 +243,201 @@ class TestColumnFillRates:
         spec = BubbleSpec()
         rates = column_fill_rates(spec)
         assert rates == {}
+
+
+# ---------------------------------------------------------------------------
+# Encode (one-hot) tests
+# ---------------------------------------------------------------------------
+
+ENCODE_CSV = """\
+name,role,active,team
+alice,dev,yes,alpha
+bob,pm,,alpha
+charlie,dev,no,beta
+dave,design,yes,beta
+eve,pm,yes,alpha
+frank,dev,,gamma
+"""
+
+
+@pytest.fixture
+def encode_csv(tmp_path: Path) -> Path:
+    p = tmp_path / "encode.csv"
+    p.write_text(ENCODE_CSV)
+    return p
+
+
+class TestExpandCols:
+    """Unit tests for _expand_cols helper."""
+
+    def test_binary_column_kept_plain(self) -> None:
+        from csvplot.bubble import _expand_cols
+
+        # active has 2 unique non-empty values (yes, no) → binary → plain
+        unique = {"active": ["yes", "no"]}
+        has_empty = {"active": True}
+        result = _expand_cols(["active"], unique, has_empty)
+        assert result == [("plain", "active")]
+
+    def test_categorical_column_expanded(self) -> None:
+        from csvplot.bubble import _expand_cols
+
+        # role has 3 unique values → categorical → one-hot
+        unique = {"role": ["dev", "pm", "design"]}
+        has_empty = {"role": False}
+        result = _expand_cols(["role"], unique, has_empty)
+        assert result == [
+            ("onehot", "role", "dev"),
+            ("onehot", "role", "pm"),
+            ("onehot", "role", "design"),
+        ]
+
+    def test_empty_values_get_own_column(self) -> None:
+        from csvplot.bubble import _expand_cols
+
+        unique = {"role": ["dev", "pm", "design"]}
+        has_empty = {"role": True}
+        result = _expand_cols(["role"], unique, has_empty)
+        assert ("onehot", "role", None) in result
+
+    def test_mixed_columns(self) -> None:
+        from csvplot.bubble import _expand_cols
+
+        unique = {"active": ["yes", "no"], "role": ["dev", "pm", "design"]}
+        has_empty = {"active": False, "role": False}
+        result = _expand_cols(["active", "role"], unique, has_empty)
+        assert result[0] == ("plain", "active")
+        assert result[1] == ("onehot", "role", "dev")
+
+    def test_single_unique_value_is_binary(self) -> None:
+        from csvplot.bubble import _expand_cols
+
+        # Only 1 unique value → binary → plain
+        unique = {"flag": ["yes"]}
+        has_empty = {"flag": False}
+        result = _expand_cols(["flag"], unique, has_empty)
+        assert result == [("plain", "flag")]
+
+
+class TestEncodeBubbleData:
+    """Tests for load_bubble_data with encode=True."""
+
+    def test_binary_column_passthrough(self, encode_csv: Path) -> None:
+        """Binary columns (<=2 unique) stay as-is with encode=True."""
+        spec = load_bubble_data(encode_csv, cols=["active"], y_col="name", encode=True)
+        assert spec.col_names == ["active"]
+        # alice: yes=T, bob: ""=F, charlie: no=F, dave: yes=T, eve: yes=T, frank: ""=F
+        assert spec.matrix[0] == [True]
+        assert spec.matrix[1] == [False]
+
+    def test_categorical_column_expanded(self, encode_csv: Path) -> None:
+        """Categorical columns (>2 unique) get one-hot encoded."""
+        spec = load_bubble_data(encode_csv, cols=["role"], y_col="name", encode=True)
+        assert "role=dev" in spec.col_names
+        assert "role=pm" in spec.col_names
+        assert "role=design" in spec.col_names
+
+    def test_onehot_values_correct(self, encode_csv: Path) -> None:
+        """One-hot encoded values match the original data."""
+        spec = load_bubble_data(encode_csv, cols=["role"], y_col="name", encode=True)
+        dev_idx = spec.col_names.index("role=dev")
+        pm_idx = spec.col_names.index("role=pm")
+        design_idx = spec.col_names.index("role=design")
+        # alice is dev
+        assert spec.matrix[0][dev_idx] is True
+        assert spec.matrix[0][pm_idx] is False
+        assert spec.matrix[0][design_idx] is False
+        # dave is design
+        assert spec.matrix[3][dev_idx] is False
+        assert spec.matrix[3][design_idx] is True
+
+    def test_empty_values_column(self, encode_csv: Path) -> None:
+        """Columns with empty values get a col=(empty) column when categorical."""
+        spec = load_bubble_data(encode_csv, cols=["team"], y_col="name", encode=True)
+        # team has 3 unique values (alpha, beta, gamma) → categorical
+        # no empties in team → no (empty) column
+        assert "team=(empty)" not in spec.col_names
+        assert "team=alpha" in spec.col_names
+
+    def test_empty_values_column_present(self, encode_csv: Path) -> None:
+        """Categorical column with empties gets (empty) column."""
+        # active has empties but is binary (<=2 unique) so stays plain.
+        # We need to test with a col that has >2 unique + empties.
+        # Let's use role which has 3 unique and no empties in ENCODE_CSV.
+        # We'll test via a separate CSV with empties in a categorical col.
+        csv_text = "name,dept\nalice,eng\nbob,sales\ncharlie,hr\ndave,\n"
+        import tempfile
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
+            f.write(csv_text)
+            f.flush()
+            spec = load_bubble_data(f.name, cols=["dept"], y_col="name", encode=True)
+        assert "dept=(empty)" in spec.col_names
+        empty_idx = spec.col_names.index("dept=(empty)")
+        assert spec.matrix[3][empty_idx] is True  # dave has empty dept
+        assert spec.matrix[0][empty_idx] is False  # alice has eng
+
+    def test_mixed_binary_and_categorical(self, encode_csv: Path) -> None:
+        """Mix of binary and categorical columns with encode=True."""
+        spec = load_bubble_data(
+            encode_csv, cols=["active", "role"], y_col="name", encode=True
+        )
+        # active is binary → stays as-is
+        assert "active" in spec.col_names
+        # role is categorical → expanded
+        assert "role=dev" in spec.col_names
+        assert "role=pm" in spec.col_names
+        assert "role=design" in spec.col_names
+
+    def test_encode_false_no_expansion(self, encode_csv: Path) -> None:
+        """With encode=False (default), no expansion happens."""
+        spec = load_bubble_data(encode_csv, cols=["role"], y_col="name")
+        assert spec.col_names == ["role"]
+
+    def test_encode_with_top(self, encode_csv: Path) -> None:
+        """--top filters after encoding (on expanded columns)."""
+        spec = load_bubble_data(
+            encode_csv, cols=["role"], y_col="name", encode=True, top=2
+        )
+        assert len(spec.col_names) == 2
+
+    def test_encode_with_where(self, encode_csv: Path) -> None:
+        """--where applies before encoding."""
+        spec = load_bubble_data(
+            encode_csv,
+            cols=["role"],
+            y_col="name",
+            encode=True,
+            wheres=[("team", "alpha")],
+        )
+        # alpha team: alice(dev), bob(pm), eve(pm) — only 2 unique roles
+        # <=2 unique → binary → stays plain
+        assert spec.col_names == ["role"]
+        assert len(spec.y_labels) == 3
+
+
+class TestEncodeGrouped:
+    """Tests for load_bubble_grouped with encode=True."""
+
+    def test_grouped_encode_expands(self, encode_csv: Path) -> None:
+        from csvplot.bubble import load_bubble_grouped
+
+        spec = load_bubble_grouped(
+            encode_csv, cols=["role"], y_col="name", group_by="team", encode=True
+        )
+        assert "role=dev" in spec.col_names
+        assert "role=pm" in spec.col_names
+        assert "role=design" in spec.col_names
+
+    def test_grouped_encode_counts(self, encode_csv: Path) -> None:
+        from csvplot.bubble import load_bubble_grouped
+
+        spec = load_bubble_grouped(
+            encode_csv, cols=["role"], y_col="name", group_by="team", encode=True
+        )
+        # alpha team: alice(dev), bob(pm), eve(pm)
+        alpha_idx = spec.group_labels.index("alpha")
+        dev_idx = spec.col_names.index("role=dev")
+        pm_idx = spec.col_names.index("role=pm")
+        assert spec.counts[alpha_idx][dev_idx] == 1
+        assert spec.counts[alpha_idx][pm_idx] == 2

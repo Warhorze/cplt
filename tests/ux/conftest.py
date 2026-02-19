@@ -134,6 +134,30 @@ def ux_bubble_csv(tmp_path: Path) -> Path:
 
 
 # ---------------------------------------------------------------------------
+# Encode Bubble CSV: 6 rows
+# - role has 3 unique values (dev, pm, design) → categorical for --encode
+# - active has 2 unique values (yes, no) + empties → binary
+# - team has 3 unique values (alpha, beta, gamma) → categorical
+# ---------------------------------------------------------------------------
+ENCODE_BUBBLE_CSV = """\
+name,role,active,team
+alice,dev,yes,alpha
+bob,pm,,alpha
+charlie,dev,no,beta
+dave,design,yes,beta
+eve,pm,yes,alpha
+frank,dev,,gamma
+"""
+
+
+@pytest.fixture
+def encode_bubble_csv(tmp_path: Path) -> Path:
+    p = tmp_path / "encode_bubble.csv"
+    p.write_text(ENCODE_BUBBLE_CSV)
+    return p
+
+
+# ---------------------------------------------------------------------------
 # Summarise CSV: 15 rows
 # - Numeric col (score), date col (created), text col (notes)
 # - 3 nulls, high-cardinality id

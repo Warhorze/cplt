@@ -812,6 +812,122 @@ class TestBubbleOptions:
         assert result.exit_code == 0
         assert "Showing 3 of 10 rows" in result.stdout
 
+    def test_encode_binary_passthrough(self, ux_bubble_csv: Path) -> None:
+        """--encode with binary column (category=2 unique) stays as-is."""
+        result = invoke(
+            "bubble",
+            "-f",
+            str(ux_bubble_csv),
+            "--cols",
+            "category",
+            "--y",
+            "name",
+            "--encode",
+            "--format",
+            "compact",
+        )
+        assert result.exit_code == 0
+        # Binary → stays as "category", not expanded
+        assert "category=" not in result.stdout
+        assert "category" in result.stdout
+
+    def test_encode_categorical_expands(self, encode_bubble_csv: Path) -> None:
+        """--encode with >2 unique values one-hot encodes into col=value columns."""
+        result = invoke(
+            "bubble",
+            "-f",
+            str(encode_bubble_csv),
+            "--cols",
+            "role",
+            "--y",
+            "name",
+            "--encode",
+            "--format",
+            "compact",
+        )
+        assert result.exit_code == 0
+        assert "role=dev" in result.stdout
+        assert "role=pm" in result.stdout
+        assert "role=design" in result.stdout
+
+    def test_encode_mixed_columns(self, encode_bubble_csv: Path) -> None:
+        """--encode with mixed binary + categorical columns."""
+        result = invoke(
+            "bubble",
+            "-f",
+            str(encode_bubble_csv),
+            "--cols",
+            "active",
+            "--cols",
+            "role",
+            "--y",
+            "name",
+            "--encode",
+            "--format",
+            "compact",
+        )
+        assert result.exit_code == 0
+        # active is binary → plain
+        assert "active" in result.stdout
+        assert "active=" not in result.stdout
+        # role is categorical → expanded
+        assert "role=dev" in result.stdout
+
+    def test_encode_off_no_expansion(self, encode_bubble_csv: Path) -> None:
+        """Without --encode, categorical columns are not expanded."""
+        result = invoke(
+            "bubble",
+            "-f",
+            str(encode_bubble_csv),
+            "--cols",
+            "role",
+            "--y",
+            "name",
+            "--format",
+            "compact",
+        )
+        assert result.exit_code == 0
+        assert "role=dev" not in result.stdout
+
+    def test_encode_with_group_by(self, encode_bubble_csv: Path) -> None:
+        """--encode + --group-by shows encoded columns per group."""
+        result = invoke(
+            "bubble",
+            "-f",
+            str(encode_bubble_csv),
+            "--cols",
+            "role",
+            "--y",
+            "name",
+            "--encode",
+            "--group-by",
+            "team",
+            "--format",
+            "compact",
+        )
+        assert result.exit_code == 0
+        assert "role=dev" in result.stdout
+        assert "%" in result.stdout
+
+    def test_encode_with_transpose(self, encode_bubble_csv: Path) -> None:
+        """--encode + --transpose works together."""
+        result = invoke(
+            "bubble",
+            "-f",
+            str(encode_bubble_csv),
+            "--cols",
+            "role",
+            "--y",
+            "name",
+            "--encode",
+            "--transpose",
+            "--format",
+            "compact",
+        )
+        assert result.exit_code == 0
+        # After transpose, role=dev etc. should be row labels
+        assert "role=dev" in result.stdout
+
 
 # ============================================================================
 # Summarise option tests

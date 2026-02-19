@@ -12,6 +12,75 @@ from csvplot.reader import _ensure_columns_exist, filter_rows
 
 FALSY_VALUES = frozenset({"", "0", "false", "no", "null", "none", "na", "nan"})
 
+# Expand spec types: ("plain", col) or ("onehot", col, value)
+# value=None means the empty/falsy bucket
+ExpandSpec = tuple[str, ...]
+
+
+def _scan_unique_values(
+    rows: list[dict[str, str]],
+    cols: list[str],
+) -> tuple[dict[str, list[str]], dict[str, bool]]:
+    """Return ordered unique non-empty values per column, and whether empties exist."""
+    unique: dict[str, list[str]] = {col: [] for col in cols}
+    seen: dict[str, set[str]] = {col: set() for col in cols}
+    has_empty: dict[str, bool] = {col: False for col in cols}
+
+    for row in rows:
+        for col in cols:
+            val = row[col].strip()
+            if is_falsy(val):
+                has_empty[col] = True
+            else:
+                lower = val.lower()
+                if lower not in seen[col]:
+                    seen[col].add(lower)
+                    unique[col].append(val)
+    return unique, has_empty
+
+
+def _expand_cols(
+    cols: list[str],
+    unique: dict[str, list[str]],
+    has_empty: dict[str, bool],
+) -> list[ExpandSpec]:
+    """Expand columns into plain or one-hot specs based on cardinality."""
+    result: list[ExpandSpec] = []
+    for col in cols:
+        vals = unique[col]
+        if len(vals) <= 2:
+            result.append(("plain", col))
+        else:
+            for v in vals:
+                result.append(("onehot", col, v))
+            if has_empty[col]:
+                result.append(("onehot", col, None))  # type: ignore[arg-type]
+    return result
+
+
+def _spec_col_name(spec: ExpandSpec) -> str:
+    """Return display name for an expand spec."""
+    if spec[0] == "plain":
+        return spec[1]
+    # onehot
+    val = spec[2]
+    if val is None:
+        return f"{spec[1]}=(empty)"
+    return f"{spec[1]}={val}"
+
+
+def _eval_cell(spec: ExpandSpec, row: dict[str, str]) -> bool:
+    """Evaluate a single cell given an expand spec and a CSV row."""
+    if spec[0] == "plain":
+        return not is_falsy(row[spec[1]])
+    # onehot
+    col = spec[1]
+    target = spec[2]
+    val = row[col].strip()
+    if target is None:
+        return is_falsy(val)
+    return val.lower() == target.lower()
+
 
 @dataclass
 class BubbleSpec:
@@ -48,6 +117,7 @@ def load_bubble_data(
     wheres: list[tuple[str, str]] | None = None,
     where_nots: list[tuple[str, str]] | None = None,
     case_sensitive: bool = False,
+    encode: bool = False,
 ) -> BubbleSpec:
     """Load CSV and build a presence/absence matrix.
 
@@ -88,6 +158,13 @@ def load_bubble_data(
     if sample_n is not None and sample_n < len(selected_rows):
         selected_rows = random.sample(selected_rows, sample_n)
 
+    # Determine column specs (plain or one-hot encoded)
+    if encode:
+        unique, has_empty = _scan_unique_values(selected_rows, cols)
+        expand_specs = _expand_cols(cols, unique, has_empty)
+    else:
+        expand_specs = [("plain", col) for col in cols]
+
     y_labels: list[str] = []
     color_keys: list[str] = []
     raw_matrix: list[list[bool]] = []
@@ -95,19 +172,20 @@ def load_bubble_data(
         y_labels.append(row[y_col])
         if color_col:
             color_keys.append(row[color_col])
-        raw_matrix.append([not is_falsy(row[col]) for col in cols])
+        raw_matrix.append([_eval_cell(spec, row) for spec in expand_specs])
 
     # Apply --top N by fill-rate
-    active_cols = list(range(len(cols)))
-    if top is not None and top < len(cols) and raw_matrix:
+    n_expanded = len(expand_specs)
+    active_cols = list(range(n_expanded))
+    if top is not None and top < n_expanded and raw_matrix:
         fill_rates = []
-        for col_idx in range(len(cols)):
+        for col_idx in range(n_expanded):
             truthy = sum(1 for row in raw_matrix if row[col_idx])
             fill_rates.append((truthy, col_idx))
         fill_rates.sort(key=lambda x: x[0], reverse=True)
         active_cols = [idx for _, idx in fill_rates[:top]]
 
-    col_names = [cols[i] for i in active_cols]
+    col_names = [_spec_col_name(expand_specs[i]) for i in active_cols]
     matrix = [[row[i] for i in active_cols] for row in raw_matrix]
 
     return BubbleSpec(
@@ -183,6 +261,7 @@ def load_bubble_grouped(
     wheres: list[tuple[str, str]] | None = None,
     where_nots: list[tuple[str, str]] | None = None,
     case_sensitive: bool = False,
+    encode: bool = False,
 ) -> GroupedBubbleSpec:
     """Load CSV and build a grouped fill-rate matrix.
 
@@ -214,26 +293,35 @@ def load_bubble_grouped(
     group_labels = list(groups.keys())
     group_sizes = [len(groups[g]) for g in group_labels]
 
+    # Determine column specs (plain or one-hot encoded)
+    all_rows = [r for rows_list in groups.values() for r in rows_list]
+    if encode:
+        unique, has_empty = _scan_unique_values(all_rows, cols)
+        expand_specs = _expand_cols(cols, unique, has_empty)
+    else:
+        expand_specs = [("plain", col) for col in cols]
+
     # Build counts matrix
     counts: list[list[int]] = []
     for g in group_labels:
         row_counts = []
-        for col in cols:
-            truthy = sum(1 for r in groups[g] if not is_falsy(r[col]))
+        for spec in expand_specs:
+            truthy = sum(1 for r in groups[g] if _eval_cell(spec, r))
             row_counts.append(truthy)
         counts.append(row_counts)
 
     # Apply --top N by overall fill-rate
-    active_cols = list(range(len(cols)))
-    if top is not None and top < len(cols) and counts:
+    n_expanded = len(expand_specs)
+    active_cols = list(range(n_expanded))
+    if top is not None and top < n_expanded and counts:
         n_groups = len(group_labels)
         overall = [
-            (sum(counts[g][c] for g in range(n_groups)), c) for c in range(len(cols))
+            (sum(counts[g][c] for g in range(n_groups)), c) for c in range(n_expanded)
         ]
         overall.sort(key=lambda x: x[0], reverse=True)
         active_cols = [idx for _, idx in overall[:top]]
 
-    col_names = [cols[i] for i in active_cols]
+    col_names = [_spec_col_name(expand_specs[i]) for i in active_cols]
     filtered_counts = [[row[i] for i in active_cols] for row in counts]
 
     return GroupedBubbleSpec(

@@ -14,13 +14,27 @@ else
   PYTHON_BIN="python"
 fi
 
+die_with_setup_hint() {
+  echo "$1" >&2
+  echo "Install dependencies with: uv sync --extra dev" >&2
+  exit 1
+}
+
+if ! PYTHONPATH="$ROOT_DIR/src${PYTHONPATH:+:$PYTHONPATH}" \
+  "$PYTHON_BIN" -c "import csvplot.cli" >/dev/null 2>&1; then
+  die_with_setup_hint "Unable to run csvplot with '$PYTHON_BIN'."
+fi
+
+if ! "$PYTHON_BIN" -c "import plotext, rich, typer" >/dev/null 2>&1; then
+  die_with_setup_hint "Missing runtime dependencies for '$PYTHON_BIN' (plotext/rich/typer)."
+fi
+
 RENDER_PYTHON="$PYTHON_BIN"
 if ! "$RENDER_PYTHON" -c "import PIL" >/dev/null 2>&1; then
   if command -v python3 >/dev/null 2>&1 && python3 -c "import PIL" >/dev/null 2>&1; then
     RENDER_PYTHON="python3"
   else
-    echo "Pillow (PIL) is required to render PNG images." >&2
-    exit 1
+    die_with_setup_hint "Pillow (PIL) is required to render PNG images."
   fi
 fi
 
@@ -116,10 +130,27 @@ bash scripts/generate_design_review_images.sh
 
 ## Scenario Artifacts
 
-- Timeline: \`images/timeline_legend.png\`, \`images/timeline_zoom.png\`
-- Bar: \`images/bar_distribution.png\`, \`images/bar_sort_top.png\`
-- Line: \`images/line_trend.png\`, \`images/line_head.png\`
-- Bubble: \`images/bubble_matrix.png\`, \`images/bubble_top.png\`, \`images/bubble_color_effect.png\`
+- Timeline: [timeline_legend.png](images/timeline_legend.png), [timeline_zoom.png](images/timeline_zoom.png)
+- Bar: [bar_distribution.png](images/bar_distribution.png), [bar_sort_top.png](images/bar_sort_top.png)
+- Line: [line_trend.png](images/line_trend.png), [line_head.png](images/line_head.png)
+- Bubble: [bubble_matrix.png](images/bubble_matrix.png), [bubble_top.png](images/bubble_top.png), [bubble_color_effect.png](images/bubble_color_effect.png)
+
+### Timeline Preview
+![timeline_legend](images/timeline_legend.png)
+![timeline_zoom](images/timeline_zoom.png)
+
+### Bar Preview
+![bar_distribution](images/bar_distribution.png)
+![bar_sort_top](images/bar_sort_top.png)
+
+### Line Preview
+![line_trend](images/line_trend.png)
+![line_head](images/line_head.png)
+
+### Bubble Preview
+![bubble_matrix](images/bubble_matrix.png)
+![bubble_top](images/bubble_top.png)
+![bubble_color_effect](images/bubble_color_effect.png)
 
 Raw command outputs are in \`raw/\`.
 
