@@ -125,7 +125,7 @@ csvplot
 --sort ─────────only on──▶ bar (value/label/none), bubble (fill/fill-asc/name)
 --transpose ───only on──▶ bubble
 --group-by ────only on──▶ bubble (aggregates per group, separate code path)
---encode ──────only on──▶ bubble (≤2 unique → binary passthrough, >2 → one-hot col=value)
+--encode ──────only on──▶ bubble (≤2 unique non-falsy and >2 unique both use col=value columns)
 ```
 
 ## UX Review
@@ -149,6 +149,11 @@ bash scripts/generate_design_review_images.sh
 
 3. For color behavior (e.g. bubble `--color`), compare PNGs with and without the flag.
 
+### Review artifacts: what lives where
+
+- `assets/review/SCENARIOS.md` defines what to run: canonical scenario list, exact `csvplot` commands, and intent for each scenario.
+- `assets/review/REPORT.md` is run output: generated artifact links/previews plus automated check outcomes from the latest run.
+
 ### Cross-cutting UX checklist
 
 Apply these checks across all plot types during review:
@@ -165,10 +170,51 @@ The `tests/ux/` suite covers functional CLI behavior end-to-end:
 
 - **Format matrix** — 5 commands x 3 formats = 15 parameterized cases (`test_format_matrix.py`)
 - **Option behavior** — per-command checks for every optional flag (`test_options_ux.py`)
+- **Combination matrix** — pairwise/triple cross-stage interactions per command:
+  - `test_bubble_combinations.py`
+  - `test_bar_combinations.py`
+  - `test_timeline_combinations.py`
+  - `test_line_combinations.py`
+  - `test_summarise_combinations.py`
 - **Error message quality** — guards that errors are actionable, not tracebacks (`test_error_ux.py`)
 - **Scale** — 500–10K row stress tests (`test_scale_ux.py`)
 
 See `plan/ux-testing.md` for the full coverage matrix and test design.
+See `plan/combination-matrix.md` for the cross-stage pipeline model and rollout order.
+
+### UX tester flow (combination-first)
+
+Run UX checks in this order to catch option-interaction regressions early:
+
+1. Bubble combinations (`tests/ux/test_bubble_combinations.py`)
+2. Encode scale guardrails (`tests/ux/test_scale_ux.py`)
+3. Timeline combinations (`tests/ux/test_timeline_combinations.py`)
+4. Bar combinations (`tests/ux/test_bar_combinations.py`)
+5. Line combinations (`tests/ux/test_line_combinations.py`)
+6. Summarise combinations (`tests/ux/test_summarise_combinations.py`)
+7. Full UX suite (`tests/ux/`)
+8. Lint + type + full tests
+
+Recommended command sequence:
+
+```bash
+uv run pytest tests/ux/test_bubble_combinations.py -v
+uv run pytest tests/ux/test_scale_ux.py -v
+uv run pytest tests/ux/test_timeline_combinations.py -v
+uv run pytest tests/ux/test_bar_combinations.py -v
+uv run pytest tests/ux/test_line_combinations.py -v
+uv run pytest tests/ux/test_summarise_combinations.py -v
+uv run pytest tests/ux/ -v -rXx
+uv run ruff check src/ tests/
+uv run pyright
+uv run pytest
+```
+
+Notes:
+
+- `-rXx` surfaces unexpected pass/fail drift for expected-fail tests so stale `xfail` markers are removed quickly.
+- Treat option order as invariant in combo tests: `A+B` and `B+A` must produce equivalent behavior.
+- No-op combinations must either work end-to-end or emit an explicit, actionable error.
 
 ## Design Review Criteria
 
@@ -205,7 +251,7 @@ Each plot type has acceptance criteria for visual review. Full docs with feedbac
 - `--sort` reorders rows correctly (fill/fill-asc by fill-rate, name alphabetical)
 - `--transpose` swaps rows ↔ columns; fill-rate footer adapts
 - `--group-by` shows one row per group with fill-rate percentages and TOTAL footer
-- `--encode` expands categorical columns (>2 unique) into `col=value` one-hot columns; binary columns (≤2 unique) pass through unchanged; empty values get `col=(empty)`
+- `--encode` uses `col=value` columns for both binary (≤2 unique non-falsy) and categorical (>2 unique) data; empty values get `col=(empty)` when included
 
 ### Summarise
 
