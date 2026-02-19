@@ -299,6 +299,8 @@ def compact_bubble(spec: BubbleSpec, title: str = "csvplot") -> str:
         padded = label.rjust(max_label_width)
         lines.append(f"{padded}  |{cells}|")
 
+    if spec.total_rows > len(spec.y_labels):
+        lines.append(f"Showing {len(spec.y_labels)} of {spec.total_rows} rows")
     lines.append("---")
     return "\n".join(lines)
 

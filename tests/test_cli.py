@@ -176,15 +176,11 @@ def test_bubble_supports_sample_option(tmp_path: Path) -> None:
     assert present == 3
 
 
-def test_bubble_auto_truncates_large_output(monkeypatch, tmp_path: Path) -> None:
+def test_bubble_shows_all_rows_without_auto_cap(tmp_path: Path) -> None:
+    """Bubble output is never auto-capped; all rows are shown by default."""
     csv_file = tmp_path / "many_rows.csv"
     rows = "\n".join(f"name{i},yes" for i in range(30))
     csv_file.write_text("name,flag\n" + rows + "\n")
-
-    monkeypatch.setattr(
-        "csvplot.cli.shutil.get_terminal_size",
-        lambda _fallback: os.terminal_size((120, 15)),
-    )
 
     result = runner.invoke(
         app,
@@ -202,9 +198,38 @@ def test_bubble_auto_truncates_large_output(monkeypatch, tmp_path: Path) -> None
     )
 
     assert result.exit_code == 0
-    assert "... 20 more rows" in result.stdout
-    assert "--head" in result.stdout
-    assert "--sample" in result.stdout
+    # All 30 rows should appear
+    assert "name0" in result.stdout
+    assert "name29" in result.stdout
+    # No truncation message
+    assert "more rows" not in result.stdout
+
+
+def test_bubble_head_shows_truncation_footer(tmp_path: Path) -> None:
+    """When --head truncates rows, show 'Showing X of Y rows' footer."""
+    csv_file = tmp_path / "many_rows.csv"
+    rows = "\n".join(f"name{i},yes" for i in range(30))
+    csv_file.write_text("name,flag\n" + rows + "\n")
+
+    result = runner.invoke(
+        app,
+        [
+            "bubble",
+            "-f",
+            str(csv_file),
+            "--cols",
+            "flag",
+            "--y",
+            "name",
+            "--head",
+            "10",
+            "--format",
+            "compact",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "Showing 10 of 30 rows" in result.stdout
 
 
 def test_bar_labels_option_is_accepted(bar_csv) -> None:

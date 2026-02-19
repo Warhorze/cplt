@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Annotated, Literal, Optional, cast
@@ -793,19 +792,12 @@ def bubble(
         raise typer.Exit(1)
 
     try:
-        auto_max_rows: int | None = None
-        if head is None and sample is None and format_opt in {"visual", "semantic"}:
-            terminal_lines = shutil.get_terminal_size((120, 24)).lines
-            # Auto-cap visual/semantic output by terminal height. If --sample is set,
-            # we intentionally disable this cap so explicit sampling controls row count.
-            auto_max_rows = max(10, terminal_lines - 10)
-
         spec = load_bubble_data(
             path=file,
             cols=cols,
             y_col=y,
             color_col=color,
-            max_rows=head if head is not None else auto_max_rows,
+            max_rows=head,
             sample_n=sample,
             top=top,
             wheres=wheres or None,
@@ -925,9 +917,8 @@ def bubble(
             for row_num, full_label in truncated_rows:
                 label_map_table.add_row(str(row_num), full_label)
 
-        hidden_rows = max(0, spec.total_rows - len(spec.y_labels))
-        if hidden_rows > 0 and head is None and sample is None:
-            table.caption = f"... {hidden_rows} more rows (use --head or --sample)"
+        if spec.total_rows > len(spec.y_labels):
+            table.caption = f"Showing {len(spec.y_labels)} of {spec.total_rows} rows"
 
         if format_opt == "semantic":
             from csvplot.semantic import semantic_rich
