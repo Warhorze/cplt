@@ -292,19 +292,25 @@ _BASH_EQ_SAFE = """
 
     # Strip the col= prefix from each completion so bash inserts only the
     # value part after the '=' already on the command line.
+    # With -o nospace we must manually append a space to "final" completions
+    # (those that don't end with '=') so normal word separation works.
     COMPREPLY=()
     for _c in "${_completions[@]}"; do
+        local _val="$_c"
         if [[ -n "$_eq_prefix" && "$_c" == "$_eq_prefix"* ]]; then
-            COMPREPLY+=("${_c#$_eq_prefix}")
+            _val="${_c#$_eq_prefix}"
+        fi
+        if [[ "$_val" == *"=" ]]; then
+            COMPREPLY+=("$_val")
         else
-            COMPREPLY+=("$_c")
+            COMPREPLY+=("$_val ")
         fi
     done
 
     return 0
 }
 
-complete -o default -F %(complete_func)s %(prog_name)s
+complete -o nospace -o default -F %(complete_func)s %(prog_name)s
 """
 
 _typer_completion.COMPLETION_SCRIPT_BASH = _BASH_EQ_SAFE

@@ -9,7 +9,7 @@ from unittest.mock import MagicMock
 import click
 import pytest
 
-from csvplot.completions import complete_where, match_values
+from csvplot.completions import _BASH_EQ_SAFE, complete_where, match_values
 
 WHERE_CSV = """\
 name,status,region
@@ -150,3 +150,19 @@ class TestCompleteWhere:
         assert result[0] == "status=", (
             f"Column from --where should be context for --where-not, got: {result[0]!r}"
         )
+
+
+class TestBashCompletionScript:
+    """Verify the patched bash completion script handles nospace correctly."""
+
+    def test_nospace_option_present(self) -> None:
+        """Script must use -o nospace so bash doesn't add a trailing space after COL=."""
+        assert "-o nospace" in _BASH_EQ_SAFE
+
+    def test_appends_space_to_non_eq_completions(self) -> None:
+        """Script must append a space to completions that don't end with '='
+        so that normal argument separation works after value completions.
+        """
+        # The script should contain logic to add a trailing space to
+        # completions that don't end with '='
+        assert '" "' in _BASH_EQ_SAFE or "' '" in _BASH_EQ_SAFE
