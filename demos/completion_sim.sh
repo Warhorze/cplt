@@ -7,10 +7,13 @@ CMD="csvplot bar --file data/titanic.csv --column Embarked --where"
 
 # Stage 1: type command with flag completions + column discovery, then show --where completions
 printf '%s' "$PROMPT"
-simulate_type "csvplot bar "
+simulate_type "csvplot "
+simulate_tab "ba" "bar"
+simulate_type " "
 simulate_tab "--fi" "--file"
 simulate_type " "
-simulate_tab "data/ti" "data/titanic.csv"
+simulate_tab "da" "data/"
+simulate_tab "ti" "titanic.csv"
 simulate_type " "
 simulate_tab "--col" "--column"
 simulate_type " "
@@ -50,4 +53,4 @@ simulate_tab "--la" "--labels"
 sleep 0.5
 echo ""
 $CMD Sex=female --labels
-sleep 2
+sleep 3

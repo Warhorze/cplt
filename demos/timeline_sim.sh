@@ -2,11 +2,24 @@
 # Simulates typing the timeline demo command.
 source "$(dirname "$0")/lib.sh"
 
+# Show subcommand completion + help
 printf '%s' "$PROMPT"
-simulate_type "csvplot timeline "
+simulate_type "csvplot "
+simulate_tab "ti" "timeline"
+simulate_type " --help"
+echo ""
+csvplot timeline --help
+sleep 2
+
+# Clear and build the actual command
+printf '%s' "$PROMPT"
+simulate_type "csvplot "
+simulate_tab "ti" "timeline"
+simulate_type " "
 simulate_tab "--fi" "--file"
 simulate_type " "
-simulate_tab "data/pr" "data/projects.csv"
+simulate_tab "da" "data/"
+simulate_tab "pr" "projects.csv"
 simulate_type " "
 simulate_tab "--x" "--x"
 simulate_type " "
@@ -39,4 +52,4 @@ simulate_type " --vline 2026-02-20 --label today"
 sleep 0.5
 echo ""
 csvplot timeline --file data/projects.csv --x start_date --x end_date --y project --color status --vline 2026-02-20 --label today
-sleep 2
+sleep 3

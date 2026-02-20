@@ -2,11 +2,24 @@
 # Simulates typing the bubble matrix demo command.
 source "$(dirname "$0")/lib.sh"
 
+# Show subcommand completion + help
 printf '%s' "$PROMPT"
-simulate_type "csvplot bubble "
+simulate_type "csvplot "
+simulate_tab "bu" "bubble"
+simulate_type " --help"
+echo ""
+csvplot bubble --help
+sleep 2
+
+# Clear and build the actual command
+printf '%s' "$PROMPT"
+simulate_type "csvplot "
+simulate_tab "bu" "bubble"
+simulate_type " "
 simulate_tab "--fi" "--file"
 simulate_type " "
-simulate_tab "data/ti" "data/titanic.csv"
+simulate_tab "da" "data/"
+simulate_tab "ti" "titanic.csv"
 simulate_type " "
 simulate_tab "--col" "--cols"
 simulate_type " "
@@ -35,4 +48,4 @@ simulate_tab "Se" "Sex"
 sleep 0.5
 echo ""
 csvplot bubble --file data/titanic.csv --cols Cabin --cols Age --cols Embarked --y Name --head 12 --color Sex
-sleep 2
+sleep 3

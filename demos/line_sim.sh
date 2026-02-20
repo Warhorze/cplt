@@ -2,11 +2,24 @@
 # Simulates typing the line chart demo command.
 source "$(dirname "$0")/lib.sh"
 
+# Show subcommand completion + help
 printf '%s' "$PROMPT"
-simulate_type "csvplot line "
+simulate_type "csvplot "
+simulate_tab "li" "line"
+simulate_type " --help"
+echo ""
+csvplot line --help
+sleep 2
+
+# Clear and build the actual command
+printf '%s' "$PROMPT"
+simulate_type "csvplot "
+simulate_tab "li" "line"
+simulate_type " "
 simulate_tab "--fi" "--file"
 simulate_type " "
-simulate_tab "data/te" "data/temperatures.csv"
+simulate_tab "da" "data/"
+simulate_tab "te" "temperatures.csv"
 simulate_type " "
 simulate_tab "--x" "--x"
 simulate_type " "
@@ -29,4 +42,4 @@ simulate_type " 'Melbourne Min Temp'"
 sleep 0.5
 echo ""
 csvplot line --file data/temperatures.csv --x Date --y Temp --head 40 --title 'Melbourne Min Temp'
-sleep 2
+sleep 3
