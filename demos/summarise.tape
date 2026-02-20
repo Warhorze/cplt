@@ -1,4 +1,4 @@
-Output assets/images/bubble.gif
+Output assets/images/summarise.gif
 
 Set Shell "bash"
 Set FontFamily "DejaVu Sans Mono"
@@ -10,8 +10,8 @@ Set Theme "Dracula"
 Set TypingSpeed 0
 
 Hide
-Type "clear && bash demos/bubble_sim.sh"
+Type "clear && bash demos/summarise_sim.sh"
 Enter
 Sleep 200ms
 Show
-Sleep 27s
+Sleep 15s

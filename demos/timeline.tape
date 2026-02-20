@@ -14,4 +14,4 @@ Type "clear && bash demos/timeline_sim.sh"
 Enter
 Sleep 200ms
 Show
-Sleep 16s
+Sleep 29s

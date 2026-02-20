@@ -14,4 +14,4 @@ Type "clear && bash demos/completion_sim.sh"
 Enter
 Sleep 200ms
 Show
-Sleep 19s
+Sleep 26s

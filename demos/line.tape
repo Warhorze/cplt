@@ -14,4 +14,4 @@ Type "clear && bash demos/line_sim.sh"
 Enter
 Sleep 200ms
 Show
-Sleep 12s
+Sleep 24s

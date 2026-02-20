@@ -14,4 +14,4 @@ Type "clear && bash demos/bar_sim.sh"
 Enter
 Sleep 200ms
 Show
-Sleep 11s
+Sleep 28s
