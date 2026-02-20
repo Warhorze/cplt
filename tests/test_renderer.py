@@ -171,6 +171,18 @@ def test_render_bar_with_labels_calls_text_for_each_bar(monkeypatch) -> None:
     assert calls[1][0] == "1"
 
 
+def test_render_bar_with_labels_builds_without_crash() -> None:
+    """bar --labels should not crash with a plotext date-parsing ValueError."""
+    spec = BarSpec(
+        labels=["S", "C", "Q"],
+        values=[127.0, 73.0, 36.0],
+        title="bar-labels-visual",
+        show_labels=True,
+    )
+    out = render_bar(spec, build=True)
+    assert out is not None
+
+
 def test_render_line_only_labels_multi_series(monkeypatch) -> None:
     labels: list[str | None] = []
     original_plot = renderer.plt.plot
@@ -205,6 +217,24 @@ def test_render_line_suppresses_single_series_legend_label(monkeypatch) -> None:
     out = render_line(spec, build=True)
     assert out is not None
     assert labels == [None]
+
+
+def test_render_bar_uses_distinct_palette_colors(monkeypatch) -> None:
+    """Bar chart with multiple bars should use distinct colors from PALETTE."""
+    captured_colors: list[list[str]] = []
+
+    def _capture_bar(*args, **kwargs):
+        if "color" in kwargs:
+            captured_colors.append(list(kwargs["color"]))
+
+    monkeypatch.setattr(renderer.plt, "bar", _capture_bar)
+    spec = BarSpec(labels=["A", "B", "C"], values=[10.0, 20.0, 30.0], title="bar-colors")
+
+    render_bar(spec, build=True)
+    assert captured_colors
+    colors = captured_colors[0]
+    assert len(colors) == 3
+    assert len(set(colors)) > 1, f"Expected distinct colors but got {colors}"
 
 
 def test_render_dots_calls_scatter(monkeypatch) -> None:

@@ -326,7 +326,7 @@ def render_bar(spec: BarSpec, build: bool = False) -> str | None:
     plt.theme("clear")
 
     # Use a single bar color for cleaner magnitude comparison in categorical distributions.
-    colors = ["yellow"] * max(1, len(spec.labels))
+    colors = [PALETTE[i % len(PALETTE)] for i in range(max(1, len(spec.labels)))]
 
     orientation = "horizontal" if spec.horizontal else "vertical"
     plt.bar(spec.labels, spec.values, color=colors, orientation=orientation)
@@ -347,12 +347,15 @@ def render_bar(spec: BarSpec, build: bool = False) -> str | None:
             plt.yticks(ticks, tick_labels)
 
     if spec.show_labels:
-        for label, value in zip(spec.labels, spec.values):
+        for i, (label, value) in enumerate(zip(spec.labels, spec.values)):
             value_str = str(int(value)) if float(value).is_integer() else f"{value:g}"
+            # Use 1-based numeric position (plotext places bars at 1, 2, 3, …)
+            # to avoid plotext trying to parse string labels as dates.
+            pos = i + 1
             if spec.horizontal:
-                plt.text(value_str, x=float(value), y=label, color="white")
+                plt.text(value_str, x=float(value), y=pos, color="white")
             else:
-                plt.text(value_str, x=label, y=float(value), color="white")
+                plt.text(value_str, x=pos, y=float(value), color="white")
 
     plt.title(spec.title)
 
