@@ -36,7 +36,7 @@ run_csvplot timeline -f "$ROOT_DIR/data/timeplot.csv" \
   --x DH_PV_STARTDATUM --x DH_PV_EINDDATUM \
   --x EN_START_DATETIME --x EA_END_DATETIME \
   --y DH_FACING_NUMMER --color SH_ARTIKEL_S1 \
-  --head 12 --marker 2025-01-22 --marker-label wissel-datum \
+  --head 12 --vline 2025-01-22 --label wissel-datum \
   --format visual > "$TMP_DIR/timeline.txt"
 
 run_csvplot bar -f "$ROOT_DIR/data/titanic.csv" \
