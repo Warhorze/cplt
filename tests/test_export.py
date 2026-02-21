@@ -97,6 +97,20 @@ class TestAnsiParser256Color:
         assert rows[0][0].bg == (0, 128, 255)
 
 
+class TestAnsiParserMultiline:
+    def test_newlines_create_rows(self) -> None:
+        rows = parse_ansi("AB\nCD\nEF")
+        assert len(rows) == 3
+        assert rows[0][0].char == "A"
+        assert rows[1][0].char == "C"
+        assert rows[2][0].char == "E"
+
+    def test_color_persists_across_chars(self) -> None:
+        rows = parse_ansi("\x1b[31mAB")
+        assert len(rows[0]) == 2
+        assert rows[0][0].fg == rows[0][1].fg
+
+
 class TestBrailleRendering:
     def test_braille_char_produces_non_bg_pixels(self, tmp_path: Path) -> None:
         """Braille characters (U+2800-U+28FF) should produce dots, not font glyphs."""
