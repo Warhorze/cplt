@@ -32,15 +32,6 @@ if ! "$PYTHON_BIN" -c "import plotext, rich, typer" >/dev/null 2>&1; then
   die_with_setup_hint "Missing runtime dependencies for '$PYTHON_BIN' (plotext/rich/typer)."
 fi
 
-RENDER_PYTHON="$PYTHON_BIN"
-if ! "$RENDER_PYTHON" -c "import PIL" >/dev/null 2>&1; then
-  if command -v python3 >/dev/null 2>&1 && python3 -c "import PIL" >/dev/null 2>&1; then
-    RENDER_PYTHON="python3"
-  else
-    die_with_setup_hint "Pillow (PIL) is required to render PNG images."
-  fi
-fi
-
 mkdir -p "$RAW_DIR" "$IMG_DIR"
 rm -f "$RAW_DIR"/*.txt "$IMG_DIR"/*.png "$UX_LOG"
 
@@ -93,12 +84,9 @@ capture_scenario() {
   shift 4
 
   log_step "$group :: $slug"
-  run_csvplot "$@" --format visual > "$RAW_DIR/${slug}.visual.txt"
+  run_csvplot "$@" --format visual --export "$IMG_DIR/${slug}.png" > "$RAW_DIR/${slug}.visual.txt"
   run_csvplot "$@" --format compact > "$RAW_DIR/${slug}.compact.txt"
   run_csvplot "$@" --format semantic > "$RAW_DIR/${slug}.semantic.txt"
-
-  "$RENDER_PYTHON" "$ROOT_DIR/scripts/render_terminal_png.py" \
-    "$RAW_DIR/${slug}.visual.txt" "$IMG_DIR/${slug}.png" --title "$title"
 
   record_scenario "$group" "$slug" "$purpose" "$@"
 }
