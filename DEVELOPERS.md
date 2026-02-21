@@ -333,3 +333,18 @@ Run through this checklist before tagging a release:
    ```
 
    Check `docs/cli.md` matches the current command surface.
+
+7. **Update CHANGELOG** — generate from git history and add a section for the new version:
+
+   ```bash
+   git log --oneline v<previous>..HEAD   # review commits since last tag
+   ```
+
+   Group entries in `CHANGELOG.md` by category (Commands, Output formats, Export, Filtering, etc.) based on conventional commit types.
+
+8. **Tag the release**
+
+   ```bash
+   git tag v<version>
+   git push origin v<version>
+   ```
