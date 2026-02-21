@@ -592,3 +592,81 @@ class TestCompactSummarise:
         assert "numeric" in out
         assert "date" in out
         assert "2024-01-01" in out
+
+    def test_data_quality_section(self):
+        """Data quality section appears with sentinel/whitespace/mixed info."""
+        summaries = [
+            ColumnSummary(
+                name="amount",
+                detected_type="numeric",
+                row_count=10,
+                non_null_count=8,
+                unique_count=7,
+                null_count=2,
+                null_sentinel_count=1,
+                zero_count=3,
+                mean=42.5,
+                stddev=12.3,
+                whitespace_count=0,
+            ),
+            ColumnSummary(
+                name="date",
+                detected_type="date",
+                row_count=10,
+                non_null_count=10,
+                unique_count=10,
+                null_count=0,
+                null_sentinel_count=0,
+                date_formats=[("YYYY-MM-DD", 8), ("DD/MM/YYYY", 2)],
+                whitespace_count=1,
+            ),
+            ColumnSummary(
+                name="status",
+                detected_type="text",
+                row_count=10,
+                non_null_count=10,
+                unique_count=3,
+                null_count=0,
+                null_sentinel_count=2,
+                mixed_type_pct="80% text, 20% numeric",
+                mixed_type_examples=["123", "456"],
+            ),
+        ]
+        out = compact_summarise(summaries, title="dq.csv")
+        # Should have a Data Quality section
+        assert "Data Quality" in out
+        # Nulls column
+        assert "Nulls" in out
+        # Sentinels shown (>0 across columns)
+        assert "Sentinels" in out
+        # Zeros for numeric column
+        assert "Zeros" in out
+        # Mean/Stddev
+        assert "42.500" in out
+        assert "12.300" in out
+        # Date formats
+        assert "YYYY-MM-DD(8)" in out
+        # Whitespace shown (>0 across columns)
+        assert "Whitespace" in out
+        # Mixed types
+        assert "80% text" in out
+        assert "123, 456" in out
+
+    def test_data_quality_hides_zero_only_columns(self):
+        """Sentinels/Whitespace columns hidden when all zeros."""
+        summaries = [
+            ColumnSummary(
+                name="clean",
+                detected_type="text",
+                row_count=5,
+                non_null_count=5,
+                unique_count=5,
+                null_count=0,
+                null_sentinel_count=0,
+                whitespace_count=0,
+            ),
+        ]
+        out = compact_summarise(summaries, title="clean.csv")
+        assert "Data Quality" in out
+        assert "Sentinels" not in out
+        assert "Whitespace" not in out

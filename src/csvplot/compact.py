@@ -415,6 +415,68 @@ def compact_summarise(
 
     lines.append("---")
 
+    # Data Quality section
+    show_sentinels = any(s.null_sentinel_count > 0 for s in summaries)
+    show_whitespace = any(s.whitespace_count > 0 for s in summaries)
+
+    dq_headers = ["Column", "Nulls"]
+    if show_sentinels:
+        dq_headers.append("Sentinels")
+    dq_headers.extend(["Zeros", "Mean", "Stddev", "Formats"])
+    if show_whitespace:
+        dq_headers.append("Whitespace")
+    dq_headers.extend(["Mixed Types", "Mixed Examples"])
+
+    dq_rows: list[list[str]] = []
+    for s in summaries:
+        dq_row = [s.name, str(s.null_count)]
+        if show_sentinels:
+            dq_row.append(str(s.null_sentinel_count))
+        dq_row.extend(
+            [
+                str(s.zero_count) if s.mean is not None else "-",
+                f"{s.mean:.3f}" if s.mean is not None else "-",
+                f"{s.stddev:.3f}" if s.stddev is not None else "-",
+                "; ".join(f"{fmt}({count})" for fmt, count in s.date_formats) or "-",
+            ]
+        )
+        if show_whitespace:
+            dq_row.append(str(s.whitespace_count))
+        dq_row.extend(
+            [
+                s.mixed_type_pct or "-",
+                ", ".join(s.mixed_type_examples) or "-",
+            ]
+        )
+        dq_rows.append(dq_row)
+
+    dq_widths = [len(h) for h in dq_headers]
+    for dq_row in dq_rows:
+        for i, cell in enumerate(dq_row):
+            dq_widths[i] = max(dq_widths[i], len(cell))
+
+    # Identify right-align columns by header name
+    right_align_dq = {
+        i for i, h in enumerate(dq_headers) if h in ("Nulls", "Sentinels", "Zeros", "Mean",
+                                                       "Stddev", "Whitespace")
+    }
+
+    def _fmt_dq_row(cells: list[str]) -> str:
+        parts = []
+        for i, cell in enumerate(cells):
+            if i in right_align_dq:
+                parts.append(cell.rjust(dq_widths[i]))
+            else:
+                parts.append(cell.ljust(dq_widths[i]))
+        return " | ".join(parts)
+
+    lines.append(f"Data Quality: {title}")
+    lines.append(_fmt_dq_row(dq_headers))
+    for dq_row in dq_rows:
+        lines.append(_fmt_dq_row(dq_row))
+
+    lines.append("---")
+
     # Sample rows
     if sample_rows:
         lines.append(f"Sample ({len(sample_rows)} rows)")
