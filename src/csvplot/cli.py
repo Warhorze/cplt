@@ -48,6 +48,28 @@ def _require_canvas(canvas: str | None) -> str:
     return canvas
 
 
+def _validate_export(export: str | None, format_opt: str) -> None:
+    """Error if --export is used with a non-visual format."""
+    if export and format_opt != "visual":
+        rprint(
+            f"[red]Error:[/red] --export only works with --format visual, "
+            f"got {format_opt!r}"
+        )
+        raise typer.Exit(1)
+
+
+def _capture_rich_ansi(*renderables: object, width: int = 200) -> str:
+    """Capture Rich renderables as ANSI-colored text for PNG export."""
+    import io
+
+    from rich.console import Console
+
+    console = Console(record=True, width=width, file=io.StringIO(), force_terminal=True)
+    for r in renderables:
+        console.print(r)
+    return console.export_text(styles=True)
+
+
 def _format_key_error(exc: KeyError) -> str:
     """Return a readable KeyError message without Python repr noise."""
     if exc.args:
@@ -196,6 +218,14 @@ def timeline(
             rich_help_panel="Filtering",
         ),
     ] = None,
+    export: Annotated[
+        str | None,
+        typer.Option(
+            "--export",
+            help="Export chart to PNG file",
+            rich_help_panel="Formatting",
+        ),
+    ] = None,
     format_opt: Annotated[
         str,
         typer.Option(
@@ -207,6 +237,7 @@ def timeline(
 ) -> None:
     """Plot timeline/Gantt-style ranges from a CSV file."""
     _validate_format(format_opt)
+    _validate_export(export, format_opt)
     # Validate --x: need at least 2 values, and an even count
     if len(x) < 2:
         rprint("[red]Error:[/red] --x requires at least 2 values (start and end columns).")
@@ -332,6 +363,11 @@ def timeline(
         canvas = _require_canvas(render(spec, build=True))
         print(strip_ansi(canvas))
     else:
+        if export:
+            from csvplot.export import export_png
+
+            canvas = _require_canvas(render(spec, build=True))
+            export_png(canvas, export)
         render(spec)
 
 
@@ -393,6 +429,10 @@ def bar(
             autocompletion=complete_where,
         ),
     ] = None,
+    export: Annotated[
+        str | None,
+        typer.Option("--export", help="Export chart to PNG file"),
+    ] = None,
     format_opt: Annotated[
         str,
         typer.Option("--format", help="Output format: visual, semantic, or compact"),
@@ -400,6 +440,7 @@ def bar(
 ) -> None:
     """Plot a bar chart of value counts from a CSV column."""
     _validate_format(format_opt)
+    _validate_export(export, format_opt)
     if sort not in ("value", "label", "none"):
         rprint(f"[red]Error:[/red] --sort must be 'value', 'label', or 'none', got {sort!r}")
         raise typer.Exit(1)
@@ -453,6 +494,11 @@ def bar(
         canvas = _require_canvas(render_bar(spec, build=True))
         print(strip_ansi(canvas))
     else:
+        if export:
+            from csvplot.export import export_png
+
+            canvas = _require_canvas(render_bar(spec, build=True))
+            export_png(canvas, export)
         render_bar(spec)
 
 
@@ -510,6 +556,10 @@ def line(
             autocompletion=complete_where,
         ),
     ] = None,
+    export: Annotated[
+        str | None,
+        typer.Option("--export", help="Export chart to PNG file"),
+    ] = None,
     format_opt: Annotated[
         str,
         typer.Option("--format", help="Output format: visual, semantic, or compact"),
@@ -517,6 +567,7 @@ def line(
 ) -> None:
     """Plot a line chart from CSV columns."""
     _validate_format(format_opt)
+    _validate_export(export, format_opt)
     if len(y) < 1:
         rprint("[red]Error:[/red] --y requires at least 1 value.")
         raise typer.Exit(1)
@@ -567,6 +618,11 @@ def line(
         canvas = _require_canvas(render_line(spec, build=True))
         print(strip_ansi(canvas))
     else:
+        if export:
+            from csvplot.export import export_png
+
+            canvas = _require_canvas(render_line(spec, build=True))
+            export_png(canvas, export)
         render_line(spec)
 
 
@@ -600,6 +656,10 @@ def summarise(
             autocompletion=complete_where,
         ),
     ] = None,
+    export: Annotated[
+        str | None,
+        typer.Option("--export", help="Export chart to PNG file"),
+    ] = None,
     format_opt: Annotated[
         str,
         typer.Option("--format", help="Output format: visual, semantic, or compact"),
@@ -607,6 +667,7 @@ def summarise(
 ) -> None:
     """Print a summary of a CSV file — column types, counts, nulls, top values."""
     _validate_format(format_opt)
+    _validate_export(export, format_opt)
     sample_rows: list[dict[str, str]] = []
     # Parse --where / --where-not expressions
     wheres: list[tuple[str, str]] = []
@@ -743,6 +804,14 @@ def summarise(
                 renderables.append(sample_table)
             print(semantic_rich(*renderables), end="")
         else:
+            if export:
+                from csvplot.export import export_png
+
+                renderables = [table, dq_table]
+                if sample_table:
+                    renderables.append(sample_table)
+                ansi = _capture_rich_ansi(*renderables)
+                export_png(ansi, export)
             rprint(table)
             rprint()
             rprint(dq_table)
@@ -772,6 +841,7 @@ def _render_grouped_bubble(
     gspec: GroupedBubbleSpec,
     chart_title: str,
     format_opt: str,
+    export: str | None = None,
 ) -> None:
     """Render a GroupedBubbleSpec as a Rich table (visual or semantic)."""
     table = Table(title=chart_title)
@@ -815,6 +885,11 @@ def _render_grouped_bubble(
 
         print(semantic_rich(table), end="")
     else:
+        if export:
+            from csvplot.export import export_png
+
+            ansi = _capture_rich_ansi(table)
+            export_png(ansi, export)
         rprint(table)
 
 
@@ -903,6 +978,10 @@ def bubble(
             autocompletion=complete_column,
         ),
     ] = None,
+    export: Annotated[
+        str | None,
+        typer.Option("--export", help="Export chart to PNG file"),
+    ] = None,
     format_opt: Annotated[
         str,
         typer.Option("--format", help="Output format: visual, semantic, or compact"),
@@ -910,6 +989,7 @@ def bubble(
 ) -> None:
     """Plot a presence/absence dot matrix from CSV columns."""
     _validate_format(format_opt)
+    _validate_export(export, format_opt)
     if not cols:
         rprint("[red]Error:[/red] --cols requires at least 1 column.")
         raise typer.Exit(1)
@@ -979,7 +1059,7 @@ def bubble(
 
             print(compact_bubble_grouped(gspec, title=chart_title))
         else:
-            _render_grouped_bubble(gspec, chart_title, format_opt)
+            _render_grouped_bubble(gspec, chart_title, format_opt, export=export)
         return
 
     try:
@@ -1141,6 +1221,16 @@ def bubble(
             else:
                 print(semantic_rich(table), end="")
         else:
+            if export:
+                from csvplot.export import export_png
+
+                renderables = [table]
+                if legend_table:
+                    renderables.append(legend_table)
+                if label_map_table:
+                    renderables.append(label_map_table)
+                ansi = _capture_rich_ansi(*renderables)
+                export_png(ansi, export)
             rprint(table)
             if legend_table:
                 rprint()
