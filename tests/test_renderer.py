@@ -219,22 +219,20 @@ def test_render_line_suppresses_single_series_legend_label(monkeypatch) -> None:
     assert labels == [None]
 
 
-def test_render_bar_uses_distinct_palette_colors(monkeypatch) -> None:
-    """Bar chart with multiple bars should use distinct colors from PALETTE."""
-    captured_colors: list[list[str]] = []
+def test_render_bar_uses_single_color(monkeypatch) -> None:
+    """Bar chart should use a single color to avoid plotext color bleed."""
+    captured_color: list[str] = []
 
     def _capture_bar(*args, **kwargs):
         if "color" in kwargs:
-            captured_colors.append(list(kwargs["color"]))
+            captured_color.append(kwargs["color"])
 
     monkeypatch.setattr(renderer.plt, "bar", _capture_bar)
-    spec = BarSpec(labels=["A", "B", "C"], values=[10.0, 20.0, 30.0], title="bar-colors")
+    spec = BarSpec(labels=["A", "B", "C"], values=[10.0, 20.0, 30.0], title="bar-color")
 
     render_bar(spec, build=True)
-    assert captured_colors
-    colors = captured_colors[0]
-    assert len(colors) == 3
-    assert len(set(colors)) > 1, f"Expected distinct colors but got {colors}"
+    assert captured_color
+    assert not isinstance(captured_color[0], list), "Expected a single color, not a list"
 
 
 def test_render_dots_calls_scatter(monkeypatch) -> None:

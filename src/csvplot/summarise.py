@@ -17,11 +17,24 @@ MAX_DISTINCT_VALUES = 10_000
 NUMERIC_THRESHOLD = 0.80
 DATE_THRESHOLD = 0.80
 
-NULL_SENTINELS = frozenset({
-    "NA", "N/A", "NaN", "nan", "null", "NULL", "None", "none",
-    "#N/A", "#NA", "-",
-    '""', "''", "``",
-})
+NULL_SENTINELS = frozenset(
+    {
+        "NA",
+        "N/A",
+        "NaN",
+        "nan",
+        "null",
+        "NULL",
+        "None",
+        "none",
+        "#N/A",
+        "#NA",
+        "-",
+        '""',
+        "''",
+        "``",
+    }
+)
 
 # Date format patterns: (regex, label)
 _DATE_FORMAT_PATTERNS: list[tuple[re.Pattern[str], str]] = [
@@ -304,9 +317,7 @@ def summarise_csv(
 
                 # Collect minority examples: values NOT in the dominant type
                 dominant_type = (
-                    "numeric" if exc_n == dominant
-                    else "date" if exc_d == dominant
-                    else "text"
+                    "numeric" if exc_n == dominant else "date" if exc_d == dominant else "text"
                 )
                 # Scan counters for minority examples
                 if not capped[col]:

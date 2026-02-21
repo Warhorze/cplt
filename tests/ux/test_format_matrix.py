@@ -42,22 +42,40 @@ def test_format_acceptance(command: str, fmt: str, ux_csvs: dict[str, Path]) -> 
 # Additional bubble variants that use separate rendering paths.
 BUBBLE_VARIANTS: dict[str, list[str]] = {
     "bubble_grouped": [
-        "--cols", "feat_a", "--cols", "feat_b", "--y", "name", "--group-by", "category",
+        "--cols",
+        "feat_a",
+        "--cols",
+        "feat_b",
+        "--y",
+        "name",
+        "--group-by",
+        "category",
     ],
     "bubble_transposed": [
-        "--cols", "feat_a", "--cols", "feat_b", "--y", "name", "--transpose",
+        "--cols",
+        "feat_a",
+        "--cols",
+        "feat_b",
+        "--y",
+        "name",
+        "--transpose",
     ],
     "bubble_sorted": [
-        "--cols", "feat_a", "--cols", "feat_b", "--y", "name", "--sort", "fill",
+        "--cols",
+        "feat_a",
+        "--cols",
+        "feat_b",
+        "--y",
+        "name",
+        "--sort",
+        "fill",
     ],
 }
 
 
 @pytest.mark.parametrize("variant", BUBBLE_VARIANTS.keys())
 @pytest.mark.parametrize("fmt", FORMATS)
-def test_bubble_variant_format_acceptance(
-    variant: str, fmt: str, ux_csvs: dict[str, Path]
-) -> None:
+def test_bubble_variant_format_acceptance(variant: str, fmt: str, ux_csvs: dict[str, Path]) -> None:
     """Bubble variants (grouped, transposed, sorted) x format work cleanly."""
     csv_path = str(ux_csvs["bubble"])
     args = ["bubble", "-f", csv_path] + BUBBLE_VARIANTS[variant] + ["--format", fmt]

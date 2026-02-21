@@ -144,14 +144,7 @@ def test_bubble_numbers_rows_when_labels_are_truncated(tmp_path: Path) -> None:
 
 def test_bubble_supports_sample_option(tmp_path: Path) -> None:
     csv_file = tmp_path / "sample_rows.csv"
-    csv_file.write_text(
-        "name,flag\n"
-        "n1,yes\n"
-        "n2,\n"
-        "n3,yes\n"
-        "n4,\n"
-        "n5,yes\n"
-    )
+    csv_file.write_text("name,flag\nn1,yes\nn2,\nn3,yes\nn4,\nn5,yes\n")
 
     result = runner.invoke(
         app,

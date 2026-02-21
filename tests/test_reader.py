@@ -399,11 +399,7 @@ class TestLoadDots:
         assert dots[1].y_label == "Charlie"
 
     def test_multiple_dot_cols(self, tmp_path) -> None:
-        csv_content = (
-            "name,due_date,review_date\n"
-            "Alpha,2024-01-10,2024-01-12\n"
-            "Bravo,2024-02-15,\n"
-        )
+        csv_content = "name,due_date,review_date\nAlpha,2024-01-10,2024-01-12\nBravo,2024-02-15,\n"
         csv_file = tmp_path / "dots.csv"
         csv_file.write_text(csv_content)
 
@@ -421,16 +417,12 @@ class TestLoadDots:
 
     def test_with_color_col(self, tmp_path) -> None:
         csv_content = (
-            "name,due_date,category\n"
-            "Alpha,2024-01-10,backend\n"
-            "Bravo,2024-02-15,frontend\n"
+            "name,due_date,category\nAlpha,2024-01-10,backend\nBravo,2024-02-15,frontend\n"
         )
         csv_file = tmp_path / "dots.csv"
         csv_file.write_text(csv_content)
 
-        dots = load_dots(
-            csv_file, dot_cols=["due_date"], y_col=["name"], color_col="category"
-        )
+        dots = load_dots(csv_file, dot_cols=["due_date"], y_col=["name"], color_col="category")
         assert len(dots) == 2
         assert dots[0].color_key == "backend"
         assert dots[1].color_key == "frontend"
@@ -456,10 +448,7 @@ class TestLoadDots:
         assert dots[1].y_label == "Charlie"
 
     def test_composite_y_label(self, tmp_path) -> None:
-        csv_content = (
-            "name,category,due_date\n"
-            "Alpha,backend,2024-01-10\n"
-        )
+        csv_content = "name,category,due_date\nAlpha,backend,2024-01-10\n"
         csv_file = tmp_path / "dots.csv"
         csv_file.write_text(csv_content)
 

@@ -115,7 +115,6 @@ class TestExistingErrorPaths:
             assert result.exit_code == 1, f"{cmd}: exit_code={result.exit_code}"
             assert "format" in result.stdout.lower(), f"{cmd}: no 'format' in error"
 
-
     def test_invalid_sort_value(self, ux_bubble_csv: Path) -> None:
         """Invalid --sort value produces an error."""
         result = invoke(
@@ -133,9 +132,7 @@ class TestExistingErrorPaths:
         )
         assert result.exit_code != 0
         out = result.stdout.lower()
-        assert "sort" in out or "unknown" in out, (
-            f"Error doesn't mention sort:\n{result.stdout}"
-        )
+        assert "sort" in out or "unknown" in out, f"Error doesn't mention sort:\n{result.stdout}"
 
     def test_group_by_nonexistent_column(self, ux_bubble_csv: Path) -> None:
         """--group-by with a nonexistent column produces an error with available columns."""

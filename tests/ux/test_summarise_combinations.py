@@ -16,9 +16,15 @@ class TestSummariseCrossStage:
     def test_head_plus_where(self, ux_summarise_csv: Path) -> None:
         """--head + --where: head limits rows, where filters from those."""
         result = invoke(
-            "summarise", "-f", str(ux_summarise_csv),
-            "--head", "10", "--where", "name=alice",
-            "--format", "compact",
+            "summarise",
+            "-f",
+            str(ux_summarise_csv),
+            "--head",
+            "10",
+            "--where",
+            "name=alice",
+            "--format",
+            "compact",
         )
         assert result.exit_code == 0
         # Should show 1 row (alice is in first 10)
@@ -27,10 +33,15 @@ class TestSummariseCrossStage:
     def test_sample_plus_where(self, ux_summarise_csv: Path) -> None:
         """--sample + --where: filter then sample from filtered rows."""
         result = invoke(
-            "summarise", "-f", str(ux_summarise_csv),
-            "--where", "notes=good",
-            "--sample", "2",
-            "--format", "compact",
+            "summarise",
+            "-f",
+            str(ux_summarise_csv),
+            "--where",
+            "notes=good",
+            "--sample",
+            "2",
+            "--format",
+            "compact",
         )
         assert result.exit_code == 0
         assert "sample" in result.stdout.lower()
@@ -38,9 +49,15 @@ class TestSummariseCrossStage:
     def test_head_plus_sample(self, ux_summarise_csv: Path) -> None:
         """--head + --sample: head limits input, sample from limited set."""
         result = invoke(
-            "summarise", "-f", str(ux_summarise_csv),
-            "--head", "5", "--sample", "2",
-            "--format", "compact",
+            "summarise",
+            "-f",
+            str(ux_summarise_csv),
+            "--head",
+            "5",
+            "--sample",
+            "2",
+            "--format",
+            "compact",
         )
         assert result.exit_code == 0
         assert "sample" in result.stdout.lower()

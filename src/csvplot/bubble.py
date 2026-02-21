@@ -227,9 +227,7 @@ def transpose_bubble_spec(spec: BubbleSpec) -> BubbleSpec:
     """Transpose a BubbleSpec: columns become rows, rows become columns."""
     n_rows = len(spec.y_labels)
     n_cols = len(spec.col_names)
-    transposed_matrix = [
-        [spec.matrix[r][c] for r in range(n_rows)] for c in range(n_cols)
-    ]
+    transposed_matrix = [[spec.matrix[r][c] for r in range(n_rows)] for c in range(n_cols)]
     return BubbleSpec(
         y_labels=list(spec.col_names),
         col_names=list(spec.y_labels),
@@ -310,9 +308,7 @@ def transpose_grouped_spec(spec: GroupedBubbleSpec) -> GroupedBubbleSpec:
     """
     n_groups = len(spec.group_labels)
     n_cols = len(spec.col_names)
-    transposed_counts = [
-        [spec.counts[g][c] for g in range(n_groups)] for c in range(n_cols)
-    ]
+    transposed_counts = [[spec.counts[g][c] for g in range(n_groups)] for c in range(n_cols)]
     return GroupedBubbleSpec(
         group_labels=list(spec.col_names),
         col_names=list(spec.group_labels),
@@ -399,9 +395,7 @@ def load_bubble_grouped(
     active_cols = list(range(n_expanded))
     if top is not None and top < n_expanded and counts:
         n_groups = len(group_labels)
-        overall = [
-            (sum(counts[g][c] for g in range(n_groups)), c) for c in range(n_expanded)
-        ]
+        overall = [(sum(counts[g][c] for g in range(n_groups)), c) for c in range(n_expanded)]
         overall.sort(key=lambda x: x[0], reverse=True)
         active_cols = [idx for _, idx in overall[:top]]
 

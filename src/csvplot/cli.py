@@ -51,10 +51,7 @@ def _require_canvas(canvas: str | None) -> str:
 def _validate_export(export: str | None, format_opt: str) -> None:
     """Error if --export is used with a non-visual format."""
     if export and format_opt != "visual":
-        rprint(
-            f"[red]Error:[/red] --export only works with --format visual, "
-            f"got {format_opt!r}"
-        )
+        rprint(f"[red]Error:[/red] --export only works with --format visual, got {format_opt!r}")
         raise typer.Exit(1)
 
 
@@ -871,9 +868,7 @@ def _render_grouped_bubble(
         total_size = sum(gspec.group_sizes)
     overall_cells = []
     for col_idx in range(len(gspec.col_names)):
-        total_count = sum(
-            gspec.counts[g][col_idx] for g in range(len(gspec.group_labels))
-        )
+        total_count = sum(gspec.counts[g][col_idx] for g in range(len(gspec.group_labels)))
         pct = round(total_count / total_size * 100) if total_size > 0 else 0
         block = _fill_block(pct)
         overall_cells.append(f"[dim]{block} {pct}% ({total_count}/{total_size})[/dim]")
@@ -1011,8 +1006,7 @@ def bubble(
     # --group-by + --sample is incompatible (aggregation needs all rows)
     if group_by and sample:
         rprint(
-            "[red]Error:[/red] Cannot use --sample with --group-by"
-            " (aggregation needs all rows)."
+            "[red]Error:[/red] Cannot use --sample with --group-by (aggregation needs all rows)."
         )
         raise typer.Exit(1)
 

@@ -387,9 +387,7 @@ class TestEncodeBubbleData:
 
     def test_mixed_binary_and_categorical(self, encode_csv: Path) -> None:
         """Mix of binary and categorical columns with encode=True."""
-        spec = load_bubble_data(
-            encode_csv, cols=["active", "role"], y_col="name", encode=True
-        )
+        spec = load_bubble_data(encode_csv, cols=["active", "role"], y_col="name", encode=True)
         # active: "no" is falsy, so only "yes" is a unique non-falsy value
         assert "active=yes" in spec.col_names
         # role is categorical → expanded
@@ -404,9 +402,7 @@ class TestEncodeBubbleData:
 
     def test_encode_with_top(self, encode_csv: Path) -> None:
         """--top filters after encoding (on expanded columns)."""
-        spec = load_bubble_data(
-            encode_csv, cols=["role"], y_col="name", encode=True, top=2
-        )
+        spec = load_bubble_data(encode_csv, cols=["role"], y_col="name", encode=True, top=2)
         assert len(spec.col_names) == 2
 
     def test_encode_with_where(self, encode_csv: Path) -> None:

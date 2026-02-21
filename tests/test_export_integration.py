@@ -26,8 +26,17 @@ class TestExportCreatesPng:
         out = tmp_path / "line.png"
         result = runner.invoke(
             app,
-            ["line", "-f", str(line_csv), "--x", "date", "--y", "temperature",
-             "--export", str(out)],
+            [
+                "line",
+                "-f",
+                str(line_csv),
+                "--x",
+                "date",
+                "--y",
+                "temperature",
+                "--export",
+                str(out),
+            ],
         )
         assert result.exit_code == 0, result.stdout
         assert out.exists()
@@ -36,8 +45,19 @@ class TestExportCreatesPng:
         out = tmp_path / "timeline.png"
         result = runner.invoke(
             app,
-            ["timeline", "-f", str(sample_csv), "--x", "start", "--x", "end",
-             "--y", "name", "--export", str(out)],
+            [
+                "timeline",
+                "-f",
+                str(sample_csv),
+                "--x",
+                "start",
+                "--x",
+                "end",
+                "--y",
+                "name",
+                "--export",
+                str(out),
+            ],
         )
         assert result.exit_code == 0, result.stdout
         assert out.exists()
@@ -55,8 +75,19 @@ class TestExportCreatesPng:
         out = tmp_path / "bubble.png"
         result = runner.invoke(
             app,
-            ["bubble", "-f", str(bar_csv), "--cols", "status", "--cols", "priority",
-             "--y", "assignee", "--export", str(out)],
+            [
+                "bubble",
+                "-f",
+                str(bar_csv),
+                "--cols",
+                "status",
+                "--cols",
+                "priority",
+                "--y",
+                "assignee",
+                "--export",
+                str(out),
+            ],
         )
         assert result.exit_code == 0, result.stdout
         assert out.exists()
@@ -86,14 +117,23 @@ class TestExportProducesValidImages:
         assert img.width >= 400
         assert img.height >= 100
 
-    def test_bubble_export_has_reasonable_dimensions(
-        self, bar_csv: Path, tmp_path: Path
-    ) -> None:
+    def test_bubble_export_has_reasonable_dimensions(self, bar_csv: Path, tmp_path: Path) -> None:
         out = tmp_path / "bubble.png"
         runner.invoke(
             app,
-            ["bubble", "-f", str(bar_csv), "--cols", "status", "--cols", "priority",
-             "--y", "assignee", "--export", str(out)],
+            [
+                "bubble",
+                "-f",
+                str(bar_csv),
+                "--cols",
+                "status",
+                "--cols",
+                "priority",
+                "--y",
+                "assignee",
+                "--export",
+                str(out),
+            ],
         )
         img = Image.open(out)
         assert img.width >= 200
@@ -116,8 +156,17 @@ class TestExportRejectsNonVisual:
         out = tmp_path / "bar.png"
         result = runner.invoke(
             app,
-            ["bar", "-f", str(bar_csv), "-c", "status", "--format", "compact",
-             "--export", str(out)],
+            [
+                "bar",
+                "-f",
+                str(bar_csv),
+                "-c",
+                "status",
+                "--format",
+                "compact",
+                "--export",
+                str(out),
+            ],
         )
         assert result.exit_code == 1
         assert "--export" in result.stdout
@@ -126,8 +175,17 @@ class TestExportRejectsNonVisual:
         out = tmp_path / "bar.png"
         result = runner.invoke(
             app,
-            ["bar", "-f", str(bar_csv), "-c", "status", "--format", "semantic",
-             "--export", str(out)],
+            [
+                "bar",
+                "-f",
+                str(bar_csv),
+                "-c",
+                "status",
+                "--format",
+                "semantic",
+                "--export",
+                str(out),
+            ],
         )
         assert result.exit_code == 1
         assert "--export" in result.stdout
@@ -136,8 +194,7 @@ class TestExportRejectsNonVisual:
         out = tmp_path / "summarise.png"
         result = runner.invoke(
             app,
-            ["summarise", "-f", str(bar_csv), "--format", "compact",
-             "--export", str(out)],
+            ["summarise", "-f", str(bar_csv), "--format", "compact", "--export", str(out)],
         )
         assert result.exit_code == 1
         assert "--export" in result.stdout

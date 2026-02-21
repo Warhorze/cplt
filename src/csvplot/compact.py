@@ -147,9 +147,7 @@ def compact_timeline(spec: PlotSpec, width: int = 60) -> str:
 
                 # Overlay dots for this label on layer-0 sub-row only
                 if layer == 0:
-                    matching_row_indices = {
-                        s.row_index for s in matching
-                    }
+                    matching_row_indices = {s.row_index for s in matching}
                     for dot in dots_by_label.get(label, []):
                         if dot.row_index in matching_row_indices or sub_idx == 0:
                             pos = _map_pos(dot.date)
@@ -344,9 +342,7 @@ def compact_bubble_grouped(spec: GroupedBubbleSpec, title: str = "csvplot") -> s
     else:
         total_size = sum(spec.group_sizes)
     for col_idx, col_name in enumerate(spec.col_names):
-        total_count = sum(
-            spec.counts[g][col_idx] for g in range(len(spec.group_labels))
-        )
+        total_count = sum(spec.counts[g][col_idx] for g in range(len(spec.group_labels)))
         pct = round(total_count / total_size * 100) if total_size > 0 else 0
         overall_parts.append(f"{col_name}:{pct}%({total_count}/{total_size})")
     lines.append("overall: " + " | ".join(overall_parts))
@@ -457,8 +453,9 @@ def compact_summarise(
 
     # Identify right-align columns by header name
     right_align_dq = {
-        i for i, h in enumerate(dq_headers) if h in ("Nulls", "Sentinels", "Zeros", "Mean",
-                                                       "Stddev", "Whitespace")
+        i
+        for i, h in enumerate(dq_headers)
+        if h in ("Nulls", "Sentinels", "Zeros", "Mean", "Stddev", "Whitespace")
     }
 
     def _fmt_dq_row(cells: list[str]) -> str:

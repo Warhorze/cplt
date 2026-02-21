@@ -639,10 +639,7 @@ class TestBubbleOptions:
         assert result.exit_code == 0
         # Extract row labels (lines with | but not header/footer)
         lines = result.stdout.split("\n")
-        row_lines = [
-            ln for ln in lines
-            if "|" in ln and "cols:" not in ln and "fill:" not in ln
-        ]
+        row_lines = [ln for ln in lines if "|" in ln and "cols:" not in ln and "fill:" not in ln]
         labels = [ln.split("|")[0].strip() for ln in row_lines]
         assert labels == sorted(labels, key=str.lower)
 

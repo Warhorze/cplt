@@ -21,11 +21,17 @@ class TestBarCrossStageGreen:
     def test_where_plus_sort_value(self, ux_bar_csv: Path) -> None:
         """--where filters rows, then --sort value orders by count."""
         result = invoke(
-            "bar", "-f", str(ux_bar_csv),
-            "-c", "status",
-            "--where", "assignee=alice",
-            "--sort", "value",
-            "--format", "compact",
+            "bar",
+            "-f",
+            str(ux_bar_csv),
+            "-c",
+            "status",
+            "--where",
+            "assignee=alice",
+            "--sort",
+            "value",
+            "--format",
+            "compact",
         )
         assert result.exit_code == 0
         # alice has: open=2, closed=1, in_progress=1, blocked=1
@@ -39,11 +45,17 @@ class TestBarCrossStageGreen:
     def test_where_plus_top(self, ux_bar_csv: Path) -> None:
         """--where filters, then --top selects highest count from filtered set."""
         result = invoke(
-            "bar", "-f", str(ux_bar_csv),
-            "-c", "status",
-            "--where", "assignee=alice",
-            "--top", "2",
-            "--format", "compact",
+            "bar",
+            "-f",
+            str(ux_bar_csv),
+            "-c",
+            "status",
+            "--where",
+            "assignee=alice",
+            "--top",
+            "2",
+            "--format",
+            "compact",
         )
         assert result.exit_code == 0
         lines = result.stdout.strip().split("\n")
@@ -54,11 +66,17 @@ class TestBarCrossStageGreen:
     def test_head_plus_sort(self, ux_bar_csv: Path) -> None:
         """--head limits rows, then --sort orders the counted values."""
         result = invoke(
-            "bar", "-f", str(ux_bar_csv),
-            "-c", "status",
-            "--head", "6",
-            "--sort", "value",
-            "--format", "compact",
+            "bar",
+            "-f",
+            str(ux_bar_csv),
+            "-c",
+            "status",
+            "--head",
+            "6",
+            "--sort",
+            "value",
+            "--format",
+            "compact",
         )
         assert result.exit_code == 0
         # First 6 rows: open(4), closed(2) → open should be first
@@ -69,11 +87,17 @@ class TestBarCrossStageGreen:
     def test_head_plus_top(self, ux_bar_csv: Path) -> None:
         """--head limits rows, --top selects highest count."""
         result = invoke(
-            "bar", "-f", str(ux_bar_csv),
-            "-c", "status",
-            "--head", "8",
-            "--top", "2",
-            "--format", "compact",
+            "bar",
+            "-f",
+            str(ux_bar_csv),
+            "-c",
+            "status",
+            "--head",
+            "8",
+            "--top",
+            "2",
+            "--format",
+            "compact",
         )
         assert result.exit_code == 0
         statuses = ("open", "closed", "blocked", "in_progress")
@@ -84,27 +108,47 @@ class TestBarCrossStageGreen:
     def test_where_plus_where_not(self, ux_bar_csv: Path) -> None:
         """--where and --where-not can be combined."""
         result = invoke(
-            "bar", "-f", str(ux_bar_csv),
-            "-c", "status",
-            "--where", "priority=high",
-            "--where-not", "assignee=charlie",
-            "--format", "compact",
+            "bar",
+            "-f",
+            str(ux_bar_csv),
+            "-c",
+            "status",
+            "--where",
+            "priority=high",
+            "--where-not",
+            "assignee=charlie",
+            "--format",
+            "compact",
         )
         assert result.exit_code == 0
 
     def test_option_order_sort_top(self, ux_bar_csv: Path) -> None:
         """Option order must not matter: --sort before --top vs after."""
         result_a = invoke(
-            "bar", "-f", str(ux_bar_csv),
-            "-c", "status",
-            "--sort", "value", "--top", "2",
-            "--format", "compact",
+            "bar",
+            "-f",
+            str(ux_bar_csv),
+            "-c",
+            "status",
+            "--sort",
+            "value",
+            "--top",
+            "2",
+            "--format",
+            "compact",
         )
         result_b = invoke(
-            "bar", "-f", str(ux_bar_csv),
-            "-c", "status",
-            "--top", "2", "--sort", "value",
-            "--format", "compact",
+            "bar",
+            "-f",
+            str(ux_bar_csv),
+            "-c",
+            "status",
+            "--top",
+            "2",
+            "--sort",
+            "value",
+            "--format",
+            "compact",
         )
         assert result_a.exit_code == 0
         assert result_b.exit_code == 0
@@ -126,10 +170,17 @@ class TestBarCrossStageFixed:
         Expected: selects top N by count, then sorts those alphabetically.
         """
         result = invoke(
-            "bar", "-f", str(ux_bar_csv),
-            "-c", "status",
-            "--top", "2", "--sort", "label",
-            "--format", "compact",
+            "bar",
+            "-f",
+            str(ux_bar_csv),
+            "-c",
+            "status",
+            "--top",
+            "2",
+            "--sort",
+            "label",
+            "--format",
+            "compact",
         )
         assert result.exit_code == 0
         # Counts: open=4, blocked=3, closed=3, in_progress=2

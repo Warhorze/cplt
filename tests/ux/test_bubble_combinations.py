@@ -21,15 +21,25 @@ class TestBubbleCrossStageGreen:
     def test_head_plus_where(self, ux_bubble_csv: Path) -> None:
         """Stage 1→2: --head limits rows kept, --where filters the stream."""
         result = invoke(
-            "bubble", "-f", str(ux_bubble_csv),
-            "--cols", "feat_a", "--y", "name",
-            "--head", "3", "--where", "category=frontend",
-            "--format", "compact",
+            "bubble",
+            "-f",
+            str(ux_bubble_csv),
+            "--cols",
+            "feat_a",
+            "--y",
+            "name",
+            "--head",
+            "3",
+            "--where",
+            "category=frontend",
+            "--format",
+            "compact",
         )
         assert result.exit_code == 0
         # Where filters to frontend rows, head keeps first 3 of those
         data_lines = [
-            ln for ln in result.stdout.split("\n")
+            ln
+            for ln in result.stdout.split("\n")
             if "|" in ln and "cols:" not in ln and "fill:" not in ln
         ]
         labels = [ln.split("|")[0].strip() for ln in data_lines]
@@ -42,10 +52,18 @@ class TestBubbleCrossStageGreen:
         # Filter to team=alpha (alice=dev, bob=pm, eve=pm) → role has 2 unique (dev, pm)
         # With 2 unique, encode uses col=value format
         result = invoke(
-            "bubble", "-f", str(encode_bubble_csv),
-            "--cols", "role", "--y", "name",
-            "--where", "team=alpha", "--encode",
-            "--format", "compact",
+            "bubble",
+            "-f",
+            str(encode_bubble_csv),
+            "--cols",
+            "role",
+            "--y",
+            "name",
+            "--where",
+            "team=alpha",
+            "--encode",
+            "--format",
+            "compact",
         )
         assert result.exit_code == 0
         # 2 unique values in filtered set → col=value format
@@ -57,10 +75,16 @@ class TestBubbleCrossStageGreen:
     def test_where_plus_encode_categorical(self, encode_bubble_csv: Path) -> None:
         """Stage 2→4: without filter, full cardinality triggers one-hot."""
         result = invoke(
-            "bubble", "-f", str(encode_bubble_csv),
-            "--cols", "role", "--y", "name",
+            "bubble",
+            "-f",
+            str(encode_bubble_csv),
+            "--cols",
+            "role",
+            "--y",
+            "name",
             "--encode",
-            "--format", "compact",
+            "--format",
+            "compact",
         )
         assert result.exit_code == 0
         # 3 unique values → categorical → one-hot
@@ -71,16 +95,25 @@ class TestBubbleCrossStageGreen:
     def test_sample_plus_encode(self, encode_bubble_csv: Path) -> None:
         """Stage 3→4: --sample limits rows before encode scans cardinality."""
         result = invoke(
-            "bubble", "-f", str(encode_bubble_csv),
-            "--cols", "role", "--y", "name",
-            "--sample", "3", "--encode",
-            "--format", "compact",
+            "bubble",
+            "-f",
+            str(encode_bubble_csv),
+            "--cols",
+            "role",
+            "--y",
+            "name",
+            "--sample",
+            "3",
+            "--encode",
+            "--format",
+            "compact",
         )
         assert result.exit_code == 0
         # With 3 sampled rows, role might have <=2 unique → binary, or 3 → categorical
         # Either way it should work without error
         data_lines = [
-            ln for ln in result.stdout.split("\n")
+            ln
+            for ln in result.stdout.split("\n")
             if "|" in ln and "cols:" not in ln and "fill:" not in ln
         ]
         assert len(data_lines) == 3
@@ -88,10 +121,18 @@ class TestBubbleCrossStageGreen:
     def test_encode_plus_sort(self, encode_bubble_csv: Path) -> None:
         """Stage 4→6: --sort works on encoded columns."""
         result = invoke(
-            "bubble", "-f", str(encode_bubble_csv),
-            "--cols", "role", "--y", "name",
-            "--encode", "--sort", "fill",
-            "--format", "compact",
+            "bubble",
+            "-f",
+            str(encode_bubble_csv),
+            "--cols",
+            "role",
+            "--y",
+            "name",
+            "--encode",
+            "--sort",
+            "fill",
+            "--format",
+            "compact",
         )
         assert result.exit_code == 0
         assert "role=" in result.stdout
@@ -99,10 +140,17 @@ class TestBubbleCrossStageGreen:
     def test_encode_plus_transpose(self, encode_bubble_csv: Path) -> None:
         """Stage 4→6: --transpose with encoded columns."""
         result = invoke(
-            "bubble", "-f", str(encode_bubble_csv),
-            "--cols", "role", "--y", "name",
-            "--encode", "--transpose",
-            "--format", "compact",
+            "bubble",
+            "-f",
+            str(encode_bubble_csv),
+            "--cols",
+            "role",
+            "--y",
+            "name",
+            "--encode",
+            "--transpose",
+            "--format",
+            "compact",
         )
         assert result.exit_code == 0
         # Encoded col names (role=dev etc.) should now be row labels
@@ -111,11 +159,20 @@ class TestBubbleCrossStageGreen:
     def test_where_plus_encode_plus_group_by(self, encode_bubble_csv: Path) -> None:
         """Stage 2→4→5: filter → encode → group-by."""
         result = invoke(
-            "bubble", "-f", str(encode_bubble_csv),
-            "--cols", "role", "--y", "name",
-            "--where", "active=yes",
-            "--encode", "--group-by", "team",
-            "--format", "compact",
+            "bubble",
+            "-f",
+            str(encode_bubble_csv),
+            "--cols",
+            "role",
+            "--y",
+            "name",
+            "--where",
+            "active=yes",
+            "--encode",
+            "--group-by",
+            "team",
+            "--format",
+            "compact",
         )
         assert result.exit_code == 0
         assert "%" in result.stdout
@@ -123,21 +180,38 @@ class TestBubbleCrossStageGreen:
     def test_head_plus_where_plus_encode(self, encode_bubble_csv: Path) -> None:
         """Stage 1→2→4: head → filter → encode."""
         result = invoke(
-            "bubble", "-f", str(encode_bubble_csv),
-            "--cols", "role", "--y", "name",
-            "--head", "4", "--where", "active=yes",
+            "bubble",
+            "-f",
+            str(encode_bubble_csv),
+            "--cols",
+            "role",
+            "--y",
+            "name",
+            "--head",
+            "4",
+            "--where",
+            "active=yes",
             "--encode",
-            "--format", "compact",
+            "--format",
+            "compact",
         )
         assert result.exit_code == 0
 
     def test_where_plus_encode_plus_top(self, encode_bubble_csv: Path) -> None:
         """Stage 2→4: filter → encode → top N selects highest fill-rate encoded cols."""
         result = invoke(
-            "bubble", "-f", str(encode_bubble_csv),
-            "--cols", "role", "--y", "name",
-            "--encode", "--top", "2",
-            "--format", "compact",
+            "bubble",
+            "-f",
+            str(encode_bubble_csv),
+            "--cols",
+            "role",
+            "--y",
+            "name",
+            "--encode",
+            "--top",
+            "2",
+            "--format",
+            "compact",
         )
         assert result.exit_code == 0
         # 3 encoded cols (role=dev, role=pm, role=design), top 2 keeps highest fill
@@ -149,16 +223,32 @@ class TestBubbleCrossStageGreen:
     def test_option_order_sort_encode(self, encode_bubble_csv: Path) -> None:
         """Option order must not matter: --sort before --encode vs after."""
         result_a = invoke(
-            "bubble", "-f", str(encode_bubble_csv),
-            "--cols", "role", "--y", "name",
-            "--sort", "fill", "--encode",
-            "--format", "compact",
+            "bubble",
+            "-f",
+            str(encode_bubble_csv),
+            "--cols",
+            "role",
+            "--y",
+            "name",
+            "--sort",
+            "fill",
+            "--encode",
+            "--format",
+            "compact",
         )
         result_b = invoke(
-            "bubble", "-f", str(encode_bubble_csv),
-            "--cols", "role", "--y", "name",
-            "--encode", "--sort", "fill",
-            "--format", "compact",
+            "bubble",
+            "-f",
+            str(encode_bubble_csv),
+            "--cols",
+            "role",
+            "--y",
+            "name",
+            "--encode",
+            "--sort",
+            "fill",
+            "--format",
+            "compact",
         )
         assert result_a.exit_code == 0
         assert result_b.exit_code == 0
@@ -167,18 +257,36 @@ class TestBubbleCrossStageGreen:
     def test_option_order_transpose_sort(self, ux_bubble_csv: Path) -> None:
         """Option order must not matter: --transpose before --sort vs after."""
         result_a = invoke(
-            "bubble", "-f", str(ux_bubble_csv),
-            "--cols", "feat_a", "--cols", "feat_b",
-            "--y", "name",
-            "--transpose", "--sort", "fill",
-            "--format", "compact",
+            "bubble",
+            "-f",
+            str(ux_bubble_csv),
+            "--cols",
+            "feat_a",
+            "--cols",
+            "feat_b",
+            "--y",
+            "name",
+            "--transpose",
+            "--sort",
+            "fill",
+            "--format",
+            "compact",
         )
         result_b = invoke(
-            "bubble", "-f", str(ux_bubble_csv),
-            "--cols", "feat_a", "--cols", "feat_b",
-            "--y", "name",
-            "--sort", "fill", "--transpose",
-            "--format", "compact",
+            "bubble",
+            "-f",
+            str(ux_bubble_csv),
+            "--cols",
+            "feat_a",
+            "--cols",
+            "feat_b",
+            "--y",
+            "name",
+            "--sort",
+            "fill",
+            "--transpose",
+            "--format",
+            "compact",
         )
         assert result_a.exit_code == 0
         assert result_b.exit_code == 0
@@ -196,17 +304,40 @@ class TestBubbleCrossStageFixed:
     def test_group_by_plus_sort(self, ux_bubble_csv: Path) -> None:
         """Stage 5→6: --group-by + --sort should sort groups by fill-rate."""
         base = invoke(
-            "bubble", "-f", str(ux_bubble_csv),
-            "--cols", "feat_a", "--cols", "feat_b", "--cols", "feat_c",
-            "--y", "name", "--group-by", "category",
-            "--format", "compact",
+            "bubble",
+            "-f",
+            str(ux_bubble_csv),
+            "--cols",
+            "feat_a",
+            "--cols",
+            "feat_b",
+            "--cols",
+            "feat_c",
+            "--y",
+            "name",
+            "--group-by",
+            "category",
+            "--format",
+            "compact",
         )
         sorted_result = invoke(
-            "bubble", "-f", str(ux_bubble_csv),
-            "--cols", "feat_a", "--cols", "feat_b", "--cols", "feat_c",
-            "--y", "name", "--group-by", "category",
-            "--sort", "fill",
-            "--format", "compact",
+            "bubble",
+            "-f",
+            str(ux_bubble_csv),
+            "--cols",
+            "feat_a",
+            "--cols",
+            "feat_b",
+            "--cols",
+            "feat_c",
+            "--y",
+            "name",
+            "--group-by",
+            "category",
+            "--sort",
+            "fill",
+            "--format",
+            "compact",
         )
         assert base.exit_code == 0
         assert sorted_result.exit_code == 0
@@ -216,17 +347,35 @@ class TestBubbleCrossStageFixed:
     def test_group_by_plus_transpose(self, ux_bubble_csv: Path) -> None:
         """Stage 5→6: --group-by + --transpose should transpose the group table."""
         base = invoke(
-            "bubble", "-f", str(ux_bubble_csv),
-            "--cols", "feat_a", "--cols", "feat_b",
-            "--y", "name", "--group-by", "category",
-            "--format", "compact",
+            "bubble",
+            "-f",
+            str(ux_bubble_csv),
+            "--cols",
+            "feat_a",
+            "--cols",
+            "feat_b",
+            "--y",
+            "name",
+            "--group-by",
+            "category",
+            "--format",
+            "compact",
         )
         transposed = invoke(
-            "bubble", "-f", str(ux_bubble_csv),
-            "--cols", "feat_a", "--cols", "feat_b",
-            "--y", "name", "--group-by", "category",
+            "bubble",
+            "-f",
+            str(ux_bubble_csv),
+            "--cols",
+            "feat_a",
+            "--cols",
+            "feat_b",
+            "--y",
+            "name",
+            "--group-by",
+            "category",
             "--transpose",
-            "--format", "compact",
+            "--format",
+            "compact",
         )
         assert base.exit_code == 0
         assert transposed.exit_code == 0
@@ -236,10 +385,19 @@ class TestBubbleCrossStageFixed:
     def test_group_by_plus_sample_errors(self, ux_bubble_csv: Path) -> None:
         """Stage 3+5: --group-by + --sample should produce an error."""
         result = invoke(
-            "bubble", "-f", str(ux_bubble_csv),
-            "--cols", "feat_a", "--y", "name",
-            "--group-by", "category", "--sample", "3",
-            "--format", "compact",
+            "bubble",
+            "-f",
+            str(ux_bubble_csv),
+            "--cols",
+            "feat_a",
+            "--y",
+            "name",
+            "--group-by",
+            "category",
+            "--sample",
+            "3",
+            "--format",
+            "compact",
         )
         assert result.exit_code != 0
         assert "sample" in result.stdout.lower() or "sample" in (result.stderr or "").lower()
@@ -247,16 +405,32 @@ class TestBubbleCrossStageFixed:
     def test_group_by_plus_head(self, ux_bubble_csv: Path) -> None:
         """Stage 1+5: --group-by + --head should limit input rows."""
         full = invoke(
-            "bubble", "-f", str(ux_bubble_csv),
-            "--cols", "feat_a", "--y", "name",
-            "--group-by", "category",
-            "--format", "compact",
+            "bubble",
+            "-f",
+            str(ux_bubble_csv),
+            "--cols",
+            "feat_a",
+            "--y",
+            "name",
+            "--group-by",
+            "category",
+            "--format",
+            "compact",
         )
         limited = invoke(
-            "bubble", "-f", str(ux_bubble_csv),
-            "--cols", "feat_a", "--y", "name",
-            "--group-by", "category", "--head", "3",
-            "--format", "compact",
+            "bubble",
+            "-f",
+            str(ux_bubble_csv),
+            "--cols",
+            "feat_a",
+            "--y",
+            "name",
+            "--group-by",
+            "category",
+            "--head",
+            "3",
+            "--format",
+            "compact",
         )
         assert full.exit_code == 0
         assert limited.exit_code == 0
@@ -267,10 +441,16 @@ class TestBubbleCrossStageFixed:
     def test_encode_binary_col_value_format(self, ux_bubble_csv: Path) -> None:
         """Stage 4: binary encode (<=2 unique) should use col=value format with 1/0."""
         result = invoke(
-            "bubble", "-f", str(ux_bubble_csv),
-            "--cols", "category", "--y", "name",
+            "bubble",
+            "-f",
+            str(ux_bubble_csv),
+            "--cols",
+            "category",
+            "--y",
+            "name",
             "--encode",
-            "--format", "compact",
+            "--format",
+            "compact",
         )
         assert result.exit_code == 0
         # Binary (2 unique: frontend, backend) should produce category=frontend, category=backend
@@ -279,10 +459,16 @@ class TestBubbleCrossStageFixed:
     def test_encode_auto_cap_at_20(self, high_card_bubble_csv: Path) -> None:
         """Stage 4: >20 encoded columns should auto-cap at 20 with warning."""
         result = invoke(
-            "bubble", "-f", str(high_card_bubble_csv),
-            "--cols", "tag", "--y", "name",
+            "bubble",
+            "-f",
+            str(high_card_bubble_csv),
+            "--cols",
+            "tag",
+            "--y",
+            "name",
             "--encode",
-            "--format", "compact",
+            "--format",
+            "compact",
         )
         assert result.exit_code == 0
         # 25 unique values → one-hot → 25 columns → should auto-cap at 20
@@ -294,10 +480,16 @@ class TestBubbleCrossStageFixed:
     def test_no_encode_flag_removed(self, ux_bubble_csv: Path) -> None:
         """--no-encode should not be a valid option (dead toggle)."""
         result = invoke(
-            "bubble", "-f", str(ux_bubble_csv),
-            "--cols", "feat_a", "--y", "name",
+            "bubble",
+            "-f",
+            str(ux_bubble_csv),
+            "--cols",
+            "feat_a",
+            "--y",
+            "name",
             "--no-encode",
-            "--format", "compact",
+            "--format",
+            "compact",
         )
         # Should fail because --no-encode is removed
         assert result.exit_code != 0
@@ -305,10 +497,16 @@ class TestBubbleCrossStageFixed:
     def test_no_transpose_flag_removed(self, ux_bubble_csv: Path) -> None:
         """--no-transpose should not be a valid option (dead toggle)."""
         result = invoke(
-            "bubble", "-f", str(ux_bubble_csv),
-            "--cols", "feat_a", "--y", "name",
+            "bubble",
+            "-f",
+            str(ux_bubble_csv),
+            "--cols",
+            "feat_a",
+            "--y",
+            "name",
             "--no-transpose",
-            "--format", "compact",
+            "--format",
+            "compact",
         )
         # Should fail because --no-transpose is removed
         assert result.exit_code != 0

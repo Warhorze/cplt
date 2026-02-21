@@ -126,15 +126,7 @@ class TestFilterRows:
             list(filter_rows(iter(rows), wheres=[("nonexistent", "val")]))
 
     def test_empty_where_matches_empty_and_null_like_values(self):
-        csv_text = (
-            "name,status\n"
-            "a,\n"
-            "b,NULL\n"
-            "c,None\n"
-            "d,NA\n"
-            "e,nan\n"
-            "f,open\n"
-        )
+        csv_text = "name,status\na,\nb,NULL\nc,None\nd,NA\ne,nan\nf,open\n"
         rows = self._rows(csv_text)
         result = list(filter_rows(iter(rows), wheres=[("status", "")]))
         assert {r["name"] for r in result} == {"a", "b", "c", "d", "e"}

@@ -1,71 +1,95 @@
-# Export PNG — Research Findings
+# Plan: Add `--export <path>` PNG export to csvplot
 
-## Goal
+## Context
 
-Add `--export <path>` to csvplot that writes a PNG as close to the terminal
-screen as possible. Must be cross-OS, lightweight, zero new dependencies.
+csvplot renders charts to the terminal using ANSI escape codes (plotext for timeline/bar/line, Rich for bubble/summarise). Users want to save these as PNG images for sharing in docs, Slack, etc. Pillow is already a dependency. Earlier research evaluated Rich SVG (broken braille/box glyphs, cairo crashes), ansitoimg (same issues + playwright dep), and Pillow direct rendering (works for all chart types). Pillow won.
 
----
+## Scope
 
-## Approaches Evaluated
+- `--export <path.png>` option on all 5 commands (timeline, bar, line, bubble, summarise)
+- Only works with `--format visual` (default) — errors if combined with compact/semantic
+- Pillow-based ANSI → PNG renderer (no native OS screenshot)
+- Line charts use braille ANSI capture (same as all other charts)
 
-### 1. Rich Console → SVG → cairosvg → PNG
+## Architecture
 
-**How it works:** Feed ANSI output through `Rich.Text.from_ansi()`, record with
-`Console(record=True)`, call `console.export_svg()`, convert to PNG via cairosvg.
+```
+CLI --export path.png
+  → force build=True to capture ANSI canvas string
+  → pass canvas to export_png(ansi_text, path)
+  → export.py parses ANSI, renders char-by-char into Pillow Image
+  → saves PNG
+```
 
-**Result: REJECTED**
+For plotext charts (timeline, bar, line): use `render*(spec, build=True)` to get ANSI string.
+For Rich charts (bubble, summarise): use `Console(record=True)` to capture ANSI string.
 
-- Braille characters (U+2800–U+28FF) render as `□` squares — the SVG font
-  lacks those glyphs.
-- Box-drawing characters (`━`, `┃`, `┏`) also render as squares.
-- Bar chart block chars (`█`) render as squares.
-- Crashes with `CAIRO_STATUS_INVALID_SIZE` on large outputs (>~500 lines).
-- Pulls in cairosvg → cffi → pycparser (heavy dependency chain).
+## Implementation Steps
 
-### 2. ansitoimg library → SVG → PNG
+### Step 1: Add ANSI → PNG renderer (`src/csvplot/export.py`)
 
-**How it works:** Third-party lib that wraps Rich's SVG export with themes.
+New module with a single public function:
 
-**Result: REJECTED**
+```python
+def export_png(ansi_text: str, out_path: str, font_size: int = 16) -> None
+```
 
-- Identical output to approach 1 (uses Rich under the hood).
-- Same broken glyph rendering for braille/block/box chars.
-- Same cairo crash on large outputs.
-- Additionally pulls in playwright (headless browser!) as a dependency.
+Internals:
+- **ANSI parser**: handle SGR codes — basic colors (30-37, 90-97), 256-color (`38;5;N`), truecolor (`38;2;R;G;B`), reset, bold→bright mapping
+- **Cell-grid renderer**: fixed-width cells based on `font.getlength("M")`, center each glyph in its cell
+- **Braille renderer**: detect U+2800–U+28FF, decode bit pattern, draw circles (r=0.25×cell_w, mx=0.10, my=0.04)
+- **2× supersampling**: render at double size, downscale with LANCZOS
+- **Font fallback chain**: DejaVu Sans Mono → Liberation Mono → Consolas → Courier New → default
+- **Theme**: bg `#1E1E1E`, fg `#CCCCCC`, 16px base font, 16px padding
 
-### 3. Pillow direct ANSI → PNG (SELECTED)
+TDD tests in `tests/test_export.py`:
+1. `test_export_png_creates_file` — basic ANSI string → PNG file exists
+2. `test_export_png_dimensions` — image dimensions match expected grid (cols × rows)
+3. `test_ansi_parser_basic_colors` — parser extracts fg/bg from SGR codes
+4. `test_ansi_parser_256_color` — parser handles `38;5;N`
+5. `test_braille_rendering` — braille chars produce non-background pixels in expected dot positions
 
-**How it works:** Parse ANSI escape codes, render char-by-char into a Pillow
-Image using a monospace font, with 2× supersampling + LANCZOS downscale.
+### Step 2: Wire `--export` into CLI (`src/csvplot/cli.py`)
 
-**Result: SELECTED — best across all chart types**
+Add `--export` option to all 5 commands. Pattern:
 
-- Pillow is already a dependency (zero new deps).
-- Cross-OS: DejaVu Sans Mono available everywhere.
-- Handles arbitrarily large outputs (no cairo size limits).
-- File sizes 3–10× smaller than SVG approaches.
+```python
+export: Annotated[Optional[str], typer.Option(help="Export to PNG file")] = None,
+```
 
-### Other approaches considered but not prototyped
+At the format-selection point in each command:
+- If `export` is set and `format_opt != "visual"`: error and exit
+- If `export` is set: force `build=True`, capture ANSI canvas, call `export_png(canvas, export)`
+- Still show visual output to terminal as well (user sees the chart AND gets the file)
 
-- **termtosvg**: Reconstructs terminal state, close but not pixel-identical.
-- **carbon-now-sh**: Completely re-renders with its own styling.
-- **ANSI → HTML converters**: Approximate styling, not accurate.
-- **Native OS screenshot**: Pain to configure per-OS, unreliable.
-- **freeze**: Re-renders with its own renderer, not the terminal's font engine.
+**For plotext commands** (timeline, bar, line):
+```python
+if export:
+    canvas = _require_canvas(render_bar(spec, build=True))
+    export_png(canvas, export)
+    render_bar(spec)  # also show in terminal
+```
 
----
+**For Rich commands** (bubble, summarise):
+Need to capture Rich table output as ANSI string. Add helper:
+```python
+def _capture_rich_ansi(*renderables) -> str:
+    console = Console(record=True, width=120)
+    for r in renderables:
+        console.print(r)
+    return console.export_text(styles=True)
+```
 
-## Pillow Renderer — Key Design Decisions
+TDD tests in `tests/test_export_integration.py`:
+1. `test_export_creates_png_file` — run CLI with `--export /tmp/test.png`, file exists
+2. `test_export_rejects_compact_format` — `--export x.png --format compact` exits with error
+3. `test_export_rejects_semantic_format` — same for semantic
 
-### Cell-grid rendering (critical fix)
+## Key Design Decisions
 
-**Problem:** Naive rendering uses `len(text) * char_width` for positioning.
-But in DejaVu Sans Mono, block chars (`█` = 10px) and box-drawing (`━` = 10px)
-are wider than ASCII (`M` = 8px at 14pt). This breaks column alignment.
+### Cell-grid rendering (critical)
 
-**Solution:** Render **char-by-char into fixed-width cells**, like a real
-terminal emulator:
+Naive rendering uses `len(text) * char_width` for positioning. But in DejaVu Sans Mono, block chars (`█` = 10px) and box-drawing (`━` = 10px) are wider than ASCII (`M` = 8px at 14pt). Solution: render char-by-char into fixed-width cells, like a real terminal emulator:
 
 ```python
 cell_w = int(font.getlength("M"))
@@ -76,18 +100,11 @@ for ch in text:
     x += cell_w  # fixed advance
 ```
 
-### Programmatic braille rendering (critical fix)
+### Programmatic braille rendering (critical)
 
-**Problem:** No system font (DejaVu, Liberation, Ubuntu Mono, Noto Mono)
-renders braille characters properly in Pillow. All show `□` squares regardless
-of font size (tested 12–32px) or supersample level (2×, 3×).
-
-**Solution:** Detect braille range (U+2800–U+28FF), decode the bit pattern,
-draw actual dots as circles:
+No system font renders braille characters properly in Pillow. Solution: detect braille range (U+2800–U+28FF), decode the bit pattern, draw actual dots as circles:
 
 ```python
-# Each braille char encodes 8 dots in a 2×4 grid
-# Codepoint = 0x2800 + dot_bits
 BRAILLE_DOT_MAP = {
     0: (0, 0), 1: (0, 1), 2: (0, 2),
     3: (1, 0), 4: (1, 1), 5: (1, 2),
@@ -95,186 +112,27 @@ BRAILLE_DOT_MAP = {
 }
 ```
 
-**Tuned parameters (B balanced):**
-
-| Parameter | Value | Notes |
-|-----------|-------|-------|
-| dot_radius | 0.25 × cell_w | Dense enough to merge in filled areas |
-| margin_x | 0.10 × cell_w | Tight horizontal gaps between cells |
-| margin_y | 0.04 × cell_h | Dots span nearly full cell height |
-
-**Parameter sweep results:**
-
-- `r=0.14, mx=0.20, my=0.08` — too sparse, reads as scatter plot
-- `r=0.20, mx=0.12, my=0.05` — visible dots, some texture (option A)
-- **`r=0.25, mx=0.10, my=0.04`** — sweet spot, reads as line (option B) ✓
-- `r=0.28, mx=0.05, my=0.02` — nearly solid, loses braille character (option C)
+Tuned parameters: r=0.25×cell_w, mx=0.10×cell_w, my=0.04×cell_h.
 
 ### Supersampling
 
-Render at 2× font size, then downscale with `Image.LANCZOS`:
+Render at 2× font size, downscale with `Image.LANCZOS`. 2× is the sweet spot — crisp antialiasing, reasonable file size.
 
-```python
-img = Image.new("RGB", (w * 2, h * 2), BG)
-# ... render at 2× ...
-img = img.resize((w, h), Image.LANCZOS)
-```
+## Files Changed
 
-- 2× is the sweet spot — crisp antialiasing, reasonable file size.
-- 3× is marginally crisper but diminishing returns.
+| File | Action |
+|------|--------|
+| `src/csvplot/export.py` | **New** — ANSI parser + Pillow cell-grid PNG renderer |
+| `src/csvplot/cli.py` | Add `--export` option to all 5 commands + Rich ANSI capture helper |
+| `tests/test_export.py` | **New** — unit tests for ANSI parser, braille renderer, PNG output |
+| `tests/test_export_integration.py` | **New** — CLI integration tests for `--export` flag |
 
----
+## Verification
 
-## Rendering Config — Final Settings
-
-| Parameter | Value |
-|-----------|-------|
-| Font | DejaVu Sans Mono (system) |
-| Base font size | 16px |
-| Supersample factor | 2× |
-| Background | `#1E1E1E` (30, 30, 30) |
-| Default foreground | `#CCCCCC` (204, 204, 204) |
-| Padding | 16px |
-| Line height | natural (ascent + descent, no multiplier) |
-| Downscale filter | LANCZOS |
-
----
-
-## Per-Chart-Type Strategy
-
-| Chart type | Export method | Quality |
-|------------|-------------|---------|
-| bar | ANSI → Pillow cell grid | Excellent — solid blocks, clean axes |
-| bubble | ANSI → Pillow cell grid | Excellent — `●` dots, table borders perfect |
-| summarise | ANSI → Pillow cell grid | Excellent — Rich tables fully readable |
-| timeline | ANSI → Pillow cell grid + braille | Good — braille dots show segment patterns |
-| **line** | **Native Pillow draw from LineSpec** | **Best — smooth lines, pixel resolution** |
-
-### Line chart: native rendering
-
-The braille approach has a fundamental resolution ceiling — each character cell
-is a 2×4 dot grid, so vertical resolution is locked to 8 dots per cell height.
-Even at 350 columns wide, the chart still looks like a dot matrix.
-
-For the line chart export, bypass terminal rendering entirely and draw directly
-from `LineSpec` data using Pillow's `draw.line()`:
-
-- Same dark theme and PALETTE_RGB colors for consistency
-- Actual smooth lines at pixel resolution
-- Grid lines, axis labels, legend — all drawn natively
-- Configurable width/height (default ~1200×600)
-- Multi-series support with color cycling and legend
-
----
-
-## ANSI Color Parsing
-
-Supports the full range plotext/Rich emit:
-
-- SGR basic colors (30–37, 90–97 foreground; 40–47, 100–107 background)
-- 256-color mode (`38;5;N` / `48;5;N`)
-- Truecolor mode (`38;2;R;G;B` / `48;2;R;G;B`)
-- Bold → bright color variant mapping
-- Reset (`0`), default fg (`39`), default bg (`49`)
-
----
-
-## Font Metrics (DejaVu Sans Mono)
-
-| Size | M width | █ width | ━ width | ● width | Ascent | Descent | Line height |
-|------|---------|---------|---------|---------|--------|---------|-------------|
-| 12 | 7 | 9 | 9 | 8 | 12 | 3 | 15 |
-| 14 | 8 | 10 | 10 | 9 | 13 | 4 | 17 |
-| **16** | **10** | **11** | **11** | **10** | **15** | **4** | **19** |
-| 18 | 11 | 13 | 13 | 11 | 17 | 5 | 22 |
-| 20 | 12 | 14 | 14 | 12 | 19 | 5 | 24 |
-| 24 | 14 | 16 | 16 | 15 | 23 | 6 | 29 |
-
-Note: `█` and `━` are 1–2px wider than `M` at every size — this is why
-cell-grid rendering (fixed advance from M width) is essential.
-
----
-
-## Native OS Screenshot Proposal (Terminal-Accurate Mode)
-
-If the goal is "exact terminal feel" instead of text re-rendering, add an
-optional export backend that captures a real terminal window using OS-native
-screenshot tools.
-
-### Proposed CLI
-
-- `--export <path>`: output PNG path
-- `--export-engine pillow|native`: rendering backend (`pillow` default)
-- `--terminal-cmd <cmd>`: terminal app override for native mode
-- `--capture-delay-ms <n>`: wait before screenshot (default 250)
-
-Example:
-
-```bash
-csvplot line data.csv --x date --y value \
-  --export chart.png \
-  --export-engine native
-```
-
-### High-Level Flow
-
-1. Render chart normally (ANSI output).
-2. Write output to a temp script/command that prints and waits briefly.
-3. Launch a dedicated terminal window (fixed size/font profile).
-4. Detect terminal window rectangle.
-5. Capture that rectangle with native screenshot command.
-6. Save PNG to `--export` path, close helper window.
-
-This captures the terminal's actual font engine and glyph rasterization.
-
-### OS-Specific Backends
-
-| OS | Window bounds | Screenshot command | Notes |
-|----|---------------|--------------------|-------|
-| macOS | `osascript` (Terminal/iTerm window bounds) | `screencapture -R x,y,w,h out.png` | Requires Screen Recording permission for terminal/app |
-| Windows | PowerShell + Win32 `GetWindowRect` | PowerShell `.NET Bitmap + CopyFromScreen` | No extra dependency; works on Windows Terminal/ConHost |
-| Linux (X11) | `xdotool`/`xwininfo` | `import -window` or `maim` | Reliable in X11 sessions |
-| Linux (Wayland) | compositor tools (`grim`) or portal | `grim -g "x,y wxh"` | Varies by compositor; fallback required |
-
-### Linux Strategy (important)
-
-Linux has no single screenshot command that is guaranteed everywhere. Use a
-capability probe and fallback chain:
-
-1. Wayland + `grim` available -> use `grim`
-2. X11 + `import` available -> use `import`
-3. X11 + `maim` available -> use `maim`
-4. Else fail with actionable message listing missing tools
-
-This keeps the implementation native but practical.
-
-### Recommended Implementation Shape
-
-- Add `src/csvplot/export_native.py` with:
-- `capture_native_png(ansi_text: str, out_path: Path, opts: NativeOpts) -> None`
-- Internal providers:
-- `MacCaptureProvider`
-- `WindowsCaptureProvider`
-- `LinuxCaptureProvider`
-- Provider interface:
-- `check_available()`
-- `open_terminal_and_get_bounds(...)`
-- `capture(bounds, out_path)`
-
-### Operational Constraints
-
-- Requires a GUI desktop session (not headless SSH/CI).
-- Window managers/compositors may animate; delay is needed.
-- macOS users may need one-time permissions.
-- Native captures can include subtle OS chrome differences.
-
-### Recommended Product Decision
-
-Use a hybrid model:
-
-- Keep `pillow` as default for deterministic, dependency-light exports.
-- Add `native` as opt-in for users who want authentic terminal rasterization.
-- Emit clear diagnostics when native tooling is unavailable.
-
-This avoids regressions for CI/server users while enabling the terminal-perfect
-path on local desktops.
+1. `uv run pytest` — all tests pass
+2. `uv run csvplot bar -f data/titanic.csv -c Embarked --export /tmp/bar.png` — creates PNG, opens correctly
+3. `uv run csvplot timeline -f data/projects.csv --x start_date --x end_date --y project --export /tmp/timeline.png` — braille segments visible
+4. `uv run csvplot line -f data/temperatures.csv --x Date --y Temp --head 40 --export /tmp/line.png` — braille line visible
+5. `uv run csvplot bubble -f data/titanic.csv --cols Cabin --cols Age --y Name --head 12 --export /tmp/bubble.png` — Rich table rendered
+6. `uv run csvplot summarise -f data/titanic.csv --export /tmp/summarise.png` — Rich table rendered
+7. `uv run csvplot bar -f data/titanic.csv -c Embarked --format compact --export /tmp/x.png` — errors cleanly

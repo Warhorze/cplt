@@ -431,7 +431,6 @@ class TestCompactBubble:
         # Al should be padded to match Bobby's width
         assert al_line.index("|") == bobby_line.index("|")
 
-
     def test_fill_rate_footer(self):
         """Compact bubble includes a fill-rate footer row."""
         spec = BubbleSpec(
