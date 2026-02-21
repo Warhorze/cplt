@@ -682,6 +682,49 @@ def summarise(
                 top_str or "-",
             )
 
+        # Build data-quality table
+        show_sentinels = any(s.null_sentinel_count > 0 for s in summaries)
+        show_whitespace = any(s.whitespace_count > 0 for s in summaries)
+
+        dq_table = Table(title=f"Data Quality: {file.name}")
+        dq_table.add_column("Column", style="bold")
+        dq_table.add_column("Nulls", justify="right")
+        if show_sentinels:
+            dq_table.add_column("Sentinels", justify="right")
+        dq_table.add_column("Zeros", justify="right")
+        dq_table.add_column("Mean", justify="right")
+        dq_table.add_column("Stddev", justify="right")
+        dq_table.add_column("Formats")
+        if show_whitespace:
+            dq_table.add_column("Whitespace", justify="right")
+        dq_table.add_column("Mixed Types")
+        dq_table.add_column("Mixed Examples")
+
+        for s in summaries:
+            cells = [
+                s.name,
+                str(s.null_count),
+            ]
+            if show_sentinels:
+                cells.append(str(s.null_sentinel_count))
+            cells.extend(
+                [
+                    str(s.zero_count) if s.mean is not None else "-",
+                    f"{s.mean:.3f}" if s.mean is not None else "-",
+                    f"{s.stddev:.3f}" if s.stddev is not None else "-",
+                    "; ".join(f"{fmt}({count})" for fmt, count in s.date_formats) or "-",
+                ]
+            )
+            if show_whitespace:
+                cells.append(str(s.whitespace_count))
+            cells.extend(
+                [
+                    s.mixed_type_pct or "-",
+                    ", ".join(s.mixed_type_examples) or "-",
+                ]
+            )
+            dq_table.add_row(*cells)
+
         # Build sample table if requested
         sample_table = None
         if sample_rows:
@@ -695,12 +738,14 @@ def summarise(
         if format_opt == "semantic":
             from csvplot.semantic import semantic_rich
 
-            renderables = [table]
+            renderables = [table, dq_table]
             if sample_table:
                 renderables.append(sample_table)
             print(semantic_rich(*renderables), end="")
         else:
             rprint(table)
+            rprint()
+            rprint(dq_table)
             if sample_table:
                 rprint()
                 rprint(sample_table)
