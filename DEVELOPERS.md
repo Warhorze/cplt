@@ -285,3 +285,51 @@ Preview MkDocs site locally:
 uv sync --extra docs
 uv run mkdocs serve
 ```
+
+## Ready for Release
+
+Run through this checklist before tagging a release:
+
+1. **Tests pass**
+
+   ```bash
+   uv run pytest
+   ```
+
+2. **Lint and format clean**
+
+   ```bash
+   uv run ruff check src/ tests/
+   uv run ruff format --check src/ tests/
+   uv run pyright
+   ```
+
+3. **CLI smoke test**
+
+   ```bash
+   bash scripts/run_cli_smoke.sh
+   ```
+
+4. **Visual inspection** — generate design review artifacts and review PNGs for regressions:
+
+   ```bash
+   bash scripts/generate_design_review_images.sh
+   ```
+
+   Review `assets/review/REPORT.md` and spot-check PNGs in `assets/review/images/`.
+
+5. **Demo GIFs up-to-date** — re-record if any CLI output or command syntax changed:
+
+   ```bash
+   bash scripts/generate_demos.sh
+   ```
+
+   Verify GIFs in `assets/images/` reflect current behavior.
+
+6. **CLI docs current**
+
+   ```bash
+   bash scripts/generate_cli_docs.sh
+   ```
+
+   Check `docs/cli.md` matches the current command surface.

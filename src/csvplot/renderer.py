@@ -11,24 +11,18 @@ from rich import print as rprint
 
 from csvplot.models import BarSpec, LineSpec, PlotSpec, Segment
 
-# Rainbow-style color palette: base + bright variants for maximum variety
-PALETTE = [
-    "red",
-    "orange",
-    "yellow",
-    "green",
-    "cyan",
-    "blue",
-    "violet",
-    "magenta",
-    "red+",
-    "orange+",
-    "yellow+",
-    "green+",
-    "cyan+",
-    "blue+",
-    "violet+",
-    "magenta+",
+# VS Code / Rainbow CSV inspired palette (RGB tuples for plotext).
+PALETTE: list[tuple[int, int, int] | str] = [
+    (220, 220, 170),  # #DCDCAA — soft yellow
+    (206, 145, 120),  # #CE9178 — warm orange
+    (78, 201, 176),  # #4EC9B0 — teal
+    (86, 156, 214),  # #569CD6 — blue
+    (197, 134, 192),  # #C586C0 — purple
+    (156, 220, 254),  # #9CDCFE — light blue
+    (215, 186, 125),  # #D7BA7D — gold
+    (181, 206, 168),  # #B5CEA8 — sage green
+    (244, 71, 71),  # #F44747 — red
+    (96, 139, 78),  # #608B4E — forest green
 ]
 
 # Vertical spacing inside a y-label group.
@@ -37,7 +31,7 @@ _LAYER_OFFSET = 0.20
 _Y_GROUP_GAP = 1.2
 
 
-def _build_color_map(segments: list[Segment]) -> dict[str, str]:
+def _build_color_map(segments: list[Segment]) -> dict[str, tuple[int, int, int] | str]:
     """Assign a color to each unique color_key, or auto-color by y_label if no color_key."""
     has_color_keys = any(seg.color_key for seg in segments)
     if has_color_keys:
@@ -181,7 +175,7 @@ def render(spec: PlotSpec, build: bool = False) -> str | None:
             return f"{s} \u2013 {e}"
         return f"layer {layer}" if layer > 0 else "primary"
 
-    def _resolve_color(seg: Segment, default: str) -> str:
+    def _resolve_color(seg: Segment, default: str) -> tuple[int, int, int] | str:
         if has_color_keys:
             if seg.color_key is None:
                 return default
@@ -325,11 +319,8 @@ def render_bar(spec: BarSpec, build: bool = False) -> str | None:
     plt.clear_figure()
     plt.theme("clear")
 
-    # Use a single bar color for cleaner magnitude comparison in categorical distributions.
-    colors = [PALETTE[i % len(PALETTE)] for i in range(max(1, len(spec.labels)))]
-
     orientation = "horizontal" if spec.horizontal else "vertical"
-    plt.bar(spec.labels, spec.values, color=colors, orientation=orientation)
+    plt.bar(spec.labels, spec.values, color=PALETTE[0], orientation=orientation)
 
     # Count-based bars read better with integer ticks.
     is_integer_series = all(float(v).is_integer() for v in spec.values)

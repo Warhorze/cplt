@@ -14,21 +14,21 @@ _PADDING = 16
 
 # Standard 16 ANSI colors (normal 0-7, bright 8-15)
 _ANSI_16: list[tuple[int, int, int]] = [
-    (0, 0, 0),        # 0 black
-    (205, 49, 49),    # 1 red
-    (13, 188, 121),   # 2 green
-    (229, 229, 16),   # 3 yellow
-    (36, 114, 200),   # 4 blue
-    (188, 63, 188),   # 5 magenta
-    (17, 168, 205),   # 6 cyan
+    (0, 0, 0),  # 0 black
+    (205, 49, 49),  # 1 red
+    (13, 188, 121),  # 2 green
+    (229, 229, 16),  # 3 yellow
+    (36, 114, 200),  # 4 blue
+    (188, 63, 188),  # 5 magenta
+    (17, 168, 205),  # 6 cyan
     (204, 204, 204),  # 7 white
     (102, 102, 102),  # 8 bright black
-    (241, 76, 76),    # 9 bright red
-    (35, 209, 139),   # 10 bright green
-    (245, 245, 67),   # 11 bright yellow
-    (59, 142, 234),   # 12 bright blue
+    (241, 76, 76),  # 9 bright red
+    (35, 209, 139),  # 10 bright green
+    (245, 245, 67),  # 11 bright yellow
+    (59, 142, 234),  # 12 bright blue
     (214, 112, 214),  # 13 bright magenta
-    (41, 184, 219),   # 14 bright cyan
+    (41, 184, 219),  # 14 bright cyan
     (242, 242, 242),  # 15 bright white
 ]
 
@@ -41,9 +41,14 @@ _BRAILLE_END = 0x28FF
 
 # Braille dot positions: bit index → (col, row) in a 2×4 grid
 _BRAILLE_DOT_MAP: dict[int, tuple[int, int]] = {
-    0: (0, 0), 1: (0, 1), 2: (0, 2),
-    3: (1, 0), 4: (1, 1), 5: (1, 2),
-    6: (0, 3), 7: (1, 3),
+    0: (0, 0),
+    1: (0, 1),
+    2: (0, 2),
+    3: (1, 0),
+    4: (1, 1),
+    5: (1, 2),
+    6: (0, 3),
+    7: (1, 3),
 }
 
 
@@ -169,7 +174,7 @@ def export_png(ansi_text: str, out_path: str, font_size: int = 16) -> None:
     cell_w = int(font.getlength("M"))
     # Line height: ascent + descent with a small buffer
     bbox = font.getbbox("Mj|")
-    cell_h = bbox[3] - bbox[1] + 2
+    cell_h = int(bbox[3] - bbox[1]) + 2
 
     rows = parse_ansi(ansi_text)
 
@@ -211,7 +216,7 @@ def export_png(ansi_text: str, out_path: str, font_size: int = 16) -> None:
     # Downscale with LANCZOS
     final_w = img_w // supersample
     final_h = img_h // supersample
-    img = img.resize((final_w, final_h), Image.LANCZOS)
+    img = img.resize((final_w, final_h), Image.Resampling.LANCZOS)
     img.save(out_path, "PNG")
 
 

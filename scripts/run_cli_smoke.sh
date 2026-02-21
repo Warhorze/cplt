@@ -56,7 +56,7 @@ run_expected_fail() {
   local code=$?
   set -e
 
-  if [[ $code -ne 0 ]] && rg -Fq "$expected_text" "$out_file"; then
+  if [[ $code -ne 0 ]] && grep -Fq "$expected_text" "$out_file"; then
     pass "$name"
   else
     fail "$name"

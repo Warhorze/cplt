@@ -52,6 +52,7 @@ Plot timeline/Gantt-style ranges from a CSV file.
 | --txt | TEXT | No | No |  | Label segments with this column's value (visual format only) |
 | --vline | TEXT | No | No |  | Vertical reference line date (YYYY-MM-DD) |
 | --label | TEXT | No | No |  | Label for the vertical reference line |
+| --dot | TEXT | No | Yes |  | Date column(s) to render as per-row dot markers |
 | --open-end / --no-open-end | BOOLEAN | No | No | True | Replace NULL/sentinel end dates with today |
 | --y-detail | TEXT | No | No |  | Sub-group within --y by appending this column's value |
 | --head | INTEGER RANGE | No | No |  | Only read the first N CSV rows |
@@ -60,6 +61,7 @@ Plot timeline/Gantt-style ranges from a CSV file.
 | --title | TEXT | No | No |  | Chart title (defaults to filename) |
 | --where | TEXT | No | Yes |  | Filter rows: COL=value (case-insensitive, repeat for OR/AND) |
 | --where-not | TEXT | No | Yes |  | Exclude rows: COL=value (case-insensitive) |
+| --export | TEXT | No | No |  | Export chart to PNG file |
 | --format | TEXT | No | No | visual | Output format: visual, semantic, or compact |
 
 ## `csvplot bar`
@@ -78,11 +80,13 @@ Plot a bar chart of value counts from a CSV column.
 | --column, -c | TEXT | Yes | No |  | Column to count values of |
 | --sort | TEXT | No | No | value | Sort by: value (desc count), label (alpha), none (CSV order) |
 | --horizontal | BOOLEAN | No | No | False | Use horizontal bars (visual format only) |
+| --labels | BOOLEAN | No | No | False | Show exact values on bars (visual format only) |
 | --top | INTEGER RANGE | No | No |  | Show only the top N categories |
 | --head | INTEGER RANGE | No | No |  | Only read the first N CSV rows |
 | --title | TEXT | No | No |  | Chart title (defaults to filename) |
 | --where | TEXT | No | Yes |  | Filter rows: COL=value (case-insensitive) |
 | --where-not | TEXT | No | Yes |  | Exclude rows: COL=value (case-insensitive) |
+| --export | TEXT | No | No |  | Export chart to PNG file |
 | --format | TEXT | No | No | visual | Output format: visual, semantic, or compact |
 
 ## `csvplot line`
@@ -105,6 +109,7 @@ Plot a line chart from CSV columns.
 | --title | TEXT | No | No |  | Chart title (defaults to filename) |
 | --where | TEXT | No | Yes |  | Filter rows: COL=value (case-insensitive) |
 | --where-not | TEXT | No | Yes |  | Exclude rows: COL=value (case-insensitive) |
+| --export | TEXT | No | No |  | Export chart to PNG file |
 | --format | TEXT | No | No | visual | Output format: visual, semantic, or compact |
 
 ## `csvplot summarise`
@@ -124,6 +129,7 @@ Print a summary of a CSV file — column types, counts, nulls, top values.
 | --sample | INTEGER RANGE | No | No |  | Show N random sample rows as preview |
 | --where | TEXT | No | Yes |  | Filter rows: COL=value (case-insensitive) |
 | --where-not | TEXT | No | Yes |  | Exclude rows: COL=value (case-insensitive) |
+| --export | TEXT | No | No |  | Export chart to PNG file |
 | --format | TEXT | No | No | visual | Output format: visual, semantic, or compact |
 
 ## `csvplot bubble`
@@ -144,7 +150,13 @@ Plot a presence/absence dot matrix from CSV columns.
 | --color | TEXT | No | No |  | Color rows by this column |
 | --top | INTEGER RANGE | No | No |  | Show only top N columns by fill-rate |
 | --head | INTEGER RANGE | No | No |  | Only read the first N CSV rows |
+| --sample | INTEGER RANGE | No | No |  | Show N random rows in bubble output |
 | --title | TEXT | No | No |  | Chart title (defaults to filename) |
 | --where | TEXT | No | Yes |  | Filter rows: COL=value (case-insensitive) |
 | --where-not | TEXT | No | Yes |  | Exclude rows: COL=value (case-insensitive) |
+| --transpose | BOOLEAN | No | No | False | Swap rows and columns |
+| --sort | TEXT | No | No |  | Sort rows: fill (most complete first), fill-asc, name |
+| --encode | BOOLEAN | No | No | False | Auto-encode columns to col=value format |
+| --group-by | TEXT | No | No |  | Aggregate by column: show fill-rate per group instead of per row |
+| --export | TEXT | No | No |  | Export chart to PNG file |
 | --format | TEXT | No | No | visual | Output format: visual, semantic, or compact |

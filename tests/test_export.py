@@ -117,10 +117,11 @@ class TestBrailleRendering:
         out = tmp_path / "braille.png"
         # U+2840 = dots at position 6 (col=0, row=3)
         export_png("\u2840", str(out), font_size=16)
-        img = Image.open(out)
+        img = Image.open(out).convert("RGB")
         bg = (0x1E, 0x1E, 0x1E)
-        non_bg = sum(1 for x in range(img.width) for y in range(img.height)
-                     if img.getpixel((x, y))[:3] != bg)
+        non_bg = sum(
+            1 for x in range(img.width) for y in range(img.height) if img.getpixel((x, y)) != bg
+        )
         assert non_bg > 0
 
     def test_empty_braille_has_fewer_dots(self, tmp_path: Path) -> None:
@@ -128,12 +129,17 @@ class TestBrailleRendering:
         out_empty = tmp_path / "empty.png"
         out_full = tmp_path / "full.png"
         export_png("\u2800", str(out_empty), font_size=16)
-        export_png("\u28FF", str(out_full), font_size=16)
-        empty = Image.open(out_empty)
-        full = Image.open(out_full)
+        export_png("\u28ff", str(out_full), font_size=16)
+        empty = Image.open(out_empty).convert("RGB")
+        full = Image.open(out_full).convert("RGB")
         bg = (0x1E, 0x1E, 0x1E)
-        empty_dots = sum(1 for x in range(empty.width) for y in range(empty.height)
-                         if empty.getpixel((x, y))[:3] != bg)
-        full_dots = sum(1 for x in range(full.width) for y in range(full.height)
-                        if full.getpixel((x, y))[:3] != bg)
+        empty_dots = sum(
+            1
+            for x in range(empty.width)
+            for y in range(empty.height)
+            if empty.getpixel((x, y)) != bg
+        )
+        full_dots = sum(
+            1 for x in range(full.width) for y in range(full.height) if full.getpixel((x, y)) != bg
+        )
         assert full_dots > empty_dots
