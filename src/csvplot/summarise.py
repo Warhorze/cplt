@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import csv
+import math
 import random
+import re
 from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -14,6 +16,35 @@ from csvplot.reader import filter_rows, parse_datetime
 MAX_DISTINCT_VALUES = 10_000
 NUMERIC_THRESHOLD = 0.80
 DATE_THRESHOLD = 0.80
+
+NULL_SENTINELS = frozenset({
+    "NA", "N/A", "NaN", "nan", "null", "NULL", "None", "none",
+    "#N/A", "#NA", "-",
+    '""', "''", "``",
+})
+
+# Date format patterns: (regex, label)
+_DATE_FORMAT_PATTERNS: list[tuple[re.Pattern[str], str]] = [
+    (re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+$"), "YYYY-MM-DDTHH:MM:SS.f"),
+    (re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$"), "YYYY-MM-DDTHH:MM:SS"),
+    (re.compile(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d+$"), "YYYY-MM-DD HH:MM:SS.f"),
+    (re.compile(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$"), "YYYY-MM-DD HH:MM:SS"),
+    (re.compile(r"^\d{4}-\d{2}-\d{2}$"), "YYYY-MM-DD"),
+    (re.compile(r"^\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}$"), "DD-MM-YYYY HH:MM:SS"),
+    (re.compile(r"^\d{2}-\d{2}-\d{4}$"), "DD-MM-YYYY"),
+    (re.compile(r"^\d{2}/\d{2}/\d{4} \d{2}:\d{2}:\d{2}$"), "DD/MM/YYYY HH:MM:SS"),
+    (re.compile(r"^\d{2}/\d{2}/\d{4}$"), "DD/MM/YYYY"),
+]
+
+MIXED_TYPE_THRESHOLD = 0.95
+
+
+def _guess_date_format(raw: str) -> str:
+    """Classify a raw date string into a format pattern label."""
+    for pattern, label in _DATE_FORMAT_PATTERNS:
+        if pattern.match(raw):
+            return label
+    return "other"
 
 
 @dataclass
@@ -27,6 +58,16 @@ class ColumnSummary:
     max_val: str = ""
     top_values: list[tuple[str, int]] = field(default_factory=list)
     high_cardinality: bool = False
+    # Data-quality fields
+    null_count: int = 0
+    null_sentinel_count: int = 0
+    zero_count: int = 0
+    mean: float | None = None
+    stddev: float | None = None
+    date_formats: list[tuple[str, int]] = field(default_factory=list)
+    whitespace_count: int = 0
+    mixed_type_pct: str = ""
+    mixed_type_examples: list[str] = field(default_factory=list)
 
 
 @overload
@@ -89,6 +130,20 @@ def summarise_csv(
     row_count = 0
     all_rows: list[dict[str, str]] = [] if (sample_n and return_sample) else []
 
+    # Data-quality tracking
+    sentinel_count: dict[str, int] = {}
+    zero_count: dict[str, int] = {}
+    numeric_sum: dict[str, float] = {}
+    numeric_sum_sq: dict[str, float] = {}
+    date_format_counters: dict[str, Counter[str]] = {}
+    whitespace_count: dict[str, int] = {}
+    # Exclusive type counts for mixed-type detection (each value → exactly one type)
+    exclusive_numeric: dict[str, int] = {}
+    exclusive_date: dict[str, int] = {}
+    exclusive_text: dict[str, int] = {}
+    # Minority-type examples (small set per column)
+    minority_examples: dict[str, set[str]] = {}
+
     with open(path, newline="") as f:
         reader = csv.DictReader(f)
         columns = list(reader.fieldnames or [])
@@ -98,6 +153,16 @@ def summarise_csv(
             numeric_count[col] = 0
             date_count[col] = 0
             capped[col] = False
+            sentinel_count[col] = 0
+            zero_count[col] = 0
+            numeric_sum[col] = 0.0
+            numeric_sum_sq[col] = 0.0
+            date_format_counters[col] = Counter()
+            whitespace_count[col] = 0
+            exclusive_numeric[col] = 0
+            exclusive_date[col] = 0
+            exclusive_text[col] = 0
+            minority_examples[col] = set()
 
         rows: Iterator[dict[str, str]] = reader
         if wheres or where_nots:
@@ -123,6 +188,14 @@ def summarise_csv(
 
                 non_null[col] += 1
 
+                # Whitespace check (non-empty after strip but had leading/trailing)
+                if val != stripped:
+                    whitespace_count[col] += 1
+
+                # Null sentinel check
+                if stripped in NULL_SENTINELS:
+                    sentinel_count[col] += 1
+
                 # Track distinct values up to cap
                 if not capped[col]:
                     counters[col][stripped] += 1
@@ -130,9 +203,15 @@ def summarise_csv(
                         capped[col] = True
 
                 # Numeric check
+                is_numeric = False
                 try:
                     fval = float(stripped)
+                    is_numeric = True
                     numeric_count[col] += 1
+                    numeric_sum[col] += fval
+                    numeric_sum_sq[col] += fval * fval
+                    if fval == 0.0:
+                        zero_count[col] += 1
                     if col not in numeric_min or fval < numeric_min[col]:
                         numeric_min[col] = fval
                     if col not in numeric_max or fval > numeric_max[col]:
@@ -141,14 +220,25 @@ def summarise_csv(
                     pass
 
                 # Date check
+                is_date = False
                 dt = parse_datetime(stripped)
                 if dt is not None:
+                    is_date = True
                     date_count[col] += 1
                     dt_str = dt.isoformat()
                     if col not in date_min or dt_str < date_min[col]:
                         date_min[col] = dt_str
                     if col not in date_max or dt_str > date_max[col]:
                         date_max[col] = dt_str
+                    date_format_counters[col][_guess_date_format(stripped)] += 1
+
+                # Exclusive type classification: numeric > date > text
+                if is_numeric:
+                    exclusive_numeric[col] += 1
+                elif is_date:
+                    exclusive_date[col] += 1
+                else:
+                    exclusive_text[col] += 1
 
     # Build summaries
     summaries: list[ColumnSummary] = []
@@ -175,6 +265,71 @@ def summarise_csv(
         # Top 5 values
         if not capped[col]:
             s.top_values = counters[col].most_common(5)
+
+        # Data-quality fields
+        s.null_count = row_count - nn
+        s.null_sentinel_count = sentinel_count[col]
+        s.whitespace_count = whitespace_count[col]
+
+        # Numeric fields (any column with numeric values)
+        nc = numeric_count[col]
+        if nc > 0:
+            s.zero_count = zero_count[col]
+            s.mean = numeric_sum[col] / nc
+            variance = (numeric_sum_sq[col] / nc) - (s.mean * s.mean)
+            s.stddev = math.sqrt(max(0.0, variance))
+
+        # Date formats (any column with date values)
+        if date_format_counters[col]:
+            s.date_formats = date_format_counters[col].most_common()
+
+        # Mixed type detection (using exclusive counts)
+        if nn > 0:
+            exc_n = exclusive_numeric[col]
+            exc_d = exclusive_date[col]
+            exc_t = exclusive_text[col]
+            dominant = max(exc_n, exc_d, exc_t)
+            if dominant / nn < MIXED_TYPE_THRESHOLD:
+                # Build percentage string for types with >0 count
+                parts = []
+                for label, count in [
+                    ("numeric", exc_n),
+                    ("date", exc_d),
+                    ("text", exc_t),
+                ]:
+                    if count > 0:
+                        pct = round(100 * count / nn)
+                        parts.append(f"{pct}% {label}")
+                s.mixed_type_pct = ", ".join(parts)
+
+                # Collect minority examples: values NOT in the dominant type
+                dominant_type = (
+                    "numeric" if exc_n == dominant
+                    else "date" if exc_d == dominant
+                    else "text"
+                )
+                # Scan counters for minority examples
+                if not capped[col]:
+                    for val in counters[col]:
+                        if len(minority_examples[col]) >= 3:
+                            break
+                        is_num = False
+                        try:
+                            float(val)
+                            is_num = True
+                        except ValueError:
+                            pass
+                        is_dt = parse_datetime(val) is not None
+                        # Exclusive classification
+                        if is_num:
+                            val_type = "numeric"
+                        elif is_dt:
+                            val_type = "date"
+                        else:
+                            val_type = "text"
+                        if val_type != dominant_type:
+                            minority_examples[col].add(val)
+                s.mixed_type_examples = sorted(minority_examples[col])[:3]
 
         summaries.append(s)
 
