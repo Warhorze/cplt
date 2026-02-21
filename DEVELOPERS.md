@@ -334,17 +334,15 @@ Run through this checklist before tagging a release:
 
    Check `docs/cli.md` matches the current command surface.
 
-7. **Update CHANGELOG** — generate from git history and add a section for the new version:
+7. **Bump version, changelog, and tag**
 
    ```bash
-   git log --oneline v<previous>..HEAD   # review commits since last tag
+   cz bump --dry-run        # preview version bump and changelog
+   cz bump                  # bump pyproject.toml version, update CHANGELOG.md, commit, and tag
    ```
 
-   Group entries in `CHANGELOG.md` by category (Commands, Output formats, Export, Filtering, etc.) based on conventional commit types.
-
-8. **Tag the release**
+8. **Push release**
 
    ```bash
-   git tag v<version>
-   git push origin v<version>
+   git push origin main --tags
    ```

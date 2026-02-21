@@ -38,6 +38,7 @@ Issues = "https://github.com/Warhorze/csvplot/issues"
 
 [project.optional-dependencies]
 dev = [
+    "commitizen>=4.0",
     "pytest>=7.0",
     "ruff>=0.1",
     "pyright>=1.1",
@@ -59,6 +60,13 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I"]
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+version_provider = "pep621"
+update_changelog_on_bump = true
+changelog_file = "CHANGELOG.md"
+tag_format = "v$version"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
