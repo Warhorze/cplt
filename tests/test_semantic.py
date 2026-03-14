@@ -6,7 +6,7 @@ import re
 
 from rich.table import Table
 
-from csvplot.semantic import semantic_rich, strip_ansi
+from cplt.semantic import semantic_rich, strip_ansi
 
 _ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 

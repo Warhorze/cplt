@@ -11,7 +11,7 @@ from typing import Iterator, Literal, NoReturn
 
 from rich import print as rprint
 
-from csvplot.models import BarSpec, Dot, LineSpec, Segment
+from cplt.models import BarSpec, Dot, LineSpec, Segment
 
 DATETIME_FORMATS = [
     "%Y-%m-%d %H:%M:%S.%f",
@@ -415,7 +415,7 @@ def load_bar_data(
     sort_by: Literal["value", "label", "none"] = "value",
     top: int | None = None,
     max_rows: int | None = None,
-    title: str = "csvplot",
+    title: str = "cplt",
     horizontal: bool = False,
     show_labels: bool = False,
     wheres: list[tuple[str, str]] | None = None,
@@ -485,7 +485,7 @@ def load_line_data(
     *,
     color_col: str | None = None,
     max_rows: int | None = None,
-    title: str = "csvplot",
+    title: str = "cplt",
     wheres: list[tuple[str, str]] | None = None,
     where_nots: list[tuple[str, str]] | None = None,
     case_sensitive: bool = False,

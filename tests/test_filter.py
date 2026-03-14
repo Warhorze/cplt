@@ -1,4 +1,4 @@
-"""Tests for csvplot filter functionality."""
+"""Tests for cplt filter functionality."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from datetime import datetime
 
 import pytest
 
-from csvplot.reader import filter_rows, load_bar_data, load_line_data, load_segments, parse_where
+from cplt.reader import filter_rows, load_bar_data, load_line_data, load_segments, parse_where
 
 FILTER_CSV = """\
 name,status,region,priority

@@ -9,7 +9,7 @@ from unittest.mock import MagicMock
 import click
 import pytest
 
-from csvplot.completions import _BASH_EQ_SAFE, complete_where, match_values
+from cplt.completions import _BASH_EQ_SAFE, complete_where, match_values
 
 WHERE_CSV = """\
 name,status,region

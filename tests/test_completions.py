@@ -1,4 +1,4 @@
-"""Tests for csvplot.completions."""
+"""Tests for cplt.completions."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from csvplot.completions import (
+from cplt.completions import (
     _matches_keywords,
     _sort_columns_for_position,
     complete_column,

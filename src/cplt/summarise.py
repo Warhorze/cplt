@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterator, Literal, overload
 
-from csvplot.reader import filter_rows, parse_datetime
+from cplt.reader import filter_rows, parse_datetime
 
 MAX_DISTINCT_VALUES = 10_000
 NUMERIC_THRESHOLD = 0.80

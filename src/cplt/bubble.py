@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterator
 
-from csvplot.reader import _ensure_columns_exist, filter_rows
+from cplt.reader import _ensure_columns_exist, filter_rows
 
 FALSY_VALUES = frozenset({"", "0", "false", "no", "null", "none", "na", "nan"})
 

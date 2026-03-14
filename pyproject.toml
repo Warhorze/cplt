@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "csvplot"
+name = "cplt"
 version = "0.1.0"
 description = "Plot timeline/Gantt-style ranges from CSV files in the terminal"
 readme = "README.md"
@@ -32,9 +32,9 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/Warhorze/csvplot"
-Repository = "https://github.com/Warhorze/csvplot"
-Issues = "https://github.com/Warhorze/csvplot/issues"
+Homepage = "https://github.com/Warhorze/cplt"
+Repository = "https://github.com/Warhorze/cplt"
+Issues = "https://github.com/Warhorze/cplt/issues"
 
 [project.optional-dependencies]
 dev = [
@@ -49,10 +49,10 @@ docs = [
 ]
 
 [project.scripts]
-csvplot = "csvplot.cli:app"
+cplt = "cplt.cli:app"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/csvplot"]
+packages = ["src/cplt"]
 
 [tool.ruff]
 line-length = 100

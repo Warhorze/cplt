@@ -6,7 +6,7 @@ from pathlib import Path
 
 from PIL import Image
 
-from csvplot.export import export_png, parse_ansi
+from cplt.export import export_png, parse_ansi
 
 
 class TestExportPngCreatesFile:

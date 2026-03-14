@@ -10,7 +10,7 @@ from typing import Any
 import click
 import typer._completion_shared as _typer_completion
 
-from csvplot.reader import detect_date_columns, read_csv_header
+from cplt.reader import detect_date_columns, read_csv_header
 
 # Cache: (resolved_path, mtime) → list of column names
 _header_cache: dict[tuple[str, float], list[str]] = {}

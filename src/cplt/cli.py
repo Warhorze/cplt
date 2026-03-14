@@ -10,10 +10,10 @@ import typer
 from rich import print as rprint
 from rich.table import Table
 
-from csvplot.bubble import GroupedBubbleSpec, load_bubble_data
-from csvplot.completions import complete_column, complete_date_column, complete_where
-from csvplot.models import Dot, PlotSpec, VLine
-from csvplot.reader import (
+from cplt.bubble import GroupedBubbleSpec, load_bubble_data
+from cplt.completions import complete_column, complete_date_column, complete_where
+from cplt.models import Dot, PlotSpec, VLine
+from cplt.reader import (
     load_bar_data,
     load_dots,
     load_line_data,
@@ -21,11 +21,11 @@ from csvplot.reader import (
     parse_datetime,
     parse_where,
 )
-from csvplot.renderer import render, render_bar, render_line
-from csvplot.summarise import summarise_csv
+from cplt.renderer import render, render_bar, render_line
+from cplt.summarise import summarise_csv
 
 app = typer.Typer(
-    name="csvplot",
+    name="cplt",
     no_args_is_help=True,
 )
 
@@ -351,17 +351,17 @@ def timeline(
 
     # Render
     if format_opt == "compact":
-        from csvplot.compact import compact_timeline
+        from cplt.compact import compact_timeline
 
         print(compact_timeline(spec))
     elif format_opt == "semantic":
-        from csvplot.semantic import strip_ansi
+        from cplt.semantic import strip_ansi
 
         canvas = _require_canvas(render(spec, build=True))
         print(strip_ansi(canvas))
     else:
         if export:
-            from csvplot.export import export_png
+            from cplt.export import export_png
 
             canvas = _require_canvas(render(spec, build=True))
             export_png(canvas, export)
@@ -482,17 +482,17 @@ def bar(
         raise typer.Exit(0)
 
     if format_opt == "compact":
-        from csvplot.compact import compact_bar
+        from cplt.compact import compact_bar
 
         print(compact_bar(spec))
     elif format_opt == "semantic":
-        from csvplot.semantic import strip_ansi
+        from cplt.semantic import strip_ansi
 
         canvas = _require_canvas(render_bar(spec, build=True))
         print(strip_ansi(canvas))
     else:
         if export:
-            from csvplot.export import export_png
+            from cplt.export import export_png
 
             canvas = _require_canvas(render_bar(spec, build=True))
             export_png(canvas, export)
@@ -606,17 +606,17 @@ def line(
         raise typer.Exit(0)
 
     if format_opt == "compact":
-        from csvplot.compact import compact_line
+        from cplt.compact import compact_line
 
         print(compact_line(spec))
     elif format_opt == "semantic":
-        from csvplot.semantic import strip_ansi
+        from cplt.semantic import strip_ansi
 
         canvas = _require_canvas(render_line(spec, build=True))
         print(strip_ansi(canvas))
     else:
         if export:
-            from csvplot.export import export_png
+            from cplt.export import export_png
 
             canvas = _require_canvas(render_line(spec, build=True))
             export_png(canvas, export)
@@ -707,7 +707,7 @@ def summarise(
         raise typer.Exit(0)
 
     if format_opt == "compact":
-        from csvplot.compact import compact_summarise
+        from cplt.compact import compact_summarise
 
         print(compact_summarise(summaries, title=file.name, sample_rows=sample_rows or None))
     else:
@@ -794,7 +794,7 @@ def summarise(
                 sample_table.add_row(*(row[c] for c in cols))
 
         if format_opt == "semantic":
-            from csvplot.semantic import semantic_rich
+            from cplt.semantic import semantic_rich
 
             renderables = [table, dq_table]
             if sample_table:
@@ -802,7 +802,7 @@ def summarise(
             print(semantic_rich(*renderables), end="")
         else:
             if export:
-                from csvplot.export import export_png
+                from cplt.export import export_png
 
                 renderables = [table, dq_table]
                 if sample_table:
@@ -876,12 +876,12 @@ def _render_grouped_bubble(
     table.add_row("[bold]TOTAL[/bold]", str(total_size), *overall_cells)
 
     if format_opt == "semantic":
-        from csvplot.semantic import semantic_rich
+        from cplt.semantic import semantic_rich
 
         print(semantic_rich(table), end="")
     else:
         if export:
-            from csvplot.export import export_png
+            from cplt.export import export_png
 
             ansi = _capture_rich_ansi(table)
             export_png(ansi, export)
@@ -1012,7 +1012,7 @@ def bubble(
 
     # --group-by path: load grouped, then flow through sort/transpose
     if group_by:
-        from csvplot.bubble import (
+        from cplt.bubble import (
             load_bubble_grouped,
             sort_grouped_spec,
             transpose_grouped_spec,
@@ -1049,7 +1049,7 @@ def bubble(
             raise typer.Exit(0)
 
         if format_opt == "compact":
-            from csvplot.compact import compact_bubble_grouped
+            from cplt.compact import compact_bubble_grouped
 
             print(compact_bubble_grouped(gspec, title=chart_title))
         else:
@@ -1077,7 +1077,7 @@ def bubble(
         raise typer.Exit(1)
 
     if sort:
-        from csvplot.bubble import sort_bubble_spec
+        from cplt.bubble import sort_bubble_spec
 
         try:
             spec = sort_bubble_spec(spec, sort)
@@ -1086,7 +1086,7 @@ def bubble(
             raise typer.Exit(1)
 
     if transpose:
-        from csvplot.bubble import transpose_bubble_spec
+        from cplt.bubble import transpose_bubble_spec
 
         spec = transpose_bubble_spec(spec)
 
@@ -1095,7 +1095,7 @@ def bubble(
         raise typer.Exit(0)
 
     if format_opt == "compact":
-        from csvplot.compact import compact_bubble
+        from cplt.compact import compact_bubble
 
         print(compact_bubble(spec, title=chart_title))
     else:
@@ -1189,7 +1189,7 @@ def bubble(
             table.add_row(label_cell, *cells)
 
         # Add TOTAL footer row with per-column fill-rates
-        from csvplot.bubble import column_fill_rates
+        from cplt.bubble import column_fill_rates
 
         rates = column_fill_rates(spec)
         total_cells = [f"[dim]{rates[col]}%[/dim]" for col in spec.col_names]
@@ -1207,7 +1207,7 @@ def bubble(
             table.caption = f"Showing {len(spec.y_labels)} of {spec.total_rows} rows"
 
         if format_opt == "semantic":
-            from csvplot.semantic import semantic_rich
+            from cplt.semantic import semantic_rich
 
             extra_tables = [t for t in (legend_table, label_map_table) if t is not None]
             if extra_tables:
@@ -1216,7 +1216,7 @@ def bubble(
                 print(semantic_rich(table), end="")
         else:
             if export:
-                from csvplot.export import export_png
+                from cplt.export import export_png
 
                 renderables = [table]
                 if legend_table:

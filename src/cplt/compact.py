@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from collections import defaultdict
 
-from csvplot.bubble import BubbleSpec, GroupedBubbleSpec, column_fill_rates
-from csvplot.models import BarSpec, Dot, LineSpec, PlotSpec, Segment
-from csvplot.summarise import ColumnSummary
+from cplt.bubble import BubbleSpec, GroupedBubbleSpec, column_fill_rates
+from cplt.models import BarSpec, Dot, LineSpec, PlotSpec, Segment
+from cplt.summarise import ColumnSummary
 
 
 def rle_encode(chars: list[str]) -> str:
@@ -276,7 +276,7 @@ def compact_line(spec: LineSpec, width: int = 60) -> str:
     return "\n".join(lines)
 
 
-def compact_bubble(spec: BubbleSpec, title: str = "csvplot") -> str:
+def compact_bubble(spec: BubbleSpec, title: str = "cplt") -> str:
     """Render a BubbleSpec as compact presence/absence matrix."""
     lines: list[str] = []
     lines.append(f"[COMPACT:bubble] {title}")
@@ -306,7 +306,7 @@ def compact_bubble(spec: BubbleSpec, title: str = "csvplot") -> str:
     return "\n".join(lines)
 
 
-def compact_bubble_grouped(spec: GroupedBubbleSpec, title: str = "csvplot") -> str:
+def compact_bubble_grouped(spec: GroupedBubbleSpec, title: str = "cplt") -> str:
     """Render a GroupedBubbleSpec as compact column-major summary."""
     lines: list[str] = []
     lines.append(f"[COMPACT:bubble] {title}")
@@ -352,7 +352,7 @@ def compact_bubble_grouped(spec: GroupedBubbleSpec, title: str = "csvplot") -> s
 
 def compact_summarise(
     summaries: list[ColumnSummary],
-    title: str = "csvplot",
+    title: str = "cplt",
     sample_rows: list[dict[str, str]] | None = None,
 ) -> str:
     """Render column summaries as compact tabular text."""

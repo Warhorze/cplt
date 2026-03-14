@@ -6,7 +6,7 @@ from pathlib import Path
 
 from typer.testing import CliRunner
 
-from csvplot.cli import app
+from cplt.cli import app
 
 runner = CliRunner()
 

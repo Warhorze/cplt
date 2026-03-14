@@ -11,7 +11,7 @@ import pytest
 from click.testing import Result
 from typer.testing import CliRunner
 
-from csvplot.cli import app
+from cplt.cli import app
 
 runner = CliRunner()
 

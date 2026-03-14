@@ -9,7 +9,7 @@ from math import ceil
 import plotext as plt
 from rich import print as rprint
 
-from csvplot.models import BarSpec, LineSpec, PlotSpec, Segment
+from cplt.models import BarSpec, LineSpec, PlotSpec, Segment
 
 # VS Code / Rainbow CSV inspired palette (RGB tuples for plotext).
 PALETTE: list[tuple[int, int, int] | str] = [
@@ -366,7 +366,7 @@ def render_line(spec: LineSpec, build: bool = False) -> str | None:
     # Normalize date strings to plotext's expected format (Y-m-d H:M:S)
     x_display = spec.x_values
     if spec.x_is_date:
-        from csvplot.reader import parse_datetime as _pd
+        from cplt.reader import parse_datetime as _pd
 
         normalized: list[str] = []
         parsed_dates: list[datetime] = []

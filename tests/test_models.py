@@ -1,10 +1,10 @@
-"""Tests for csvplot.models."""
+"""Tests for cplt.models."""
 
 from __future__ import annotations
 
 from datetime import datetime
 
-from csvplot.models import BarSpec, Dot, LineSpec, PlotSpec, Segment, VLine
+from cplt.models import BarSpec, Dot, LineSpec, PlotSpec, Segment, VLine
 
 
 class TestSegment:
@@ -134,7 +134,7 @@ class TestBarSpec:
         spec = BarSpec()
         assert spec.labels == []
         assert spec.values == []
-        assert spec.title == "csvplot"
+        assert spec.title == "cplt"
         assert spec.horizontal is False
 
     def test_with_data(self) -> None:
@@ -154,7 +154,7 @@ class TestLineSpec:
         spec = LineSpec()
         assert spec.x_values == []
         assert spec.y_series == {}
-        assert spec.title == "csvplot"
+        assert spec.title == "cplt"
         assert spec.x_is_date is False
 
     def test_with_data(self) -> None:

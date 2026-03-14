@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from csvplot.bubble import BubbleSpec
-from csvplot.compact import (
+from cplt.bubble import BubbleSpec
+from cplt.compact import (
     compact_bar,
     compact_bubble,
     compact_line,
@@ -13,8 +13,8 @@ from csvplot.compact import (
     compact_timeline,
     rle_encode,
 )
-from csvplot.models import BarSpec, Dot, LineSpec, PlotSpec, Segment, VLine
-from csvplot.summarise import ColumnSummary
+from cplt.models import BarSpec, Dot, LineSpec, PlotSpec, Segment, VLine
+from cplt.summarise import ColumnSummary
 
 
 class TestRleEncode:
@@ -448,8 +448,8 @@ class TestCompactBubble:
 class TestCompactBubbleGrouped:
     def test_basic_grouped_output(self):
         """Grouped compact bubble shows percentages and counts."""
-        from csvplot.bubble import GroupedBubbleSpec
-        from csvplot.compact import compact_bubble_grouped
+        from cplt.bubble import GroupedBubbleSpec
+        from cplt.compact import compact_bubble_grouped
 
         spec = GroupedBubbleSpec(
             group_labels=["admin", "user"],
@@ -469,8 +469,8 @@ class TestCompactBubbleGrouped:
 
     def test_overall_fill_rate(self):
         """Grouped output includes overall fill-rate line."""
-        from csvplot.bubble import GroupedBubbleSpec
-        from csvplot.compact import compact_bubble_grouped
+        from cplt.bubble import GroupedBubbleSpec
+        from cplt.compact import compact_bubble_grouped
 
         spec = GroupedBubbleSpec(
             group_labels=["a", "b"],

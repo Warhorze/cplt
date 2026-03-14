@@ -7,7 +7,7 @@ from pathlib import Path
 from PIL import Image
 from typer.testing import CliRunner
 
-from csvplot.cli import app
+from cplt.cli import app
 
 runner = CliRunner()
 

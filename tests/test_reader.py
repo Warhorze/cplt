@@ -1,4 +1,4 @@
-"""Tests for csvplot.reader."""
+"""Tests for cplt.reader."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from datetime import datetime
 
 import pytest
 
-from csvplot.reader import (
+from cplt.reader import (
     detect_date_columns,
     detect_numeric_columns,
     load_bar_data,

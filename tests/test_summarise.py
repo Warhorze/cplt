@@ -1,4 +1,4 @@
-"""Tests for csvplot summarise functionality."""
+"""Tests for cplt summarise functionality."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from csvplot.summarise import summarise_csv
+from cplt.summarise import summarise_csv
 
 MIXED_CSV = """\
 name,score,date,notes

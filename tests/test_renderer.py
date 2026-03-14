@@ -6,9 +6,9 @@ import re
 from datetime import datetime
 from typing import Any
 
-import csvplot.renderer as renderer
-from csvplot.models import BarSpec, Dot, LineSpec, PlotSpec, Segment
-from csvplot.renderer import render, render_bar, render_line
+import cplt.renderer as renderer
+from cplt.models import BarSpec, Dot, LineSpec, PlotSpec, Segment
+from cplt.renderer import render, render_bar, render_line
 
 
 def test_render_includes_all_unique_txt_labels_per_sub_row() -> None:

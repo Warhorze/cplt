@@ -1,4 +1,4 @@
-"""Core data structures for csvplot."""
+"""Core data structures for cplt."""
 
 from __future__ import annotations
 
@@ -36,7 +36,7 @@ class Dot:
 class BarSpec:
     labels: list[str] = field(default_factory=list)
     values: list[float] = field(default_factory=list)
-    title: str = "csvplot"
+    title: str = "cplt"
     horizontal: bool = False
     show_labels: bool = False
 
@@ -45,7 +45,7 @@ class BarSpec:
 class LineSpec:
     x_values: list[str] = field(default_factory=list)
     y_series: dict[str, list[float]] = field(default_factory=dict)
-    title: str = "csvplot"
+    title: str = "cplt"
     x_is_date: bool = False
 
 
@@ -55,7 +55,7 @@ class PlotSpec:
     vlines: list[VLine] = field(default_factory=list)
     view_start: datetime | None = None
     view_end: datetime | None = None
-    title: str = "csvplot"
+    title: str = "cplt"
     x_pair_names: list[tuple[str, str]] = field(default_factory=list)
     color_col_name: str | None = None
     dots: list[Dot] = field(default_factory=list)
