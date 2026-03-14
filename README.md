@@ -42,43 +42,41 @@ csvplot --install-completion
 
 ## What It Looks Like
 
-Every demo starts with `--help` so you can see all available flags, then builds a command using tab completion to discover columns and values.
-
-### Timeline / Gantt
-
-Visualise project schedules as Gantt-style ranges with color-coded status and a "today" marker.
-
-![Timeline chart output](assets/images/timeline.gif)
-
-### Bar Chart
-
-Count values in a column, filter with `--where`, and label the bars. Watch tab completion discover columns and filter values.
-
-![Bar chart output](assets/images/bar.gif)
-
-### Line Chart
-
-Plot numeric trends over time with `--head` to limit rows and `--title` for context.
-
-![Line chart output](assets/images/line.gif)
-
-### Bubble Matrix
-
-Spot missing data patterns across columns. Rows are labeled, columns are presence/absence dots, colored by group.
-
-![Bubble matrix output](assets/images/bubble.gif)
-
-### Summarise
-
-Quick column profiling — types, nulls, uniques, and top values at a glance.
-
-![Summarise output](assets/images/summarise.gif)
-
 ### Tab Completion
 
 Deep completion for `--where` filters: discover available columns, then see matching values.
 
 ![Tab completion options](assets/images/completion.gif)
+
+### Timeline / Gantt
+
+Visualise project schedules as Gantt-style ranges with color-coded status and a "today" marker.
+
+![Timeline chart output](assets/images/timeline.png)
+
+### Bar Chart
+
+Count values in a column, filter with `--where`, and label the bars.
+
+![Bar chart output](assets/images/bar.png)
+
+### Line Chart
+
+Plot numeric trends over time with `--head` to limit rows and `--title` for context.
+
+![Line chart output](assets/images/line.png)
+
+### Bubble Matrix
+
+Spot missing data patterns across columns. Rows are labeled, columns are presence/absence dots, colored by group.
+
+![Bubble matrix output](assets/images/bubble.png)
+
+### Summarise
+
+Quick column profiling — types, nulls, uniques, and top values at a glance.
+
+![Summarise output](assets/images/summarise.png)
 
 ## Quick Start
 
