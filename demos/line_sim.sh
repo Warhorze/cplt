@@ -4,16 +4,16 @@ source "$(dirname "$0")/lib.sh"
 
 # Show subcommand completion + help
 printf '%s' "$PROMPT"
-simulate_type "csvplot "
+simulate_type "cplt "
 simulate_tab "li" "line"
 simulate_type " --help"
 echo ""
-csvplot line --help
+cplt line --help
 sleep 2
 
 # Clear and build the actual command
 printf '%s' "$PROMPT"
-simulate_type "csvplot "
+simulate_type "cplt "
 simulate_tab "li" "line"
 simulate_type " "
 simulate_tab "--fi" "--file"
@@ -28,7 +28,7 @@ sleep 1
 echo ""
 echo "Date  Temp"
 printf '%s' "$PROMPT"
-printf '%s' "csvplot line --file data/temperatures.csv --x "
+printf '%s' "cplt line --file data/temperatures.csv --x "
 sleep 2
 simulate_type "Date"
 simulate_type " "
@@ -41,5 +41,5 @@ simulate_tab "--ti" "--title"
 simulate_type " 'Melbourne Min Temp'"
 sleep 0.5
 echo ""
-csvplot line --file data/temperatures.csv --x Date --y Temp --head 40 --title 'Melbourne Min Temp'
+cplt line --file data/temperatures.csv --x Date --y Temp --head 40 --title 'Melbourne Min Temp'
 sleep 3

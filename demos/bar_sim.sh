@@ -4,16 +4,16 @@ source "$(dirname "$0")/lib.sh"
 
 # Show subcommand completion + help
 printf '%s' "$PROMPT"
-simulate_type "csvplot "
+simulate_type "cplt "
 simulate_tab "ba" "bar"
 simulate_type " --help"
 echo ""
-csvplot bar --help
+cplt bar --help
 sleep 2
 
 # Clear and build the actual command
 printf '%s' "$PROMPT"
-simulate_type "csvplot "
+simulate_type "cplt "
 simulate_tab "ba" "bar"
 simulate_type " "
 simulate_tab "--fi" "--file"
@@ -29,7 +29,7 @@ echo ""
 echo "Age          Cabin        Embarked     Fare         Name         Parch"
 echo "PassengerId  Pclass       Sex          SibSp        Survived     Ticket"
 printf '%s' "$PROMPT"
-printf '%s' "csvplot bar --file data/titanic.csv --column "
+printf '%s' "cplt bar --file data/titanic.csv --column "
 sleep 2
 simulate_type "Embarked"
 simulate_type " "
@@ -41,7 +41,7 @@ echo ""
 echo "Age=         Embarked=    Name=        PassengerId= Sex=         Survived="
 echo "Cabin=       Fare=        Parch=       Pclass=      SibSp=       Ticket="
 printf '%s' "$PROMPT"
-printf '%s' "csvplot bar --file data/titanic.csv --column Embarked --where "
+printf '%s' "cplt bar --file data/titanic.csv --column Embarked --where "
 sleep 2
 simulate_type "Sex="
 # Discovery: show value completions
@@ -49,12 +49,12 @@ sleep 1
 echo ""
 echo "female  male"
 printf '%s' "$PROMPT"
-printf '%s' "csvplot bar --file data/titanic.csv --column Embarked --where Sex="
+printf '%s' "cplt bar --file data/titanic.csv --column Embarked --where Sex="
 sleep 2
 simulate_type "female"
 simulate_type " "
 simulate_tab "--la" "--labels"
 sleep 0.5
 echo ""
-csvplot bar --file data/titanic.csv --column Embarked --where Sex=female --labels
+cplt bar --file data/titanic.csv --column Embarked --where Sex=female --labels
 sleep 3

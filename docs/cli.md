@@ -18,10 +18,10 @@ bash scripts/generate_cli_docs.sh
 | `summarise` | Print a summary of a CSV file — column types, counts, nulls, top values. |
 | `bubble` | Plot a presence/absence dot matrix from CSV columns. |
 
-## `csvplot`
+## `cplt`
 
 ```bash
-csvplot [OPTIONS] COMMAND [ARGS]...
+cplt [OPTIONS] COMMAND [ARGS]...
 ```
 
 Plot data from CSV files directly in the terminal.
@@ -33,10 +33,10 @@ Plot data from CSV files directly in the terminal.
 | --install-completion | BOOLEAN | No | No |  | Install completion for the current shell. |
 | --show-completion | BOOLEAN | No | No |  | Show completion for the current shell, to copy it or customize the installation. |
 
-## `csvplot timeline`
+## `cplt timeline`
 
 ```bash
-csvplot timeline [OPTIONS]
+cplt timeline [OPTIONS]
 ```
 
 Plot timeline/Gantt-style ranges from a CSV file.
@@ -64,10 +64,10 @@ Plot timeline/Gantt-style ranges from a CSV file.
 | --export | TEXT | No | No |  | Export chart to PNG file |
 | --format | TEXT | No | No | visual | Output format: visual, semantic, or compact |
 
-## `csvplot bar`
+## `cplt bar`
 
 ```bash
-csvplot bar [OPTIONS]
+cplt bar [OPTIONS]
 ```
 
 Plot a bar chart of value counts from a CSV column.
@@ -89,10 +89,10 @@ Plot a bar chart of value counts from a CSV column.
 | --export | TEXT | No | No |  | Export chart to PNG file |
 | --format | TEXT | No | No | visual | Output format: visual, semantic, or compact |
 
-## `csvplot line`
+## `cplt line`
 
 ```bash
-csvplot line [OPTIONS]
+cplt line [OPTIONS]
 ```
 
 Plot a line chart from CSV columns.
@@ -112,10 +112,10 @@ Plot a line chart from CSV columns.
 | --export | TEXT | No | No |  | Export chart to PNG file |
 | --format | TEXT | No | No | visual | Output format: visual, semantic, or compact |
 
-## `csvplot summarise`
+## `cplt summarise`
 
 ```bash
-csvplot summarise [OPTIONS]
+cplt summarise [OPTIONS]
 ```
 
 Print a summary of a CSV file — column types, counts, nulls, top values.
@@ -132,10 +132,10 @@ Print a summary of a CSV file — column types, counts, nulls, top values.
 | --export | TEXT | No | No |  | Export chart to PNG file |
 | --format | TEXT | No | No | visual | Output format: visual, semantic, or compact |
 
-## `csvplot bubble`
+## `cplt bubble`
 
 ```bash
-csvplot bubble [OPTIONS]
+cplt bubble [OPTIONS]
 ```
 
 Plot a presence/absence dot matrix from CSV columns.

@@ -17,9 +17,9 @@ trap 'rm -rf "$TMP_DIR"' EXIT
 PASS_COUNT=0
 FAIL_COUNT=0
 
-run_csvplot() {
+run_cplt() {
   PYTHONPATH="$ROOT_DIR/src${PYTHONPATH:+:$PYTHONPATH}" \
-    "$PYTHON_BIN" -m csvplot "$@"
+    "$PYTHON_BIN" -m cplt "$@"
 }
 
 pass() {
@@ -37,7 +37,7 @@ run_ok() {
   shift
 
   local out_file="$TMP_DIR/${name// /_}.out"
-  if run_csvplot "$@" >"$out_file" 2>&1; then
+  if run_cplt "$@" >"$out_file" 2>&1; then
     pass "$name"
   else
     fail "$name"
@@ -52,7 +52,7 @@ run_expected_fail() {
 
   local out_file="$TMP_DIR/${name// /_}.out"
   set +e
-  run_csvplot "$@" >"$out_file" 2>&1
+  run_cplt "$@" >"$out_file" 2>&1
   local code=$?
   set -e
 
@@ -65,7 +65,7 @@ run_expected_fail() {
   fi
 }
 
-echo "Running csvplot CLI smoke flow..."
+echo "Running cplt CLI smoke flow..."
 
 run_ok "help" --help
 

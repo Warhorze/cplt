@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## What is csvplot?
+## What is cplt?
 
 A CLI tool for plotting and summarising CSV data in the terminal. Supports timeline/Gantt ranges, bar charts, line charts, bubble matrices, and CSV summaries. Uses stdlib `csv` (no pandas), Typer for CLI, plotext for charts, and Rich for table formatting.
 

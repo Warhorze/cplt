@@ -1,4 +1,4 @@
-# csvplot — Feature Plan
+# cplt — Feature Plan
 
 Constraint: datasets up to 100,000 rows max.
 
@@ -13,16 +13,16 @@ Constraint: datasets up to 100,000 rows max.
 **Syntax:**
 ```bash
 # Explicit column: COL=val
-csvplot timeline -f data.csv --x S --x E --y name --where "status=open"
+cplt timeline -f data.csv --x S --x E --y name --where "status=open"
 
 # OR within same column: repeat --where with same column
-csvplot timeline -f data.csv --x S --x E --y name --where "status=open" --where "status=closed"
+cplt timeline -f data.csv --x S --x E --y name --where "status=open" --where "status=closed"
 
 # Exclude rows
-csvplot timeline -f data.csv --x S --x E --y name --where-not "status=closed"
+cplt timeline -f data.csv --x S --x E --y name --where-not "status=closed"
 
 # AND across different columns
-csvplot timeline -f data.csv --x S --x E --y name --where "status=open" --where "region=north"
+cplt timeline -f data.csv --x S --x E --y name --where "status=open" --where "region=north"
 ```
 
 **Semantics:**
@@ -36,7 +36,7 @@ csvplot timeline -f data.csv --x S --x E --y name --where "status=open" --where 
 
 The autocomplete callback inspects existing args to find the last `--x`/`--y` column and **pre-fills the column name** in suggestions. So the user types:
 ```bash
-csvplot timeline -f data.csv --x status --where <TAB>
+cplt timeline -f data.csv --x status --where <TAB>
 # Suggestions: status=open, status=closed, status=pending, ...
 ```
 The user doesn't type the column name — autocomplete fills it from the preceding `--x`. The actual argument is still explicit `COL=val`, so parsing stays simple and scripts remain readable. Without autocomplete, users type the full `COL=val` themselves.
@@ -60,15 +60,15 @@ The user doesn't type the column name — autocomplete fills it from the precedi
 
 ---
 
-## 2. Summarise (`csvplot summarise`)
+## 2. Summarise (`cplt summarise`)
 
 **Goal:** Print a pandas-like summary of a CSV file — column types, counts, nulls, unique values, top values.
 
 **Syntax:**
 ```bash
-csvplot summarise -f data.csv
-csvplot summarise -f data.csv --where "status=open"
-csvplot summarise -f data.csv --head 1000 --sample 5
+cplt summarise -f data.csv
+cplt summarise -f data.csv --where "status=open"
+cplt summarise -f data.csv --head 1000 --sample 5
 ```
 
 **`--head N` vs `--sample N`:**
@@ -102,17 +102,17 @@ csvplot summarise -f data.csv --head 1000 --sample 5
 
 ---
 
-## 3. Bubble Matrix Plot (`csvplot bubble`)
+## 3. Bubble Matrix Plot (`cplt bubble`)
 
 **Goal:** Show presence/absence of values as a dot matrix. Good for feature flags, booleans, and spotting NA/null patterns.
 
 **Syntax:**
 ```bash
 # Binary matrix: dot = value present, empty = missing/falsy
-csvplot bubble -f data.csv --cols col1 --cols col2 --cols col3 --y name_col
+cplt bubble -f data.csv --cols col1 --cols col2 --cols col3 --y name_col
 
 # With color
-csvplot bubble -f data.csv --cols col1 --cols col2 --y name_col --color category
+cplt bubble -f data.csv --cols col1 --cols col2 --y name_col --color category
 ```
 
 **Note on `--cols` vs `--x`:** Uses `--cols` instead of `--x` because the semantics are different from other commands. In `timeline`, `--x` means date column pairs. In `line`, `--x` means a single x-axis column. Using `--cols` avoids overloading `--x` with a third meaning.
@@ -174,7 +174,7 @@ csvplot bubble -f data.csv --cols col1 --cols col2 --y name_col --color category
 Context-aware: the callback inspects preceding args to find the last `--x`/`--y` column, then pre-fills `COL=` and suggests matching values from that column.
 
 ```bash
-# User types: csvplot timeline -f data.csv --x status --where <TAB>
+# User types: cplt timeline -f data.csv --x status --where <TAB>
 # Suggestions: status=open, status=closed, status=pending
 #
 # User types: --where status=op<TAB>

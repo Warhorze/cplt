@@ -24,7 +24,7 @@ from pathlib import Path
 import click
 import typer
 
-from csvplot.cli import app
+from cplt.cli import app
 
 
 def md_escape(value: str) -> str:
@@ -115,10 +115,10 @@ def build() -> str:
     lines.extend(
         [
             "",
-            "## `csvplot`",
+            "## `cplt`",
             "",
             "```bash",
-            usage_for(root, "csvplot"),
+            usage_for(root, "cplt"),
             "```",
             "",
             (root.help or "").strip(),
@@ -135,10 +135,10 @@ def build() -> str:
         lines.extend(
             [
                 "",
-                f"## `csvplot {name}`",
+                f"## `cplt {name}`",
                 "",
                 "```bash",
-                usage_for(cmd, f"csvplot {name}"),
+                usage_for(cmd, f"cplt {name}"),
                 "```",
                 "",
                 (cmd.help or "").strip(),

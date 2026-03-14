@@ -24,8 +24,8 @@ die_with_setup_hint() {
 }
 
 if ! PYTHONPATH="$ROOT_DIR/src${PYTHONPATH:+:$PYTHONPATH}" \
-  "$PYTHON_BIN" -c "import csvplot.cli" >/dev/null 2>&1; then
-  die_with_setup_hint "Unable to run csvplot with '$PYTHON_BIN'."
+  "$PYTHON_BIN" -c "import cplt.cli" >/dev/null 2>&1; then
+  die_with_setup_hint "Unable to run cplt with '$PYTHON_BIN'."
 fi
 
 if ! "$PYTHON_BIN" -c "import plotext, rich, typer" >/dev/null 2>&1; then
@@ -47,9 +47,9 @@ CHECK_ROWS="$TMP_DIR/check-rows.md"
 > "$SCENARIO_CMD_ROWS"
 > "$CHECK_ROWS"
 
-run_csvplot() {
+run_cplt() {
   PYTHONPATH="$ROOT_DIR/src${PYTHONPATH:+:$PYTHONPATH}" \
-    "$PYTHON_BIN" -m csvplot "$@"
+    "$PYTHON_BIN" -m cplt "$@"
 }
 
 log_step() {
@@ -63,7 +63,7 @@ record_scenario() {
   local purpose="$3"
   shift 3
   local cmd_display
-  cmd_display="csvplot $(printf '%q ' "$@")"
+  cmd_display="cplt $(printf '%q ' "$@")"
   cmd_display="${cmd_display% }"
 
   printf '| %s | [%s.png](images/%s.png) | [visual](raw/%s.visual.txt) / [compact](raw/%s.compact.txt) / [semantic](raw/%s.semantic.txt) | %s |\n' \
@@ -84,9 +84,9 @@ capture_scenario() {
   shift 4
 
   log_step "$group :: $slug"
-  run_csvplot "$@" --format visual --export "$IMG_DIR/${slug}.png" > "$RAW_DIR/${slug}.visual.txt"
-  run_csvplot "$@" --format compact > "$RAW_DIR/${slug}.compact.txt"
-  run_csvplot "$@" --format semantic > "$RAW_DIR/${slug}.semantic.txt"
+  run_cplt "$@" --format visual --export "$IMG_DIR/${slug}.png" > "$RAW_DIR/${slug}.visual.txt"
+  run_cplt "$@" --format compact > "$RAW_DIR/${slug}.compact.txt"
+  run_cplt "$@" --format semantic > "$RAW_DIR/${slug}.semantic.txt"
 
   record_scenario "$group" "$slug" "$purpose" "$@"
 }

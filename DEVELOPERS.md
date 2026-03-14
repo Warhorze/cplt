@@ -1,13 +1,13 @@
 # Developer Guide
 
-This file is the single contributor reference for csvplot. User-facing docs live in `README.md`.
+This file is the single contributor reference for cplt. User-facing docs live in `README.md`.
 
 ## Architecture
 
 Data flows linearly: **CLI args → reader → PlotSpec → renderer → terminal**
 
 ```text
-src/csvplot/
+src/cplt/
   cli.py          # Typer command definitions + arg validation
   reader.py       # timeline/bar/line CSV loaders + datetime parsing + row filters
   bubble.py       # bubble matrix loader + falsy detection
@@ -49,11 +49,11 @@ uv run pyright
 
 ## CLI Path Map
 
-Every invocation follows: `csvplot <command> -f <file> <required args> [optional args]`
+Every invocation follows: `cplt <command> -f <file> <required args> [optional args]`
 `--format <fmt>` is optional on every command (default: `visual`).
 
 ```
-csvplot
+cplt
 ├── timeline -f FILE
 │   ├── --x COL --x COL                          ← required, must be even count (pairs)
 │   │   └── [--x COL --x COL ...]                ← additional layers (layer 1, 2, ...)
@@ -151,7 +151,7 @@ bash scripts/generate_design_review_images.sh
 
 ### Review artifacts: what lives where
 
-- `assets/review/SCENARIOS.md` defines what to run: canonical scenario list, exact `csvplot` commands, and intent for each scenario.
+- `assets/review/SCENARIOS.md` defines what to run: canonical scenario list, exact `cplt` commands, and intent for each scenario.
 - `assets/review/REPORT.md` is run output: generated artifact links/previews plus automated check outcomes from the latest run.
 
 ### Cross-cutting UX checklist

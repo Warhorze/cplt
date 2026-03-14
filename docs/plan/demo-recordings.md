@@ -79,7 +79,7 @@ Sleep 500ms
 Show
 
 # Demo command
-Type "csvplot bar -f data/titanic.csv -c Sex"
+Type "cplt bar -f data/titanic.csv -c Sex"
 Sleep 500ms
 Enter
 Sleep 3s
@@ -100,14 +100,14 @@ Sleep 3s
 
 | File | Command | Shows |
 |------|---------|-------|
-| `demo_bar.tape` | `csvplot bar -f data/titanic.csv -c Sex` | Bar chart |
-| `demo_bar_sort.tape` | `csvplot bar -f data/titanic.csv -c Pclass --sort label` | Sorted bar |
-| `demo_line.tape` | `csvplot line -f data/temperatures.csv --x Date --y Temp` | Line chart |
-| `demo_bubble.tape` | `csvplot bubble -f data/titanic.csv --cols Cabin --cols Age --cols Embarked --y Name --head 20` | Bubble matrix |
-| `demo_summarise.tape` | `csvplot summarise -f data/titanic.csv` | Summary table |
-| `demo_timeline.tape` | `csvplot timeline -f data/timeplot.csv --x Start --x End --y Task` | Timeline/Gantt |
+| `demo_bar.tape` | `cplt bar -f data/titanic.csv -c Sex` | Bar chart |
+| `demo_bar_sort.tape` | `cplt bar -f data/titanic.csv -c Pclass --sort label` | Sorted bar |
+| `demo_line.tape` | `cplt line -f data/temperatures.csv --x Date --y Temp` | Line chart |
+| `demo_bubble.tape` | `cplt bubble -f data/titanic.csv --cols Cabin --cols Age --cols Embarked --y Name --head 20` | Bubble matrix |
+| `demo_summarise.tape` | `cplt summarise -f data/titanic.csv` | Summary table |
+| `demo_timeline.tape` | `cplt timeline -f data/timeplot.csv --x Start --x End --y Task` | Timeline/Gantt |
 | `demo_completion.tape` | Tab completion flow | Shell completion |
-| `demo_where.tape` | `csvplot bar -f data/titanic.csv -c Pclass --where Sex=female` | Filtering |
+| `demo_where.tape` | `cplt bar -f data/titanic.csv -c Pclass --where Sex=female` | Filtering |
 
 ### Generating
 
@@ -152,11 +152,11 @@ If vhs isn't an option, here's the corrected expect approach:
 
 ```expect
 # BAD: timing-based
-send -- "csvplot bar -f data/titanic.csv -c Sex\r"
+send -- "cplt bar -f data/titanic.csv -c Sex\r"
 pause 3
 
 # GOOD: wait for prompt
-send -- "csvplot bar -f data/titanic.csv -c Sex\r"
+send -- "cplt bar -f data/titanic.csv -c Sex\r"
 expect "demo$"
 ```
 
@@ -188,23 +188,23 @@ npm install -g svg-term-cli
 svg-term --in demo.cast --out demo.svg --window --width 120 --height 40
 ```
 
-### Fix 4: Add csvplot completion to the session
+### Fix 4: Add cplt completion to the session
 
 ```expect
-send -- "eval \"$(csvplot --show-completion bash)\"\r"
+send -- "eval \"$(cplt --show-completion bash)\"\r"
 expect "demo$"
 ```
 
-### Fix 5: Demo actual csvplot commands
+### Fix 5: Demo actual cplt commands
 
 ```expect
 # Bar chart demo
-send -- "csvplot bar -f data/titanic.csv -c Sex\r"
+send -- "cplt bar -f data/titanic.csv -c Sex\r"
 expect "demo$"
 sleep 1
 
 # Tab completion demo
-send -- "csvplot bar -f data/titanic.csv -c \t"
+send -- "cplt bar -f data/titanic.csv -c \t"
 sleep 1
 send -- "\t"
 sleep 2

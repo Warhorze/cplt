@@ -5,12 +5,12 @@
 1. **Bar --where tab completion** — bar_sim.sh now shows `--where` tab discovery with `col=` menu and value completions (same pattern as completion_sim.sh)
 2. **Flag tab feels jittery** — increased `simulate_tab` pause from 0.3s to 0.5s and added a subtle pause after completion appears, making `--fi → --file` feel like a natural tab-complete rather than a glitch
 3. **Typing speed too fast** — increased `simulate_type` sleep from 0.02s to 0.05s per character
-4. **Show subcommand completion + --help** — each sim script now starts by showing the subcommand tab-completed from `csvplot` and ends (or starts) with a brief `--help` display so users see all available options
+4. **Show subcommand completion + --help** — each sim script now starts by showing the subcommand tab-completed from `cplt` and ends (or starts) with a brief `--help` display so users see all available options
 5. **File paths per-directory** — file path completion now goes `data/` first (tab from `da`), then `ti → titanic.csv` as a second tab, matching real shell behavior
 
 ## Context
 
-The demo sim scripts simulate typing CLI commands for VHS recordings. They showcase tab completion — a key csvplot feature. All flags, column names, and file paths show simulated tab completion (type a prefix, pause, rest appears instantly). The bar chart also has distinct colors per bar (already done).
+The demo sim scripts simulate typing CLI commands for VHS recordings. They showcase tab completion — a key cplt feature. All flags, column names, and file paths show simulated tab completion (type a prefix, pause, rest appears instantly). The bar chart also has distinct colors per bar (already done).
 
 **Key insight:** The user knows the flags (`--file`, `--x`, `--y`) but **doesn't know** the column names in the CSV. Tab completion lets them discover what's available. Demos should showcase this discoverability by showing the full completion menu for column names, then selecting from it.
 
@@ -37,7 +37,7 @@ User doesn't know the options, hits tab to see all of them, reads the menu, then
 sleep 1; echo ""
 echo "Date  Temp"
 printf '%s' "$PROMPT"
-printf '%s' "csvplot line --file data/temperatures.csv --x "
+printf '%s' "cplt line --file data/temperatures.csv --x "
 sleep 2
 simulate_type "Date"
 ```
@@ -67,7 +67,7 @@ Data files in `data/`: `projects.csv`, `temperatures.csv`, `timeplot2.csv`, `tim
 ## 2. Sim script updates
 
 Each sim script follows this structure:
-1. Show subcommand tab-completion: `csvplot ` → tab → `bar` (from `ba` prefix)
+1. Show subcommand tab-completion: `cplt ` → tab → `bar` (from `ba` prefix)
 2. Show `--help` output briefly so user sees available options
 3. Build the actual command with flag/column/file tab completions
 4. File paths use per-directory completion (Pattern C)
@@ -75,7 +75,7 @@ Each sim script follows this structure:
 
 ### `demos/bar_sim.sh`
 - Subcommand tab: `simulate_tab "ba" "bar"`
-- Show `csvplot bar --help` output
+- Show `cplt bar --help` output
 - Per-directory file: `simulate_tab "da" "data/"` then `simulate_tab "ti" "titanic.csv"`
 - Column discovery menu for `--column`
 - `--where` discovery: show `col=` menu, type `Sex=`, show value menu, select `female`
@@ -83,25 +83,25 @@ Each sim script follows this structure:
 
 ### `demos/line_sim.sh`
 - Subcommand tab: `simulate_tab "li" "line"`
-- Show `csvplot line --help` output
+- Show `cplt line --help` output
 - Per-directory file: `simulate_tab "da" "data/"` then `simulate_tab "te" "temperatures.csv"`
 - Column discovery for `--x`, tab-complete `--y Temp`
 
 ### `demos/bubble_sim.sh`
 - Subcommand tab: `simulate_tab "bu" "bubble"`
-- Show `csvplot bubble --help` output
+- Show `cplt bubble --help` output
 - Per-directory file path
 - Column discovery for `--cols`, tab-complete subsequent cols/y/color
 
 ### `demos/timeline_sim.sh`
 - Subcommand tab: `simulate_tab "ti" "timeline"`
-- Show `csvplot timeline --help` output
+- Show `cplt timeline --help` output
 - Per-directory file: `da` → `data/`, `pr` → `projects.csv`
 - Date column discovery for `--x`, all column discovery for `--y`
 
 ### `demos/summarise_sim.sh`
 - Subcommand tab: `simulate_tab "su" "summarise"`
-- Show `csvplot summarise --help` output
+- Show `cplt summarise --help` output
 - Per-directory file path
 
 ### `demos/completion_sim.sh`

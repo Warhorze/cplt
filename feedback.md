@@ -1,4 +1,4 @@
-# csvplot Tester Feedback
+# cplt Tester Feedback
 
 Date: 2026-02-14
 Tester: Claude Code (second pass, validating + extending Codex's original review)
@@ -42,24 +42,24 @@ All 175 tests pass. All 5 commands (timeline, bar, line, bubble, summarise) work
 ## New findings
 
 ### 7. Compact line min/max shows excessive decimal places (Low UX)
-- Repro: `csvplot line -f data/temperatures.csv --x Date --y Temp --format compact`
+- Repro: `cplt line -f data/temperatures.csv --x Date --y Temp --format compact`
 - Output: `(min=6.30655737704918 max=17.698333333333334)`
 - These are averaged values from downsampling, but the precision is excessive.
 - Suggest rounding to 2 decimal places for readability.
 
 ### 8. `--txt` labels are not rendered in compact format (Low, by design?)
-- Repro: `csvplot timeline -f data/projects.csv --x start_date --x end_date --y project --txt status --format compact`
+- Repro: `cplt timeline -f data/projects.csv --x start_date --x end_date --y project --txt status --format compact`
 - The `--txt` option is accepted without error but produces identical output to without it.
 - Compact format uses RLE-encoded bars where there's no room for text labels, so this may be intentional — but the option should either be documented as visual-only or produce some compact representation.
 
 ### 9. `--horizontal` has no effect in compact bar format (Low, by design?)
-- Repro: `csvplot bar -f data/titanic.csv -c Pclass --horizontal --format compact`
+- Repro: `cplt bar -f data/titanic.csv -c Pclass --horizontal --format compact`
 - Output is identical to non-horizontal compact output.
 - Makes sense since compact bars are always horizontal RLE-encoded, but the flag is silently ignored.
 
 ### 10. README project structure is incomplete (Low, docs)
 - `data/projects.csv` not listed in the data files section (line 216).
-- `src/csvplot/compact.py`, `bubble.py`, `summarise.py` not listed in project structure (lines 207-213).
+- `src/cplt/compact.py`, `bubble.py`, `summarise.py` not listed in project structure (lines 207-213).
 - `--format` option not mentioned anywhere in README (users may not discover compact mode).
 - `--where`/`--where-not` not listed in individual command tables (only in separate "Filtering" section) — inconsistent with how `--head` is listed per-command.
 - `summarise` command missing from Quick Start examples.
@@ -70,19 +70,19 @@ All 175 tests pass. All 5 commands (timeline, bar, line, bubble, summarise) work
 
 ```
 # timeline — 15 segments, 3 status groups, correct color legend
-csvplot timeline -f data/projects.csv --x start_date --x end_date --y project --color status --format compact
+cplt timeline -f data/projects.csv --x start_date --x end_date --y project --color status --format compact
 
 # bar — counts match: 3=491, 1=216, 2=184
-csvplot bar -f data/titanic.csv -c Pclass --format compact
+cplt bar -f data/titanic.csv -c Pclass --format compact
 
 # line — 3650 points, date range 1981-01-01..1990-12-31
-csvplot line -f data/temperatures.csv --x Date --y Temp --format compact
+cplt line -f data/temperatures.csv --x Date --y Temp --format compact
 
 # bubble — presence/absence matches CSV null/non-null row-by-row
-csvplot bubble -f data/titanic.csv --cols Cabin --cols Age --cols Embarked --y Name --head 8
+cplt bubble -f data/titanic.csv --cols Cabin --cols Age --cols Embarked --y Name --head 8
 
 # summarise — correct row counts, type detection, top values
-csvplot summarise -f data/projects.csv
+cplt summarise -f data/projects.csv
 ```
 
 ### Filtering validated
@@ -151,66 +151,66 @@ csvplot summarise -f data/projects.csv
 # All commands used during this review (all with --format compact where supported)
 
 # timeline
-csvplot timeline -f data/projects.csv --x start_date --x end_date --y project --color status --format compact
-csvplot timeline -f data/projects.csv --x start_date --x end_date --y project --color status --where "status=Done" --format compact
-csvplot timeline -f data/projects.csv --x start_date --x end_date --y project --where-not "status=Planning" --format compact
-csvplot timeline -f data/projects.csv --x start_date --x end_date --y project --color status --marker 2026-01-01 --marker-label "New Year" --format compact
-csvplot timeline -f data/projects.csv --x start_date --x end_date --y team --y project --color status --format compact
-csvplot timeline -f data/projects.csv --x start_date --x end_date --y team --y-detail project --color status --format compact
-csvplot timeline -f data/projects.csv --x start_date --x end_date --y project --txt status --format compact
-csvplot timeline -f data/projects.csv --x start_date --x end_date --y project --from 2026-01-01 --to 2026-04-01 --format compact
-csvplot timeline -f data/projects.csv --x start_date --x end_date --y project --where "team=Backend" --where "status=Done" --format compact
-csvplot timeline -f data/projects.csv --x start_date --x end_date --y project --where "team=Backend" --where-not "status=Done" --format compact
-csvplot timeline -f data/timeplot.csv --x EN_START_DATETIME --x EA_END_DATETIME --y DN_BRONSLEUTEL --format compact
-csvplot timeline -f data/timeplot.csv --x EN_START_DATETIME --x EA_END_DATETIME --y DN_BRONSLEUTEL --no-open-end --format compact
-csvplot timeline -f data/timeplot.csv --x DH_PV_STARTDATUM --x DH_PV_EINDDATUM --x EN_START_DATETIME --x EA_END_DATETIME --y DH_FACING_NUMMER --color SH_ARTIKEL_S1 --marker 2025-01-22 --marker-label "wissel-datum" --format compact
+cplt timeline -f data/projects.csv --x start_date --x end_date --y project --color status --format compact
+cplt timeline -f data/projects.csv --x start_date --x end_date --y project --color status --where "status=Done" --format compact
+cplt timeline -f data/projects.csv --x start_date --x end_date --y project --where-not "status=Planning" --format compact
+cplt timeline -f data/projects.csv --x start_date --x end_date --y project --color status --marker 2026-01-01 --marker-label "New Year" --format compact
+cplt timeline -f data/projects.csv --x start_date --x end_date --y team --y project --color status --format compact
+cplt timeline -f data/projects.csv --x start_date --x end_date --y team --y-detail project --color status --format compact
+cplt timeline -f data/projects.csv --x start_date --x end_date --y project --txt status --format compact
+cplt timeline -f data/projects.csv --x start_date --x end_date --y project --from 2026-01-01 --to 2026-04-01 --format compact
+cplt timeline -f data/projects.csv --x start_date --x end_date --y project --where "team=Backend" --where "status=Done" --format compact
+cplt timeline -f data/projects.csv --x start_date --x end_date --y project --where "team=Backend" --where-not "status=Done" --format compact
+cplt timeline -f data/timeplot.csv --x EN_START_DATETIME --x EA_END_DATETIME --y DN_BRONSLEUTEL --format compact
+cplt timeline -f data/timeplot.csv --x EN_START_DATETIME --x EA_END_DATETIME --y DN_BRONSLEUTEL --no-open-end --format compact
+cplt timeline -f data/timeplot.csv --x DH_PV_STARTDATUM --x DH_PV_EINDDATUM --x EN_START_DATETIME --x EA_END_DATETIME --y DH_FACING_NUMMER --color SH_ARTIKEL_S1 --marker 2025-01-22 --marker-label "wissel-datum" --format compact
 
 # bar
-csvplot bar -f data/titanic.csv -c Pclass --format compact
-csvplot bar -f data/titanic.csv -c Sex --where "Sex=MALE" --format compact
-csvplot bar -f data/titanic.csv -c Sex --where "sex=male" --format compact
-csvplot bar -f data/titanic.csv -c Sex --where "SEX=female" --format compact
-csvplot bar -f data/titanic.csv -c Embarked --sort none --format compact
-csvplot bar -f data/titanic.csv -c Embarked --sort value --format compact
-csvplot bar -f data/titanic.csv -c Embarked --sort label --format compact
-csvplot bar -f data/titanic.csv -c Pclass --top 2 --format compact
-csvplot bar -f data/titanic.csv -c Pclass --horizontal --format compact
-csvplot bar -f data/titanic.csv -c Pclass --sort label --format compact
-csvplot bar -f data/titanic.csv -c Pclass --where "Sex=male" --where "Embarked=S" --format compact
-csvplot bar -f data/titanic.csv -c Pclass --where "Pclass=999" --format compact
+cplt bar -f data/titanic.csv -c Pclass --format compact
+cplt bar -f data/titanic.csv -c Sex --where "Sex=MALE" --format compact
+cplt bar -f data/titanic.csv -c Sex --where "sex=male" --format compact
+cplt bar -f data/titanic.csv -c Sex --where "SEX=female" --format compact
+cplt bar -f data/titanic.csv -c Embarked --sort none --format compact
+cplt bar -f data/titanic.csv -c Embarked --sort value --format compact
+cplt bar -f data/titanic.csv -c Embarked --sort label --format compact
+cplt bar -f data/titanic.csv -c Pclass --top 2 --format compact
+cplt bar -f data/titanic.csv -c Pclass --horizontal --format compact
+cplt bar -f data/titanic.csv -c Pclass --sort label --format compact
+cplt bar -f data/titanic.csv -c Pclass --where "Sex=male" --where "Embarked=S" --format compact
+cplt bar -f data/titanic.csv -c Pclass --where "Pclass=999" --format compact
 
 # line
-csvplot line -f data/temperatures.csv --x Date --y Temp --format compact
-csvplot line -f data/temperatures.csv --x Date --y Temp --head 100 --format compact
-csvplot line -f data/temperatures.csv --x Date --y Temp --where "Temp=ZZZ" --format compact
-csvplot line -f /tmp/test_blank_dates.csv --x Date --y Temp --format compact
+cplt line -f data/temperatures.csv --x Date --y Temp --format compact
+cplt line -f data/temperatures.csv --x Date --y Temp --head 100 --format compact
+cplt line -f data/temperatures.csv --x Date --y Temp --where "Temp=ZZZ" --format compact
+cplt line -f /tmp/test_blank_dates.csv --x Date --y Temp --format compact
 
 # bubble
-csvplot bubble -f data/titanic.csv --cols Cabin --cols Age --cols Embarked --y Name --head 8
-csvplot bubble -f data/titanic.csv --cols Cabin Age Embarked --y Name --head 3  # expected failure
-csvplot bubble -f data/titanic.csv --cols Cabin --cols Age --cols Embarked --y Name --top 2 --head 8
-csvplot bubble -f data/titanic.csv --cols Cabin --cols Age --cols Embarked --y Name --color Pclass --head 10
+cplt bubble -f data/titanic.csv --cols Cabin --cols Age --cols Embarked --y Name --head 8
+cplt bubble -f data/titanic.csv --cols Cabin Age Embarked --y Name --head 3  # expected failure
+cplt bubble -f data/titanic.csv --cols Cabin --cols Age --cols Embarked --y Name --top 2 --head 8
+cplt bubble -f data/titanic.csv --cols Cabin --cols Age --cols Embarked --y Name --color Pclass --head 10
 
 # summarise
-csvplot summarise -f data/projects.csv
-csvplot summarise -f data/titanic.csv --head 10
-csvplot summarise -f data/temperatures.csv
-csvplot summarise -f data/titanic.csv --where "Sex=male"
-csvplot summarise -f data/projects.csv --sample 3
+cplt summarise -f data/projects.csv
+cplt summarise -f data/titanic.csv --head 10
+cplt summarise -f data/temperatures.csv
+cplt summarise -f data/titanic.csv --where "Sex=male"
+cplt summarise -f data/projects.csv --sample 3
 
 # edge case: open-end with bad data
-csvplot timeline -f /tmp/test_bad_end.csv --x start --x end --y name --format compact
-csvplot timeline -f /tmp/test_bad_end.csv --x start --x end --y name --open-end --format compact
-csvplot timeline -f /tmp/test_empty_end.csv --x start --x end --y name --format compact
-csvplot timeline -f /tmp/test_sentinel_end.csv --x start --x end --y name --format compact
+cplt timeline -f /tmp/test_bad_end.csv --x start --x end --y name --format compact
+cplt timeline -f /tmp/test_bad_end.csv --x start --x end --y name --open-end --format compact
+cplt timeline -f /tmp/test_empty_end.csv --x start --x end --y name --format compact
+cplt timeline -f /tmp/test_sentinel_end.csv --x start --x end --y name --format compact
 
 # error handling
-csvplot bar -f data/nonexistent.csv -c Pclass --format compact
-csvplot bar -f data/titanic.csv -c NonExistentCol --format compact
-csvplot bar -f data/titanic.csv -c Pclass --where "badformat" --format compact
-csvplot line -f data/temperatures.csv --x Date --y Temp --where "Temp=ZZZ" --format compact
+cplt bar -f data/nonexistent.csv -c Pclass --format compact
+cplt bar -f data/titanic.csv -c NonExistentCol --format compact
+cplt bar -f data/titanic.csv -c Pclass --where "badformat" --format compact
+cplt line -f data/temperatures.csv --x Date --y Temp --where "Temp=ZZZ" --format compact
 ```
 
 ## Verdict
 
-csvplot is solid and well-tested. The core data pipeline (CSV → loader → spec → render) is correct across all 5 commands and all bundled datasets. Filtering, sorting, multi-layer timelines, open-end handling, and error cases all behave as expected. The main remaining gaps are UX polish items (compact decimal formatting, summarise legend, docs completeness) and a missing warning for silently dropped rows with bad end dates.
+cplt is solid and well-tested. The core data pipeline (CSV → loader → spec → render) is correct across all 5 commands and all bundled datasets. Filtering, sorting, multi-layer timelines, open-end handling, and error cases all behave as expected. The main remaining gaps are UX polish items (compact decimal formatting, summarise legend, docs completeness) and a missing warning for silently dropped rows with bad end dates.

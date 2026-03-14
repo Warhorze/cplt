@@ -6,12 +6,12 @@
 
 ## CLI Path Map
 
-Every invocation follows: `csvplot <command> -f <file> <required args> [optional args] --format <fmt>`
+Every invocation follows: `cplt <command> -f <file> <required args> [optional args] --format <fmt>`
 
 Below is the full branching tree. **Bold** = required, `[brackets]` = optional, `{a|b}` = choice.
 
 ```
-csvplot
+cplt
 ├── timeline -f FILE
 │   ├── --x COL --x COL                          ← required, must be even count (pairs)
 │   │   └── [--x COL --x COL ...]                ← additional layers (layer 1, 2, ...)

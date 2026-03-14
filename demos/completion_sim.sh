@@ -3,11 +3,11 @@
 # Run via: bash demos/completion_sim.sh
 source "$(dirname "$0")/lib.sh"
 
-CMD="csvplot bar --file data/titanic.csv --column Embarked --where"
+CMD="cplt bar --file data/titanic.csv --column Embarked --where"
 
 # Stage 1: type command with flag completions + column discovery, then show --where completions
 printf '%s' "$PROMPT"
-simulate_type "csvplot "
+simulate_type "cplt "
 simulate_tab "ba" "bar"
 simulate_type " "
 simulate_tab "--fi" "--file"
@@ -23,7 +23,7 @@ echo ""
 echo "Age          Cabin        Embarked     Fare         Name         Parch"
 echo "PassengerId  Pclass       Sex          SibSp        Survived     Ticket"
 printf '%s' "$PROMPT"
-printf '%s' "csvplot bar --file data/titanic.csv --column "
+printf '%s' "cplt bar --file data/titanic.csv --column "
 sleep 2
 simulate_type "Embarked"
 simulate_type " "

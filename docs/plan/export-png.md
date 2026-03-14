@@ -1,8 +1,8 @@
-# Plan: Add `--export <path>` PNG export to csvplot
+# Plan: Add `--export <path>` PNG export to cplt
 
 ## Context
 
-csvplot renders charts to the terminal using ANSI escape codes (plotext for timeline/bar/line, Rich for bubble/summarise). Users want to save these as PNG images for sharing in docs, Slack, etc. Pillow is already a dependency. Earlier research evaluated Rich SVG (broken braille/box glyphs, cairo crashes), ansitoimg (same issues + playwright dep), and Pillow direct rendering (works for all chart types). Pillow won.
+cplt renders charts to the terminal using ANSI escape codes (plotext for timeline/bar/line, Rich for bubble/summarise). Users want to save these as PNG images for sharing in docs, Slack, etc. Pillow is already a dependency. Earlier research evaluated Rich SVG (broken braille/box glyphs, cairo crashes), ansitoimg (same issues + playwright dep), and Pillow direct rendering (works for all chart types). Pillow won.
 
 ## Scope
 
@@ -26,7 +26,7 @@ For Rich charts (bubble, summarise): use `Console(record=True)` to capture ANSI 
 
 ## Implementation Steps
 
-### Step 1: Add ANSI → PNG renderer (`src/csvplot/export.py`)
+### Step 1: Add ANSI → PNG renderer (`src/cplt/export.py`)
 
 New module with a single public function:
 
@@ -49,7 +49,7 @@ TDD tests in `tests/test_export.py`:
 4. `test_ansi_parser_256_color` — parser handles `38;5;N`
 5. `test_braille_rendering` — braille chars produce non-background pixels in expected dot positions
 
-### Step 2: Wire `--export` into CLI (`src/csvplot/cli.py`)
+### Step 2: Wire `--export` into CLI (`src/cplt/cli.py`)
 
 Add `--export` option to all 5 commands. Pattern:
 
@@ -122,17 +122,17 @@ Render at 2× font size, downscale with `Image.LANCZOS`. 2× is the sweet spot �
 
 | File | Action |
 |------|--------|
-| `src/csvplot/export.py` | **New** — ANSI parser + Pillow cell-grid PNG renderer |
-| `src/csvplot/cli.py` | Add `--export` option to all 5 commands + Rich ANSI capture helper |
+| `src/cplt/export.py` | **New** — ANSI parser + Pillow cell-grid PNG renderer |
+| `src/cplt/cli.py` | Add `--export` option to all 5 commands + Rich ANSI capture helper |
 | `tests/test_export.py` | **New** — unit tests for ANSI parser, braille renderer, PNG output |
 | `tests/test_export_integration.py` | **New** — CLI integration tests for `--export` flag |
 
 ## Verification
 
 1. `uv run pytest` — all tests pass
-2. `uv run csvplot bar -f data/titanic.csv -c Embarked --export /tmp/bar.png` — creates PNG, opens correctly
-3. `uv run csvplot timeline -f data/projects.csv --x start_date --x end_date --y project --export /tmp/timeline.png` — braille segments visible
-4. `uv run csvplot line -f data/temperatures.csv --x Date --y Temp --head 40 --export /tmp/line.png` — braille line visible
-5. `uv run csvplot bubble -f data/titanic.csv --cols Cabin --cols Age --y Name --head 12 --export /tmp/bubble.png` — Rich table rendered
-6. `uv run csvplot summarise -f data/titanic.csv --export /tmp/summarise.png` — Rich table rendered
-7. `uv run csvplot bar -f data/titanic.csv -c Embarked --format compact --export /tmp/x.png` — errors cleanly
+2. `uv run cplt bar -f data/titanic.csv -c Embarked --export /tmp/bar.png` — creates PNG, opens correctly
+3. `uv run cplt timeline -f data/projects.csv --x start_date --x end_date --y project --export /tmp/timeline.png` — braille segments visible
+4. `uv run cplt line -f data/temperatures.csv --x Date --y Temp --head 40 --export /tmp/line.png` — braille line visible
+5. `uv run cplt bubble -f data/titanic.csv --cols Cabin --cols Age --y Name --head 12 --export /tmp/bubble.png` — Rich table rendered
+6. `uv run cplt summarise -f data/titanic.csv --export /tmp/summarise.png` — Rich table rendered
+7. `uv run cplt bar -f data/titanic.csv -c Embarked --format compact --export /tmp/x.png` — errors cleanly

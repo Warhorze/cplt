@@ -2,7 +2,7 @@
 
 ## Context
 
-As csvplot grows more options per command, option interactions create unexpected or under-specified behavior. Tests were added per-feature, not per-combination. This plan documents actual current behavior, proposes a pipeline-stage approach to tame the combinatorial complexity, and defines expected behavior for every option pair.
+As cplt grows more options per command, option interactions create unexpected or under-specified behavior. Tests were added per-feature, not per-combination. This plan documents actual current behavior, proposes a pipeline-stage approach to tame the combinatorial complexity, and defines expected behavior for every option pair.
 
 ---
 

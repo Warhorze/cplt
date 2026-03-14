@@ -1,6 +1,6 @@
-site_name: csvplot
+site_name: cplt
 site_description: Terminal-first CSV plotting and summarisation CLI
-repo_url: https://github.com/Warhorze/csvplot
+repo_url: https://github.com/Warhorze/cplt
 
 theme:
   name: material

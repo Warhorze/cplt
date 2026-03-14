@@ -9,7 +9,7 @@ This file is kept for the MkDocs site. See DEVELOPERS.md for the full architectu
 Data flows linearly: **CLI args → reader → PlotSpec → renderer → terminal**
 
 ```text
-src/csvplot/
+src/cplt/
   cli.py          # Typer command definitions + arg validation
   reader.py       # timeline/bar/line CSV loaders + datetime parsing + row filters
   bubble.py       # bubble matrix loader + falsy detection

@@ -19,8 +19,8 @@ if [[ -d "$REPO_ROOT/.venv/bin" ]]; then
     export PATH="$REPO_ROOT/.venv/bin:$PATH"
 fi
 
-if ! command -v csvplot &>/dev/null; then
-    echo "Error: csvplot is not available on PATH."
+if ! command -v cplt &>/dev/null; then
+    echo "Error: cplt is not available on PATH."
     echo "Try one of:"
     echo "  source .venv/bin/activate && pip install -e ."
     echo "  pip install -e ."

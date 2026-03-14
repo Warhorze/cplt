@@ -1,7 +1,7 @@
 #!/bin/bash
 # Shared helpers for demo simulation scripts.
 
-# Ensure csvplot is available (add venv to PATH if present).
+# Ensure cplt is available (add venv to PATH if present).
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 if [[ -d "$REPO_ROOT/.venv/bin" ]]; then
     export PATH="$REPO_ROOT/.venv/bin:$PATH"

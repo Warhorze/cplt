@@ -1,15 +1,15 @@
-# csvplot
+# cplt
 
-[![PyPI](https://img.shields.io/pypi/v/csvplot)](https://pypi.org/project/csvplot/)
+[![PyPI](https://img.shields.io/pypi/v/cplt)](https://pypi.org/project/cplt/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![CI](https://github.com/Warhorze/csvplot/actions/workflows/ci.yml/badge.svg)](https://github.com/Warhorze/csvplot/actions/workflows/ci.yml)
+[![CI](https://github.com/Warhorze/cplt/actions/workflows/ci.yml/badge.svg)](https://github.com/Warhorze/cplt/actions/workflows/ci.yml)
 
 Plot CSV files directly in your terminal.
 Zero GUI. Zero notebooks. Just your CLI.
 
-## Why csvplot
+## Why cplt
 
-Most terminal plotting tools handle bars and lines, but not timeline ranges from CSV start/end columns. `csvplot` focuses on that workflow while still covering the common chart types:
+Most terminal plotting tools handle bars and lines, but not timeline ranges from CSV start/end columns. `cplt` focuses on that workflow while still covering the common chart types:
 
 - `timeline` for Gantt-style range plots
 - `bar` for value-count distribution
@@ -20,24 +20,24 @@ Most terminal plotting tools handle bars and lines, but not timeline ranges from
 ## Get Started In 30 Seconds
 
 ```bash
-pip install csvplot
-csvplot timeline -f data/projects.csv --x planned_start --x planned_end --y project
+pip install cplt
+cplt timeline -f data/projects.csv --x planned_start --x planned_end --y project
 ```
 
 ## Install
 
 ```bash
-pip install csvplot
+pip install cplt
 # or
-pipx install csvplot
+pipx install cplt
 ```
 
-Standalone binaries are available from the [latest GitHub release](https://github.com/Warhorze/csvplot/releases/latest).
+Standalone binaries are available from the [latest GitHub release](https://github.com/Warhorze/cplt/releases/latest).
 
 Enable shell completion after install:
 
 ```bash
-csvplot --install-completion
+cplt --install-completion
 ```
 
 ## What It Looks Like
@@ -82,13 +82,13 @@ Quick column profiling — types, nulls, uniques, and top values at a glance.
 
 ```bash
 # 1) inspect columns and data quality
-csvplot summarise -f data/projects.csv
+cplt summarise -f data/projects.csv
 
 # 2) make your first timeline
-csvplot timeline -f data/projects.csv --x planned_start --x planned_end --y project
+cplt timeline -f data/projects.csv --x planned_start --x planned_end --y project
 
 # 3) filter rows
-csvplot bar -f data/titanic.csv -c Embarked --where "Sex=female"
+cplt bar -f data/titanic.csv -c Embarked --where "Sex=female"
 ```
 
 ## Output Modes
@@ -102,7 +102,7 @@ All plotting and summary commands support `--format`:
 Example:
 
 ```bash
-csvplot bar -f data/titanic.csv -c Sex --format compact
+cplt bar -f data/titanic.csv -c Sex --format compact
 ```
 
 ## Docs

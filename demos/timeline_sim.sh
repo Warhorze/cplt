@@ -4,16 +4,16 @@ source "$(dirname "$0")/lib.sh"
 
 # Show subcommand completion + help
 printf '%s' "$PROMPT"
-simulate_type "csvplot "
+simulate_type "cplt "
 simulate_tab "ti" "timeline"
 simulate_type " --help"
 echo ""
-csvplot timeline --help
+cplt timeline --help
 sleep 2
 
 # Clear and build the actual command
 printf '%s' "$PROMPT"
-simulate_type "csvplot "
+simulate_type "cplt "
 simulate_tab "ti" "timeline"
 simulate_type " "
 simulate_tab "--fi" "--file"
@@ -28,7 +28,7 @@ sleep 1
 echo ""
 echo "start_date  end_date"
 printf '%s' "$PROMPT"
-printf '%s' "csvplot timeline --file data/projects.csv --x "
+printf '%s' "cplt timeline --file data/projects.csv --x "
 sleep 2
 simulate_type "start_date"
 simulate_type " --x "
@@ -41,7 +41,7 @@ sleep 1
 echo ""
 echo "end_date    project     start_date  status      team"
 printf '%s' "$PROMPT"
-printf '%s' "csvplot timeline --file data/projects.csv --x start_date --x end_date --y "
+printf '%s' "cplt timeline --file data/projects.csv --x start_date --x end_date --y "
 sleep 2
 simulate_type "project"
 simulate_type " "
@@ -51,5 +51,5 @@ simulate_tab "sta" "status"
 simulate_type " --vline 2026-02-20 --label today"
 sleep 0.5
 echo ""
-csvplot timeline --file data/projects.csv --x start_date --x end_date --y project --color status --vline 2026-02-20 --label today
+cplt timeline --file data/projects.csv --x start_date --x end_date --y project --color status --vline 2026-02-20 --label today
 sleep 3

@@ -1,11 +1,11 @@
-# csvplot Improvement Plan — Based on Tester Feedback
+# cplt Improvement Plan — Based on Tester Feedback
 
 > Note: The original sections in this file are historical planning notes from earlier implementation phases.
 > For current priorities, use the **UX Consistency Pass (2026-02-15)** section near the end.
 
 ## Context
 
-After initial implementation, a tester exercised csvplot with `data/timeplot2.csv` (3 rows sharing `DH_FACING_NUMMER=2006`). The core problem: segments with the same `--y` value pile on one line and become unreadable. Secondary issues include duplicate legend entries, text label overlap, and subtle layer distinction. This plan addresses all 6 actionable items from `feedback.md`.
+After initial implementation, a tester exercised cplt with `data/timeplot2.csv` (3 rows sharing `DH_FACING_NUMMER=2006`). The core problem: segments with the same `--y` value pile on one line and become unreadable. Secondary issues include duplicate legend entries, text label overlap, and subtle layer distinction. This plan addresses all 6 actionable items from `feedback.md`.
 
 ---
 
@@ -59,7 +59,7 @@ Additionally, add a **`--y-detail <col>`** CLI option that appends a secondary c
 - `models.py`: no changes needed (y_label is already a string, composite labels work)
 
 **User Suggestion**:
-Try to ensure each row is an individual line in the graph this should be the default behavior, later we'll probably add options to add aggregations (similar to sql sum, min/max enc. to tell csvplot how to handle multiple instances)
+Try to ensure each row is an individual line in the graph this should be the default behavior, later we'll probably add options to add aggregations (similar to sql sum, min/max enc. to tell cplt how to handle multiple instances)
 
 ---
 
@@ -165,11 +165,11 @@ The `--txt` option exists in the CLI but is missing from the CLI reference table
 ## Verification
 
 1. **Regression**: `pytest` passes (existing tests untouched)
-2. **Overlap fix**: `csvplot timeline -f data/timeplot2.csv --x DH_PV_STARTDATUM --x DH_PV_EINDDATUM --x EN_START_DATETIME --x EA_END_DATETIME --y DH_FACING_NUMMER --color SH_ARTIKEL_S1 --txt SH_ARTIKEL_S1` — segments visually separated on distinct sub-rows
+2. **Overlap fix**: `cplt timeline -f data/timeplot2.csv --x DH_PV_STARTDATUM --x DH_PV_EINDDATUM --x EN_START_DATETIME --x EA_END_DATETIME --y DH_FACING_NUMMER --color SH_ARTIKEL_S1 --txt SH_ARTIKEL_S1` — segments visually separated on distinct sub-rows
 3. **Legend**: same command — each color_key appears once per layer in legend
 4. **Text labels**: same command — labels don't overlap
 5. **`--y-detail`**: `--y DH_FACING_NUMMER --y-detail SH_ARTIKEL_S1` — creates composite y-labels
-6. **`--head`**: `csvplot timeline -f data/timeplot.csv --x ... --y ... --head 3` — only first 3 rows plotted
+6. **`--head`**: `cplt timeline -f data/timeplot.csv --x ... --y ... --head 3` — only first 3 rows plotted
 7. **Different y-column still works**: `--y SH_ARTIKEL_S1` (unique values) — renders as before, no sub-row stacking needed
 
 ---
@@ -184,21 +184,21 @@ Address current UX inconsistencies validated from CLI behavior and docs.
 
 1. **Unify `--format` help text and validation across commands**
    - Ensure `bar`, `line`, `summarise`, and `bubble` advertise and validate `visual | semantic | compact`, matching `timeline`.
-   - Files: `src/csvplot/cli.py`, `README.md`
+   - Files: `src/cplt/cli.py`, `README.md`
 
 2. **Align option contracts with actual behavior**
    - Keep explicit “visual format only” wording for options that do not affect compact output (for example `timeline --txt`, `bar --horizontal`).
    - Add brief README notes so mode-specific behavior is discoverable before trial-and-error.
-   - Files: `src/csvplot/cli.py`, `README.md`
+   - Files: `src/cplt/cli.py`, `README.md`
 
 3. **Fix `bubble --color` behavior**
    - Implement row color mapping in visual/semantic bubble output so `--color` has a visible effect.
    - Keep compact output colorless and document this clearly.
-   - Files: `src/csvplot/cli.py`, `src/csvplot/bubble.py` (if helper logic is needed), tests
+   - Files: `src/cplt/cli.py`, `src/cplt/bubble.py` (if helper logic is needed), tests
 
 4. **Make `--where` completion consistent with runtime matching**
    - Update completion to resolve typed column names case-insensitively while preserving canonical CSV casing in suggestions.
-   - Files: `src/csvplot/completions.py`, tests
+   - Files: `src/cplt/completions.py`, tests
 
 5. **Refresh internal planning/docs to reduce drift**
    - Update or archive stale statements in planning docs that no longer reflect current command set and implementation state.

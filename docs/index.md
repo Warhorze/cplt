@@ -1,6 +1,6 @@
-# csvplot Docs
+# cplt Docs
 
-csvplot is a terminal-first CLI for plotting and summarising CSV files.
+cplt is a terminal-first CLI for plotting and summarising CSV files.
 
 ## References
 

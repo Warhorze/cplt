@@ -33,11 +33,11 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            artifact: csvplot-linux-amd64
+            artifact: cplt-linux-amd64
           - os: macos-latest
-            artifact: csvplot-macos-arm64
+            artifact: cplt-macos-arm64
           - os: windows-latest
-            artifact: csvplot-windows-amd64.exe
+            artifact: cplt-windows-amd64.exe
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -45,7 +45,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install . pyinstaller
-      - run: pyinstaller --onefile --name ${{ matrix.artifact }} src/csvplot/__main__.py
+      - run: pyinstaller --onefile --name ${{ matrix.artifact }} src/cplt/__main__.py
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
