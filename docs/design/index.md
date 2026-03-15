@@ -7,6 +7,7 @@ Each plot type has its own design doc with acceptance criteria, review scenarios
 - [Timeline](timeline.md)
 - [Bar](bar.md)
 - [Line](line.md)
+- [Hist](hist.md)
 - [Bubble](bubble.md)
 
 ## Review Workflow
