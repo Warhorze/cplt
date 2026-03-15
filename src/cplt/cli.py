@@ -16,12 +16,13 @@ from cplt.models import Dot, PlotSpec, VLine
 from cplt.reader import (
     load_bar_data,
     load_dots,
+    load_hist_data,
     load_line_data,
     load_segments,
     parse_datetime,
     parse_where,
 )
-from cplt.renderer import render, render_bar, render_line
+from cplt.renderer import render, render_bar, render_hist, render_line
 from cplt.summarise import TOP_N_VALUES, ColumnSummary, summarise_csv
 from cplt.theme import hex_color as _hex_color
 
@@ -661,6 +662,115 @@ def line(
             canvas = _require_canvas(render_line(spec, build=True))
             export_png(canvas, export)
         render_line(spec)
+
+
+@app.command()
+def hist(
+    file: Annotated[
+        Path,
+        typer.Option("--file", "-f", help="Path to CSV file", exists=True, dir_okay=False),
+    ],
+    column: Annotated[
+        str,
+        typer.Option(
+            "--column",
+            "-c",
+            help="Numeric column to histogram",
+            autocompletion=complete_column,
+        ),
+    ],
+    bins: Annotated[
+        int | None,
+        typer.Option("--bins", min=1, help="Number of bins (auto if not set)"),
+    ] = None,
+    head: Annotated[
+        int | None,
+        typer.Option("--head", min=1, help="Only read the first N CSV rows"),
+    ] = None,
+    title: Annotated[
+        str | None,
+        typer.Option("--title", help="Chart title (defaults to filename)"),
+    ] = None,
+    where: Annotated[
+        Optional[list[str]],
+        typer.Option(
+            "--where",
+            help="Filter rows: COL=value (case-insensitive)",
+            autocompletion=complete_where,
+        ),
+    ] = None,
+    where_not: Annotated[
+        Optional[list[str]],
+        typer.Option(
+            "--where-not",
+            help="Exclude rows: COL=value (case-insensitive)",
+            autocompletion=complete_where,
+        ),
+    ] = None,
+    export: Annotated[
+        str | None,
+        typer.Option("--export", help="Export chart to PNG file"),
+    ] = None,
+    format_opt: Annotated[
+        str,
+        typer.Option("--format", help="Output format: visual, semantic, or compact"),
+    ] = "visual",
+) -> None:
+    """Plot a histogram of a numeric CSV column."""
+    _validate_format(format_opt)
+    _validate_export(export, format_opt)
+
+    # Parse --where / --where-not expressions
+    wheres: list[tuple[str, str]] = []
+    where_nots: list[tuple[str, str]] = []
+    try:
+        for expr in where or []:
+            wheres.append(parse_where(expr))
+        for expr in where_not or []:
+            where_nots.append(parse_where(expr))
+    except ValueError as e:
+        rprint(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
+
+    chart_title = title if title else file.stem
+
+    try:
+        spec = load_hist_data(
+            path=file,
+            column=column,
+            bins=bins,
+            max_rows=head,
+            title=chart_title,
+            wheres=wheres or None,
+            where_nots=where_nots or None,
+        )
+    except KeyError as e:
+        rprint(f"[red]Error:[/red] {_format_key_error(e)}")
+        raise typer.Exit(1)
+    except ValueError as e:
+        rprint(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
+
+    if not spec.bin_counts:
+        rprint("[yellow]Warning:[/yellow] No numeric data found in the column.")
+        raise typer.Exit(0)
+
+    if format_opt == "compact":
+        from cplt.compact import compact_hist
+
+        print(compact_hist(spec))
+    elif format_opt == "semantic":
+        from cplt.semantic import strip_ansi
+
+        canvas = _require_canvas(render_hist(spec, build=True))
+        print(strip_ansi(canvas))
+    else:
+        if export:
+            from cplt.export import export_png
+
+            canvas = _require_canvas(render_hist(spec, build=True))
+            export_png(canvas, export)
+        render_hist(spec)
 
 
 @app.command()
