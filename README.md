@@ -97,6 +97,8 @@ Plot the distribution of a numeric column with automatic binning and statistics 
 cplt hist -f data/titanic.csv -c Age --bins 10
 ```
 
+<!-- TODO: generate assets/images/hist.png and add ![Histogram output](assets/images/hist.png) -->
+
 ### Bubble Matrix
 
 Spot missing data patterns across columns. Rows are labeled, columns are presence/absence dots, colored by group.
