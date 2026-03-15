@@ -85,10 +85,12 @@ When `detected_type == "numeric"` and `unique_count > category_threshold`:
 
 ## Verification
 
-1. `uv run pytest` — all tests pass
-2. `uv run cplt summarise -f data/titanic.csv --format compact` — verify:
-   - PassengerId/Name show as ID (`(all unique)`)
-   - Survived/Pclass/Sex/Embarked show stacked bar graphs with percentages
-   - Age/Fare show sparkline histograms
-3. `uv run cplt summarise -f data/titanic.csv --format compact --category 5` — threshold tuning works
-4. `uv run ruff check src/ tests/ && uv run pyright`
+1. `uv run pytest` — all tests pass (496 passed)
+2. `uv run cplt summarise -f data/titanic.csv --format compact` — verified:
+   - PassengerId/Name show as ID (`(all unique)`) ✅
+   - Survived/Pclass/Sex/Embarked show percentages ✅
+   - Age/Fare show sparkline histograms ✅
+3. `uv run cplt summarise -f data/titanic.csv --format compact --category 5` — threshold tuning works ✅
+4. `uv run ruff check src/ tests/ && uv run pyright` — clean ✅
+
+## Status: DELIVERED
