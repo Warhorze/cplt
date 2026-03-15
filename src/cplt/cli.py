@@ -22,7 +22,7 @@ from cplt.reader import (
     parse_where,
 )
 from cplt.renderer import render, render_bar, render_line
-from cplt.summarise import ColumnSummary, summarise_csv
+from cplt.summarise import TOP_N_VALUES, ColumnSummary, summarise_csv
 
 app = typer.Typer(
     name="cplt",
@@ -81,27 +81,20 @@ _SPARK_CHARS = "▁▂▃▄▅▆▇█"
 def _visual_distribution_str(s: ColumnSummary) -> str:
     """Build the Distribution cell for visual Rich table rendering."""
     if s.is_id:
-        return "[dim](all unique)[/dim]"
+        return "[dim]all unique[/dim]"
     if s.is_categorical and s.top_values:
         total = s.non_null_count
-        entries: list[tuple[str, int]] = list(s.top_values[:5])
+        entries: list[tuple[str, int]] = list(s.top_values[:TOP_N_VALUES])
         shown = sum(c for _, c in entries)
         remainder = total - shown
         if remainder > 0:
             entries.append(("other", remainder))
-        # Stacked bar (40 chars)
-        bar_width = 40
-        bar_parts: list[str] = []
-        legend_parts: list[str] = []
+        parts: list[str] = []
         for i, (val, count) in enumerate(entries):
             pct = round(100 * count / total) if total > 0 else 0
-            chars = max(1, round(count / total * bar_width)) if total > 0 else 0
             color = _DIST_COLORS[i % len(_DIST_COLORS)]
-            bar_parts.append(f"[{color}]{'█' * chars}[/{color}]")
-            legend_parts.append(f"[{color}]{val}[/{color}]  {pct}%")
-        bar_line = "".join(bar_parts)
-        legend = "\n".join(legend_parts)
-        return f"{bar_line}\n{legend}"
+            parts.append(f"[{color}]{val}[/{color}] {pct}%")
+        return ", ".join(parts)
     if s.histogram_bins is not None and len(s.histogram_bins) > 0:
         bins = s.histogram_bins
         max_bin = max(bins)
@@ -117,7 +110,7 @@ def _visual_distribution_str(s: ColumnSummary) -> str:
     if s.high_cardinality:
         return "[dim]>10K unique[/dim]"
     if s.top_values:
-        return ", ".join(f"{v}({c})" for v, c in s.top_values[:5])
+        return ", ".join(f"{v}({c})" for v, c in s.top_values[:TOP_N_VALUES])
     return ""
 
 
@@ -806,9 +799,6 @@ def summarise(
         dq_table.add_column("Formats")
         if show_whitespace:
             dq_table.add_column("Whitespace", justify="right")
-        dq_table.add_column("Mixed Types")
-        dq_table.add_column("Mixed Examples")
-
         for s in summaries:
             cells = [
                 s.name,
@@ -826,12 +816,6 @@ def summarise(
             )
             if show_whitespace:
                 cells.append(str(s.whitespace_count))
-            cells.extend(
-                [
-                    s.mixed_type_pct or "-",
-                    ", ".join(s.mixed_type_examples) or "-",
-                ]
-            )
             dq_table.add_row(*cells)
 
         # Build sample table if requested

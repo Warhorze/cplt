@@ -647,9 +647,8 @@ class TestCompactSummarise:
         assert "YYYY-MM-DD(8)" in out
         # Whitespace shown (>0 across columns)
         assert "Whitespace" in out
-        # Mixed types
-        assert "80% text" in out
-        assert "123, 456" in out
+        # Mixed types columns removed — no longer shown
+        assert "Mixed Types" not in out
 
     def test_data_quality_hides_zero_only_columns(self):
         """Sentinels/Whitespace columns hidden when all zeros."""
@@ -684,7 +683,7 @@ class TestCompactSummariseSmartDistribution:
         assert "Top Values (freq)" not in out
 
     def test_id_column_shows_all_unique(self):
-        """ID columns show '(all unique)' in Distribution."""
+        """ID columns show 'all unique' in Distribution."""
         summaries = [
             ColumnSummary(
                 name="id",
@@ -696,7 +695,7 @@ class TestCompactSummariseSmartDistribution:
             ),
         ]
         out = compact_summarise(summaries, title="t.csv")
-        assert "(all unique)" in out
+        assert "all unique" in out
 
     def test_categorical_shows_percentages(self):
         """Categorical columns show value percentages."""

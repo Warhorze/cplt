@@ -6,7 +6,7 @@ from collections import defaultdict
 
 from cplt.bubble import BubbleSpec, GroupedBubbleSpec, column_fill_rates
 from cplt.models import BarSpec, Dot, LineSpec, PlotSpec, Segment
-from cplt.summarise import ColumnSummary
+from cplt.summarise import TOP_N_VALUES, ColumnSummary
 
 
 def rle_encode(chars: list[str]) -> str:
@@ -353,12 +353,12 @@ def compact_bubble_grouped(spec: GroupedBubbleSpec, title: str = "cplt") -> str:
 def _distribution_str(s: ColumnSummary) -> str:
     """Build the Distribution cell for a ColumnSummary."""
     if s.is_id:
-        return "(all unique)"
+        return "all unique"
     if s.is_categorical and s.top_values:
         total = s.non_null_count
         parts: list[str] = []
         shown = 0
-        for val, count in s.top_values[:5]:
+        for val, count in s.top_values[:TOP_N_VALUES]:
             pct = round(100 * count / total) if total > 0 else 0
             parts.append(f"{val} {pct}%")
             shown += count
@@ -382,7 +382,7 @@ def _distribution_str(s: ColumnSummary) -> str:
     if s.high_cardinality:
         return ">10K unique"
     if s.top_values:
-        return ", ".join(f"{v}({c})" for v, c in s.top_values[:5])
+        return ", ".join(f"{v}({c})" for v, c in s.top_values[:TOP_N_VALUES])
     return ""
 
 
@@ -453,8 +453,6 @@ def compact_summarise(
     dq_headers.extend(["Zeros", "Mean", "Stddev", "Formats"])
     if show_whitespace:
         dq_headers.append("Whitespace")
-    dq_headers.extend(["Mixed Types", "Mixed Examples"])
-
     dq_rows: list[list[str]] = []
     for s in summaries:
         dq_row = [s.name, str(s.null_count)]
@@ -470,12 +468,6 @@ def compact_summarise(
         )
         if show_whitespace:
             dq_row.append(str(s.whitespace_count))
-        dq_row.extend(
-            [
-                s.mixed_type_pct or "-",
-                ", ".join(s.mixed_type_examples) or "-",
-            ]
-        )
         dq_rows.append(dq_row)
 
     dq_widths = [len(h) for h in dq_headers]

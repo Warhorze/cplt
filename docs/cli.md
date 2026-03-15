@@ -118,7 +118,7 @@ Plot a line chart from CSV columns.
 cplt summarise [OPTIONS]
 ```
 
-Print a summary of a CSV file — column types, counts, nulls, top values.
+Print a summary of a CSV file — column types, counts, nulls, and smart distribution views.
 
 ### Options
 
@@ -130,7 +130,46 @@ Print a summary of a CSV file — column types, counts, nulls, top values.
 | --where | TEXT | No | Yes |  | Filter rows: COL=value (case-insensitive) |
 | --where-not | TEXT | No | Yes |  | Exclude rows: COL=value (case-insensitive) |
 | --export | TEXT | No | No |  | Export chart to PNG file |
+| --category | INTEGER RANGE | No | No | 10 | Category threshold: columns with <= N unique values are treated as categorical |
 | --format | TEXT | No | No | visual | Output format: visual, semantic, or compact |
+
+### Summary table
+
+The main table shows one row per CSV column:
+
+| Column | Meaning |
+| --- | --- |
+| Type | Detected type: `numeric`, `date`, or `text` |
+| Nulls | Number of empty/missing rows |
+| Unique | Number of distinct non-null values |
+| Min / Max | Range for numeric and date columns, `-` for text |
+| Distribution | Smart view based on column classification (see below) |
+
+### How Distribution works
+
+Columns are auto-classified based on `--category N` (default 10):
+
+- **Categorical** (`unique_count <= N`): shows the top 10 values with percentages, e.g. `male 65%, female 35%`. If there are more values beyond the top 10, they are lumped into `other`. This applies regardless of detected type — a numeric column like `Survived` with only 2 values (`0`, `1`) is shown as categorical.
+- **ID-like** (`unique_count == row_count` and `unique_count > N`): shows `all unique`. These are columns like `PassengerId` or `Name` where every value is different — frequency lists would be useless.
+- **Numeric** (non-categorical): shows a sparkline histogram with min/max range, e.g. `▃▂▄█▇▆▄▃▂▂▁▁ 0.42 .. 80.0`. The 12-bin histogram shows the shape of the distribution at a glance.
+- **Other** (text with many unique values): shows top 10 values with raw counts, e.g. `G6(4), C23 C25 C27(4)`.
+
+Use `--category 5` for stricter classification (fewer categoricals) or `--category 20` for looser (more categoricals).
+
+### Data Quality table
+
+The second table shows data quality diagnostics:
+
+| Column | Meaning |
+| --- | --- |
+| Nulls | Number of empty/missing rows |
+| Sentinels | Values matching common null patterns: `NA`, `N/A`, `null`, `None`, etc. (hidden if all zero) |
+| Zeros | Count of values that parse to `0.0` — `-` if the column has no numeric values |
+| Mean / Stddev | Population mean and standard deviation — `-` if the column has no numeric values |
+| Formats | Date format patterns detected with counts, e.g. `YYYY-MM-DD(14); DD/MM/YYYY(2)` — `-` if no dates |
+| Whitespace | Values with leading/trailing whitespace (hidden if all zero) |
+
+The `-` vs `0` distinction: `-` means the metric does not apply to this column (e.g. Zeros for a pure text column), while `0` means the metric applies but the count is zero (e.g. Zeros for a numeric column with no zero values).
 
 ## `cplt bubble`
 

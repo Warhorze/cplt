@@ -14,6 +14,7 @@ from typing import Iterator, Literal, overload
 from cplt.reader import filter_rows, parse_datetime
 
 MAX_DISTINCT_VALUES = 10_000
+TOP_N_VALUES = 10
 NUMERIC_THRESHOLD = 0.80
 DATE_THRESHOLD = 0.80
 
@@ -285,7 +286,7 @@ def summarise_csv(
 
         # Top 5 values
         if not capped[col]:
-            s.top_values = counters[col].most_common(5)
+            s.top_values = counters[col].most_common(TOP_N_VALUES)
 
         # Data-quality fields
         s.null_count = row_count - nn
@@ -359,7 +360,7 @@ def summarise_csv(
 
             # Histogram bins for numeric non-categorical columns
             if s.detected_type == "numeric" and not s.is_categorical and not capped[col]:
-                n_bins = min(20, s.unique_count)
+                n_bins = min(12, s.unique_count)
                 if n_bins > 0 and col in numeric_min and col in numeric_max:
                     lo = numeric_min[col]
                     hi = numeric_max[col]
