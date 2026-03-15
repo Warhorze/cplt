@@ -23,6 +23,7 @@ from cplt.reader import (
 )
 from cplt.renderer import render, render_bar, render_line
 from cplt.summarise import TOP_N_VALUES, ColumnSummary, summarise_csv
+from cplt.theme import hex_color as _hex_color
 
 app = typer.Typer(
     name="cplt",
@@ -74,7 +75,6 @@ def _format_key_error(exc: KeyError) -> str:
     return str(exc)
 
 
-_DIST_COLORS = ["red", "green", "yellow", "blue", "magenta", "cyan"]
 _SPARK_CHARS = "▁▂▃▄▅▆▇█"
 
 
@@ -92,7 +92,7 @@ def _visual_distribution_str(s: ColumnSummary) -> str:
         parts: list[str] = []
         for i, (val, count) in enumerate(entries):
             pct = round(100 * count / total) if total > 0 else 0
-            color = _DIST_COLORS[i % len(_DIST_COLORS)]
+            color = _hex_color(i)
             parts.append(f"[{color}]{val}[/{color}] {pct}%")
         return ", ".join(parts)
     if s.histogram_bins is not None and len(s.histogram_bins) > 0:
@@ -1134,20 +1134,6 @@ def bubble(
 
         print(compact_bubble(spec, title=chart_title))
     else:
-        palette = [
-            "red",
-            "green",
-            "yellow",
-            "blue",
-            "magenta",
-            "cyan",
-            "bright_red",
-            "bright_green",
-            "bright_yellow",
-            "bright_blue",
-            "bright_magenta",
-            "bright_cyan",
-        ]
         symbol_palette = ["●", "■", "▲", "◆", "✦", "✚", "✖", "★", "⬟", "⬢", "◉", "◎"]
         max_label_width = 44
 
@@ -1167,7 +1153,7 @@ def bubble(
                 if key not in seen_keys:
                     unique_keys.append(key)
                     seen_keys.add(key)
-            color_map = {key: palette[i % len(palette)] for i, key in enumerate(unique_keys)}
+            color_map = {key: _hex_color(i) for i, key in enumerate(unique_keys)}
             symbol_map = {
                 key: symbol_palette[i % len(symbol_palette)] for i, key in enumerate(unique_keys)
             }
