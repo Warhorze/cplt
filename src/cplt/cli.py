@@ -74,6 +74,55 @@ def _format_key_error(exc: KeyError) -> str:
     return str(exc)
 
 
+_DIST_COLORS = ["red", "green", "yellow", "blue", "magenta", "cyan"]
+_SPARK_CHARS = "▁▂▃▄▅▆▇█"
+
+
+def _visual_distribution_str(s: "ColumnSummary") -> str:
+    """Build the Distribution cell for visual Rich table rendering."""
+    from cplt.summarise import ColumnSummary  # noqa: F811
+
+    if s.is_id:
+        return "[dim](all unique)[/dim]"
+    if s.is_categorical and s.top_values:
+        total = s.non_null_count
+        entries: list[tuple[str, int]] = list(s.top_values[:5])
+        shown = sum(c for _, c in entries)
+        remainder = total - shown
+        if remainder > 0:
+            entries.append(("other", remainder))
+        # Stacked bar (40 chars)
+        bar_width = 40
+        bar_parts: list[str] = []
+        legend_parts: list[str] = []
+        for i, (val, count) in enumerate(entries):
+            pct = round(100 * count / total) if total > 0 else 0
+            chars = max(1, round(count / total * bar_width)) if total > 0 else 0
+            color = _DIST_COLORS[i % len(_DIST_COLORS)]
+            bar_parts.append(f"[{color}]{'█' * chars}[/{color}]")
+            legend_parts.append(f"[{color}]{val}[/{color}]  {pct}%")
+        bar_line = "".join(bar_parts)
+        legend = "\n".join(legend_parts)
+        return f"{bar_line}\n{legend}"
+    if s.histogram_bins is not None and len(s.histogram_bins) > 0:
+        bins = s.histogram_bins
+        max_bin = max(bins)
+        sparkline = []
+        for b in bins:
+            if max_bin == 0:
+                idx = 0
+            else:
+                idx = int(b / max_bin * (len(_SPARK_CHARS) - 1) + 0.5)
+                idx = max(0, min(len(_SPARK_CHARS) - 1, idx))
+            sparkline.append(_SPARK_CHARS[idx])
+        return "".join(sparkline) + f" {s.min_val} .. {s.max_val}"
+    if s.high_cardinality:
+        return "[dim]>10K unique[/dim]"
+    if s.top_values:
+        return ", ".join(f"{v}({c})" for v, c in s.top_values[:5])
+    return ""
+
+
 @app.callback()
 def main() -> None:
     """Plot data from CSV files directly in the terminal."""
@@ -657,6 +706,14 @@ def summarise(
         str | None,
         typer.Option("--export", help="Export chart to PNG file"),
     ] = None,
+    category: Annotated[
+        int,
+        typer.Option(
+            "--category",
+            min=1,
+            help="Category threshold: columns with <= N unique values are categorical (default 10)",
+        ),
+    ] = 10,
     format_opt: Annotated[
         str,
         typer.Option("--format", help="Output format: visual, semantic, or compact"),
@@ -687,6 +744,7 @@ def summarise(
                 max_rows=head,
                 sample_n=sample,
                 return_sample=True,
+                category_threshold=category,
             )
         else:
             summaries = summarise_csv(
@@ -694,6 +752,7 @@ def summarise(
                 wheres=wheres or None,
                 where_nots=where_nots or None,
                 max_rows=head,
+                category_threshold=category,
             )
     except KeyError as e:
         rprint(f"[red]Error:[/red] {_format_key_error(e)}")
@@ -712,32 +771,26 @@ def summarise(
         print(compact_summarise(summaries, title=file.name, sample_rows=sample_rows or None))
     else:
         # Build summary table
-        table = Table(title=f"Summary: {file.name}")
+        table = Table(title=f"Summary: {file.name} (rows: {summaries[0].row_count})")
         table.add_column("Column", style="bold")
         table.add_column("Type")
-        table.add_column("Rows", justify="right")
-        table.add_column("Non-null", justify="right")
+        table.add_column("Nulls", justify="right")
         table.add_column("Unique", justify="right")
         table.add_column("Min")
         table.add_column("Max")
-        table.add_column("Top Values (freq)")
+        table.add_column("Distribution")
 
         for s in summaries:
-            top_str = ""
-            if s.high_cardinality:
-                top_str = "[dim]>10K unique[/dim]"
-            elif s.top_values:
-                top_str = ", ".join(f"{v}({c})" for v, c in s.top_values[:5])
+            dist_str = _visual_distribution_str(s)
 
             table.add_row(
                 s.name,
                 s.detected_type,
-                str(s.row_count),
-                str(s.non_null_count),
+                str(s.null_count),
                 str(s.unique_count),
                 s.min_val or "-",
                 s.max_val or "-",
-                top_str or "-",
+                dist_str or "-",
             )
 
         # Build data-quality table
