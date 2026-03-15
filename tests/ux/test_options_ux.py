@@ -930,8 +930,8 @@ class TestBubbleOptions:
 
 
 class TestSummariseOptions:
-    def test_top_values_notation_explained(self, ux_summarise_csv: Path) -> None:
-        """Top-value frequency notation should be self-explanatory (feedback #5)."""
+    def test_distribution_column_present(self, ux_summarise_csv: Path) -> None:
+        """Distribution column should be present in compact output."""
         result = invoke(
             "summarise",
             "-f",
@@ -940,11 +940,8 @@ class TestSummariseOptions:
             "compact",
         )
         assert result.exit_code == 0
-        out = result.stdout.lower()
-        # The output should either explain the (N) notation or use a clear header.
-        assert "freq" in out or "count" in out or "top" in out, (
-            f"No legend or explanation for top-value notation:\n{result.stdout}"
-        )
+        out = result.stdout
+        assert "Distribution" in out, f"No Distribution column found:\n{result.stdout}"
 
     def test_sample(self, ux_summarise_csv: Path) -> None:
         """--sample 3 produces a Sample section with rows."""

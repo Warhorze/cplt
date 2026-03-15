@@ -350,6 +350,42 @@ def compact_bubble_grouped(spec: GroupedBubbleSpec, title: str = "cplt") -> str:
     return "\n".join(lines)
 
 
+def _distribution_str(s: ColumnSummary) -> str:
+    """Build the Distribution cell for a ColumnSummary."""
+    if s.is_id:
+        return "(all unique)"
+    if s.is_categorical and s.top_values:
+        total = s.non_null_count
+        parts: list[str] = []
+        shown = 0
+        for val, count in s.top_values[:5]:
+            pct = round(100 * count / total) if total > 0 else 0
+            parts.append(f"{val} {pct}%")
+            shown += count
+        remainder = total - shown
+        if remainder > 0:
+            pct = round(100 * remainder / total)
+            parts.append(f"other {pct}%")
+        return ", ".join(parts)
+    if s.histogram_bins is not None and len(s.histogram_bins) > 0:
+        bins = s.histogram_bins
+        max_bin = max(bins)
+        sparkline = []
+        for b in bins:
+            if max_bin == 0:
+                idx = 0
+            else:
+                idx = int(b / max_bin * (len(_SPARK_CHARS) - 1) + 0.5)
+                idx = max(0, min(len(_SPARK_CHARS) - 1, idx))
+            sparkline.append(_SPARK_CHARS[idx])
+        return "".join(sparkline) + f" {s.min_val} .. {s.max_val}"
+    if s.high_cardinality:
+        return ">10K unique"
+    if s.top_values:
+        return ", ".join(f"{v}({c})" for v, c in s.top_values[:5])
+    return ""
+
+
 def compact_summarise(
     summaries: list[ColumnSummary],
     title: str = "cplt",
@@ -369,24 +405,20 @@ def compact_summarise(
     lines.append("---")
 
     # Build table rows
-    headers = ["Column", "Type", "Non-null", "Unique", "Min", "Max", "Top Values (freq)"]
+    headers = ["Column", "Type", "Nulls", "Unique", "Min", "Max", "Distribution"]
     rows: list[list[str]] = []
     for s in summaries:
-        top_str = ""
-        if s.high_cardinality:
-            top_str = ">10K unique"
-        elif s.top_values:
-            top_str = ", ".join(f"{v}({c})" for v, c in s.top_values[:5])
+        dist_str = _distribution_str(s)
 
         rows.append(
             [
                 s.name,
                 s.detected_type,
-                str(s.non_null_count),
+                str(s.null_count),
                 str(s.unique_count),
                 s.min_val or "-",
                 s.max_val or "-",
-                top_str or "-",
+                dist_str or "-",
             ]
         )
 
@@ -399,7 +431,7 @@ def compact_summarise(
     def _fmt_row(cells: list[str]) -> str:
         parts = []
         for i, cell in enumerate(cells):
-            if i in (2, 3):  # Non-null, Unique — right-align
+            if i in (2, 3):  # Nulls, Unique — right-align
                 parts.append(cell.rjust(col_widths[i]))
             else:
                 parts.append(cell.ljust(col_widths[i]))

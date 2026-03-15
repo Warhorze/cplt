@@ -48,6 +48,12 @@ Deep completion for `--where` filters: discover available columns, then see matc
 
 ![Tab completion options](assets/images/completion.gif)
 
+### Summarise
+
+Quick column profiling — types, nulls, uniques, and smart distribution views at a glance. Low-cardinality columns get percentage breakdowns, numerics get sparkline histograms, and ID columns are detected automatically.
+
+![Summarise output](assets/images/summarise.png)
+
 ### Timeline / Gantt
 
 Visualise project schedules as Gantt-style ranges with color-coded status and a "today" marker.
@@ -71,12 +77,6 @@ Plot numeric trends over time with `--head` to limit rows and `--title` for cont
 Spot missing data patterns across columns. Rows are labeled, columns are presence/absence dots, colored by group.
 
 ![Bubble matrix output](assets/images/bubble.png)
-
-### Summarise
-
-Quick column profiling — types, nulls, uniques, and top values at a glance.
-
-![Summarise output](assets/images/summarise.png)
 
 ## Quick Start
 

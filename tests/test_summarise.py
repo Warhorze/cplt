@@ -159,6 +159,95 @@ class TestSummariseCsv:
         assert col.unique_count >= 10000
 
 
+class TestCategoryAndIdDetection:
+    """Tests for is_id, is_categorical, and histogram_bins on ColumnSummary."""
+
+    def test_id_column_detected(self, tmp_path: Path) -> None:
+        """Column where every value is unique and count > threshold → is_id."""
+        csv_data = "id,name\n" + "".join(f"{i},name_{i}\n" for i in range(20))
+        p = tmp_path / "ids.csv"
+        p.write_text(csv_data)
+        result = summarise_csv(p, category_threshold=10)
+        id_col = next(s for s in result if s.name == "id")
+        assert id_col.is_id is True
+
+    def test_id_not_detected_below_threshold(self, tmp_path: Path) -> None:
+        """All-unique column with count <= threshold → NOT is_id (it's categorical)."""
+        csv_data = "id,name\n1,a\n2,b\n3,c\n"
+        p = tmp_path / "small.csv"
+        p.write_text(csv_data)
+        result = summarise_csv(p, category_threshold=10)
+        id_col = next(s for s in result if s.name == "id")
+        assert id_col.is_id is False
+
+    def test_categorical_low_cardinality(self, tmp_path: Path) -> None:
+        """Column with unique_count <= threshold → is_categorical."""
+        csv_data = "status\nopen\nclosed\nopen\nclosed\nopen\n"
+        p = tmp_path / "cat.csv"
+        p.write_text(csv_data)
+        result = summarise_csv(p, category_threshold=10)
+        col = result[0]
+        assert col.is_categorical is True
+
+    def test_categorical_numeric_low_cardinality(self, tmp_path: Path) -> None:
+        """Numeric column with few unique values → is_categorical regardless of type."""
+        csv_data = "survived\n0\n1\n0\n1\n0\n1\n"
+        p = tmp_path / "survived.csv"
+        p.write_text(csv_data)
+        result = summarise_csv(p, category_threshold=10)
+        col = result[0]
+        assert col.is_categorical is True
+        assert col.detected_type == "numeric"
+
+    def test_not_categorical_above_threshold(self, tmp_path: Path) -> None:
+        """Column with unique_count > threshold → not categorical."""
+        csv_data = "val\n" + "".join(f"v{i}\n" for i in range(20))
+        p = tmp_path / "many.csv"
+        p.write_text(csv_data)
+        result = summarise_csv(p, category_threshold=10)
+        col = result[0]
+        assert col.is_categorical is False
+
+    def test_histogram_bins_numeric(self, tmp_path: Path) -> None:
+        """Numeric non-categorical column gets histogram_bins."""
+        csv_data = "age\n" + "".join(f"{i}\n" for i in range(1, 51))
+        p = tmp_path / "ages.csv"
+        p.write_text(csv_data)
+        result = summarise_csv(p, category_threshold=10)
+        col = result[0]
+        assert col.histogram_bins is not None
+        assert len(col.histogram_bins) > 0
+        # Bins should sum to total count
+        assert sum(col.histogram_bins) == col.non_null_count
+
+    def test_histogram_bins_categorical_numeric(self, tmp_path: Path) -> None:
+        """Numeric categorical column should NOT get histogram_bins."""
+        csv_data = "val\n1\n2\n1\n2\n1\n"
+        p = tmp_path / "cat_num.csv"
+        p.write_text(csv_data)
+        result = summarise_csv(p, category_threshold=10)
+        col = result[0]
+        assert col.histogram_bins is None
+
+    def test_histogram_bins_text(self, tmp_path: Path) -> None:
+        """Non-numeric columns should not get histogram_bins."""
+        csv_data = "name\n" + "".join(f"n{i}\n" for i in range(20))
+        p = tmp_path / "text.csv"
+        p.write_text(csv_data)
+        result = summarise_csv(p, category_threshold=10)
+        col = result[0]
+        assert col.histogram_bins is None
+
+    def test_default_category_threshold(self, tmp_path: Path) -> None:
+        """Default threshold is 10."""
+        csv_data = "val\n" + "".join(f"v{i}\n" for i in range(11))
+        p = tmp_path / "eleven.csv"
+        p.write_text(csv_data)
+        result = summarise_csv(p)  # no threshold → default 10
+        col = result[0]
+        assert col.is_categorical is False  # 11 > 10
+
+
 class TestDataQualityFields:
     """Tests for new data-quality diagnostic fields on ColumnSummary."""
 

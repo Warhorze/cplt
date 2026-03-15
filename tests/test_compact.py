@@ -518,8 +518,8 @@ class TestCompactSummarise:
         assert "text" in out
         assert "Alice(5)" in out
 
-    def test_top_values_header_includes_freq(self):
-        """Column header should say 'Top Values (freq)' not just 'Top Values'."""
+    def test_distribution_header(self):
+        """Column header should say 'Distribution'."""
         summaries = [
             ColumnSummary(
                 name="col",
@@ -531,7 +531,7 @@ class TestCompactSummarise:
             ),
         ]
         out = compact_summarise(summaries, title="t.csv")
-        assert "Top Values (freq)" in out
+        assert "Distribution" in out
 
     def test_empty_columns(self):
         """Empty summaries list produces no-data message."""
@@ -669,3 +669,117 @@ class TestCompactSummarise:
         assert "Data Quality" in out
         assert "Sentinels" not in out
         assert "Whitespace" not in out
+
+
+class TestCompactSummariseSmartDistribution:
+    """Tests for smart Distribution column rendering in compact_summarise."""
+
+    def test_distribution_header(self):
+        """Column should be 'Distribution', not 'Top Values (freq)'."""
+        summaries = [
+            ColumnSummary(name="col", row_count=10, non_null_count=10, unique_count=3),
+        ]
+        out = compact_summarise(summaries, title="t.csv")
+        assert "Distribution" in out
+        assert "Top Values (freq)" not in out
+
+    def test_id_column_shows_all_unique(self):
+        """ID columns show '(all unique)' in Distribution."""
+        summaries = [
+            ColumnSummary(
+                name="id",
+                detected_type="numeric",
+                row_count=100,
+                non_null_count=100,
+                unique_count=100,
+                is_id=True,
+            ),
+        ]
+        out = compact_summarise(summaries, title="t.csv")
+        assert "(all unique)" in out
+
+    def test_categorical_shows_percentages(self):
+        """Categorical columns show value percentages."""
+        summaries = [
+            ColumnSummary(
+                name="status",
+                detected_type="text",
+                row_count=10,
+                non_null_count=10,
+                unique_count=3,
+                is_categorical=True,
+                top_values=[("open", 5), ("closed", 3), ("pending", 2)],
+            ),
+        ]
+        out = compact_summarise(summaries, title="t.csv")
+        assert "open 50%" in out
+        assert "closed 30%" in out
+        assert "pending 20%" in out
+
+    def test_categorical_with_other(self):
+        """When there are >5 categories, the rest are lumped into 'other'."""
+        top = [("a", 20), ("b", 15), ("c", 10), ("d", 8), ("e", 5)]
+        summaries = [
+            ColumnSummary(
+                name="cat",
+                detected_type="text",
+                row_count=100,
+                non_null_count=100,
+                unique_count=10,
+                is_categorical=True,
+                top_values=top,
+            ),
+        ]
+        out = compact_summarise(summaries, title="t.csv")
+        assert "other 42%" in out
+
+    def test_numeric_histogram_sparkline(self):
+        """Numeric non-categorical columns show sparkline histogram."""
+        bins = [2, 5, 10, 15, 20, 15, 10, 5, 2, 1]
+        summaries = [
+            ColumnSummary(
+                name="age",
+                detected_type="numeric",
+                row_count=85,
+                non_null_count=85,
+                unique_count=50,
+                min_val="1.0",
+                max_val="100.0",
+                histogram_bins=bins,
+            ),
+        ]
+        out = compact_summarise(summaries, title="t.csv")
+        # Should contain sparkline chars and range
+        assert "1.0" in out
+        assert "100.0" in out
+        # Should contain at least one sparkline character
+        spark_chars = set("▁▂▃▄▅▆▇█")
+        dist_has_spark = any(c in spark_chars for c in out)
+        assert dist_has_spark
+
+    def test_null_count_instead_of_non_null(self):
+        """Table shows 'Nulls' column, not 'Non-null'."""
+        summaries = [
+            ColumnSummary(
+                name="col",
+                row_count=10,
+                non_null_count=8,
+                null_count=2,
+                unique_count=5,
+            ),
+        ]
+        out = compact_summarise(summaries, title="t.csv")
+        assert "Nulls" in out
+        assert "Non-null" not in out
+
+    def test_no_rows_column(self):
+        """The Rows column is dropped (already shown in header)."""
+        summaries = [
+            ColumnSummary(name="col", row_count=10, non_null_count=10, unique_count=5),
+        ]
+        out = compact_summarise(summaries, title="t.csv")
+        lines = out.split("\n")
+        # The header line should not have "Rows" as a column
+        header_line = [ln for ln in lines if "Column" in ln and "Type" in ln]
+        assert header_line
+        assert "Rows" not in header_line[0]
