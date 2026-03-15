@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "cplt"
-version = "0.2.0"
+version = "0.3.0"
 description = "Plot timeline/Gantt-style ranges from CSV files in the terminal"
 readme = "README.md"
 license = "MIT"
