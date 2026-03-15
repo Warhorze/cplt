@@ -9,7 +9,7 @@ from math import ceil
 import plotext as plt
 from rich import print as rprint
 
-from cplt.models import BarSpec, LineSpec, PlotSpec, Segment
+from cplt.models import BarSpec, HistSpec, LineSpec, PlotSpec, Segment
 from cplt.theme import RAINBOW_PALETTE as PALETTE
 
 # Vertical spacing inside a y-label group.
@@ -343,6 +343,50 @@ def render_bar(spec: BarSpec, build: bool = False) -> str | None:
     plt.show()
     return None
 
+
+def render_hist(spec: HistSpec, build: bool = False) -> str | None:
+    """Render a HistSpec as a bar chart histogram."""
+    from cplt.theme import rgb_color
+
+    plt.clear_figure()
+    plt.theme("clear")
+
+    if not spec.bin_counts:
+        plt.title(spec.title)
+        if build:
+            return plt.build()
+        plt.show()
+        return None
+
+    # Build bin-range labels for x-axis
+    labels = []
+    for i in range(len(spec.bin_counts)):
+        lo = spec.bin_edges[i]
+        hi = spec.bin_edges[i + 1]
+        labels.append(f"{lo:.4g}-{hi:.4g}")
+
+    plt.bar(labels, spec.bin_counts, color=rgb_color(0))
+
+    # Integer y-ticks for count axis
+    max_val = max(spec.bin_counts)
+    tick_count = 7
+    step = max(1, ceil(max_val / (tick_count - 1))) if max_val > 0 else 1
+    ticks = list(range(0, max_val + 1, step))
+    if ticks[-1] != max_val:
+        ticks.append(max_val)
+    plt.yticks(ticks, [str(v) for v in ticks])
+
+    stats_line = (
+        f"n={spec.total_count} null={spec.null_count} "
+        f"mean={spec.mean:.4g} median={spec.median:.4g} stddev={spec.stddev:.4g}"
+    )
+    plt.title(f"{spec.title}\n{stats_line}")
+
+    if build:
+        return plt.build()
+
+    plt.show()
+    return None
 
 def render_line(spec: LineSpec, build: bool = False) -> str | None:
     """Render a LineSpec as a line chart."""
