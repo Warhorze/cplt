@@ -21,6 +21,7 @@ COMMAND_ARGS: dict[str, list[str]] = {
     "line": ["--x", "date", "--y", "temp"],
     "bubble": ["--cols", "feat_a", "--cols", "feat_b", "--y", "name"],
     "summarise": [],
+    "hist": ["-c", "score"],
 }
 
 FORMATS = ["visual", "compact", "semantic"]
