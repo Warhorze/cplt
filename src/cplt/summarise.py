@@ -81,6 +81,10 @@ class ColumnSummary:
     whitespace_count: int = 0
     mixed_type_pct: str = ""
     mixed_type_examples: list[str] = field(default_factory=list)
+    # Smart classification fields
+    is_id: bool = False
+    is_categorical: bool = False
+    histogram_bins: list[int] | None = None
 
 
 @overload
@@ -93,6 +97,7 @@ def summarise_csv(
     max_rows: int | None = ...,
     sample_n: int | None = ...,
     return_sample: Literal[False] = ...,
+    category_threshold: int = ...,
 ) -> list[ColumnSummary]: ...
 
 
@@ -106,6 +111,7 @@ def summarise_csv(
     max_rows: int | None = ...,
     sample_n: int,
     return_sample: Literal[True],
+    category_threshold: int = ...,
 ) -> tuple[list[ColumnSummary], list[dict[str, str]]]: ...
 
 
@@ -118,6 +124,7 @@ def summarise_csv(
     max_rows: int | None = None,
     sample_n: int | None = None,
     return_sample: bool = False,
+    category_threshold: int = 10,
 ) -> list[ColumnSummary] | tuple[list[ColumnSummary], list[dict[str, str]]]:
     """Summarise a CSV file, returning per-column stats.
 
@@ -129,6 +136,7 @@ def summarise_csv(
         max_rows: Limit input rows (--head).
         sample_n: Number of random sample rows to return.
         return_sample: If True, return (summaries, sample_rows) tuple.
+        category_threshold: Columns with unique_count <= this are categorical.
     """
     columns: list[str] = []
     counters: dict[str, Counter[str]] = {}
@@ -341,6 +349,34 @@ def summarise_csv(
                         if val_type != dominant_type:
                             minority_examples[col].add(val)
                 s.mixed_type_examples = sorted(minority_examples[col])[:3]
+
+        # Smart classification: ID, categorical, histogram
+        if nn > 0:
+            if s.unique_count == nn and s.unique_count > category_threshold:
+                s.is_id = True
+            elif s.unique_count <= category_threshold:
+                s.is_categorical = True
+
+            # Histogram bins for numeric non-categorical columns
+            if s.detected_type == "numeric" and not s.is_categorical and not capped[col]:
+                n_bins = min(20, s.unique_count)
+                if n_bins > 0 and col in numeric_min and col in numeric_max:
+                    lo = numeric_min[col]
+                    hi = numeric_max[col]
+                    bins = [0] * n_bins
+                    bin_range = hi - lo
+                    for val_str, freq in counters[col].items():
+                        try:
+                            fval = float(val_str)
+                        except ValueError:
+                            continue
+                        if bin_range == 0:
+                            idx = 0
+                        else:
+                            idx = int((fval - lo) / bin_range * (n_bins - 1) + 0.5)
+                            idx = max(0, min(n_bins - 1, idx))
+                        bins[idx] += freq
+                    s.histogram_bins = bins
 
         summaries.append(s)
 
