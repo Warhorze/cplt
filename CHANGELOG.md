@@ -40,6 +40,12 @@
 - UX test suite with combination matrix coverage
 - "Ready for Release" checklist in DEVELOPERS.md
 
+## v0.3.1 (2026-03-15)
+
+### Refactor
+
+- **summarise**: polish distribution, docs, and README (#6)
+
 ## v0.3.0 (2026-03-15)
 
 ### Feat

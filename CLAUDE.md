@@ -24,7 +24,7 @@ uv run ruff format src/ tests/ # format
 - **Always enter plan mode for feature work.** If a plan already exists, update it with new findings or feedback before implementing. The plan needs to be update after a feature is deliverd.11
 -- **Ensure the linting checks succeed when saying a feature is done**, run ruff and pyright.
 - **When manually testing CLI output**, always use `--format compact` instead of the default visual plotext output. The compact format is token-efficient and readable by LLMs.
--- **Always use atomic conventional git commits** Except for formatting/linting/assets these can be combined
+-- **Always use atomic conventional git commits** Except for formatting/linting/assets these can be combined. instead of merging, rebase to ensure liniear git history:D 
 
 ## Git conventions
 
