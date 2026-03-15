@@ -9,11 +9,11 @@ Data flows linearly: **CLI args → reader → PlotSpec → renderer → termina
 ```text
 src/cplt/
   cli.py          # Typer command definitions + arg validation
-  reader.py       # timeline/bar/line CSV loaders + datetime parsing + row filters
+  reader.py       # timeline/bar/line/hist CSV loaders + datetime parsing + row filters
   bubble.py       # bubble matrix loader + falsy detection
   summarise.py    # CSV summary/profiling logic
-  models.py       # Segment/Marker/PlotSpec/BarSpec/LineSpec dataclasses
-  renderer.py     # plotext visual rendering (timeline/bar/line)
+  models.py       # Segment/VLine/PlotSpec/BarSpec/LineSpec/HistSpec dataclasses
+  renderer.py     # plotext visual rendering (timeline/bar/line/hist)
   compact.py      # compact token-efficient rendering
   semantic.py     # ANSI-stripped rendering helpers
   completions.py  # column/date/value shell completion
@@ -81,6 +81,10 @@ cplt
 │   │   └── [--y COL ...]                         ← multiple series on same chart
 │   └── [--color COL]                             ← split into grouped lines
 │
+├── hist -f FILE
+│   ├── --column COL / -c COL                     ← required (numeric column)
+│   └── [--bins N]                                ← override auto bin count
+│
 ├── bubble -f FILE
 │   ├── --cols COL                                ← required (at least 1)
 │   │   └── [--cols COL ...]                      ← additional matrix columns
@@ -122,6 +126,7 @@ cplt
 --color ────────on──▶ timeline (segment color), line (group-by), bubble (row color)
 --x ────────────on──▶ timeline (date pairs, even count), line (single column)
 --y ────────────on──▶ timeline (list, composite), line (list, multi-series), bubble (single, label)
+--bins ─────────only on──▶ hist
 --sort ─────────only on──▶ bar (value/label/none), bubble (fill/fill-asc/name)
 --transpose ───only on──▶ bubble
 --group-by ────only on──▶ bubble (aggregates per group, separate code path)
@@ -168,7 +173,7 @@ Apply these checks across all plot types during review:
 
 The `tests/ux/` suite covers functional CLI behavior end-to-end:
 
-- **Format matrix** — 5 commands x 3 formats = 15 parameterized cases (`test_format_matrix.py`)
+- **Format matrix** — 6 commands x 3 formats = 18 parameterized cases (`test_format_matrix.py`)
 - **Option behavior** — per-command checks for every optional flag (`test_options_ux.py`)
 - **Combination matrix** — pairwise/triple cross-stage interactions per command:
   - `test_bubble_combinations.py`
@@ -176,6 +181,7 @@ The `tests/ux/` suite covers functional CLI behavior end-to-end:
   - `test_timeline_combinations.py`
   - `test_line_combinations.py`
   - `test_summarise_combinations.py`
+  - `test_hist_combinations.py`
 - **Error message quality** — guards that errors are actionable, not tracebacks (`test_error_ux.py`)
 - **Scale** — 500–10K row stress tests (`test_scale_ux.py`)
 
@@ -192,8 +198,9 @@ Run UX checks in this order to catch option-interaction regressions early:
 4. Bar combinations (`tests/ux/test_bar_combinations.py`)
 5. Line combinations (`tests/ux/test_line_combinations.py`)
 6. Summarise combinations (`tests/ux/test_summarise_combinations.py`)
-7. Full UX suite (`tests/ux/`)
-8. Lint + type + full tests
+7. Hist combinations (`tests/ux/test_hist_combinations.py`)
+8. Full UX suite (`tests/ux/`)
+9. Lint + type + full tests
 
 Recommended command sequence:
 
@@ -204,6 +211,7 @@ uv run pytest tests/ux/test_timeline_combinations.py -v
 uv run pytest tests/ux/test_bar_combinations.py -v
 uv run pytest tests/ux/test_line_combinations.py -v
 uv run pytest tests/ux/test_summarise_combinations.py -v
+uv run pytest tests/ux/test_hist_combinations.py -v
 uv run pytest tests/ux/ -v -rXx
 uv run ruff check src/ tests/
 uv run pyright
@@ -241,6 +249,14 @@ Each plot type has acceptance criteria for visual review. Full docs with feedbac
 - Invalid/blank x values handled without crash (silently skipped)
 - Compact min/max labels are human-readable (no excessive decimal precision)
 - Multiple `--y` series remain distinguishable
+
+### Hist
+
+- Bin-range labels on x-axis are readable and cover the full value range
+- Bar heights reflect relative counts accurately
+- Stats overlay (n, null, mean, median, stddev) is present and correct
+- `--bins N` overrides auto bin count
+- Single-value edge case produces a single bin without crash
 
 ### Bubble
 
