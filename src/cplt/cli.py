@@ -22,7 +22,7 @@ from cplt.reader import (
     parse_where,
 )
 from cplt.renderer import render, render_bar, render_line
-from cplt.summarise import summarise_csv
+from cplt.summarise import ColumnSummary, summarise_csv
 
 app = typer.Typer(
     name="cplt",
@@ -78,10 +78,8 @@ _DIST_COLORS = ["red", "green", "yellow", "blue", "magenta", "cyan"]
 _SPARK_CHARS = "▁▂▃▄▅▆▇█"
 
 
-def _visual_distribution_str(s: "ColumnSummary") -> str:
+def _visual_distribution_str(s: ColumnSummary) -> str:
     """Build the Distribution cell for visual Rich table rendering."""
-    from cplt.summarise import ColumnSummary  # noqa: F811
-
     if s.is_id:
         return "[dim](all unique)[/dim]"
     if s.is_categorical and s.top_values:

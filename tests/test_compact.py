@@ -780,6 +780,6 @@ class TestCompactSummariseSmartDistribution:
         out = compact_summarise(summaries, title="t.csv")
         lines = out.split("\n")
         # The header line should not have "Rows" as a column
-        header_line = [l for l in lines if "Column" in l and "Type" in l]
+        header_line = [ln for ln in lines if "Column" in ln and "Type" in ln]
         assert header_line
         assert "Rows" not in header_line[0]

@@ -941,9 +941,7 @@ class TestSummariseOptions:
         )
         assert result.exit_code == 0
         out = result.stdout
-        assert "Distribution" in out, (
-            f"No Distribution column found:\n{result.stdout}"
-        )
+        assert "Distribution" in out, f"No Distribution column found:\n{result.stdout}"
 
     def test_sample(self, ux_summarise_csv: Path) -> None:
         """--sample 3 produces a Sample section with rows."""
