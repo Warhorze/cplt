@@ -388,6 +388,7 @@ def render_hist(spec: HistSpec, build: bool = False) -> str | None:
     plt.show()
     return None
 
+
 def render_line(spec: LineSpec, build: bool = False) -> str | None:
     """Render a LineSpec as a line chart."""
     plt.clear_figure()

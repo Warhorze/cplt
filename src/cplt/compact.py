@@ -252,9 +252,7 @@ def compact_hist(spec: HistSpec) -> str:
     lo = spec.bin_edges[0]
     hi = spec.bin_edges[-1]
     lines.append(f"{''.join(sparkline)} {lo:.4g} .. {hi:.4g}")
-    lines.append(
-        f"mean={spec.mean:.4g} median={spec.median:.4g} stddev={spec.stddev:.4g}"
-    )
+    lines.append(f"mean={spec.mean:.4g} median={spec.median:.4g} stddev={spec.stddev:.4g}")
     lines.append("---")
     return "\n".join(lines)
 
