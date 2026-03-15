@@ -11,6 +11,7 @@ from cplt.reader import (
     detect_numeric_columns,
     load_bar_data,
     load_dots,
+    load_hist_data,
     load_line_data,
     load_segments,
     parse_datetime,
@@ -455,3 +456,47 @@ class TestLoadDots:
         dots = load_dots(csv_file, dot_cols=["due_date"], y_col=["name", "category"])
         assert len(dots) == 1
         assert dots[0].y_label == "Alpha | backend"
+
+
+class TestLoadHistData:
+    def test_basic_binning(self, hist_csv) -> None:
+        spec = load_hist_data(hist_csv, "score")
+        assert len(spec.bin_edges) == len(spec.bin_counts) + 1
+        assert spec.total_count == 18  # 20 rows minus 1 empty, 1 non-numeric
+        assert spec.null_count == 2
+        assert sum(spec.bin_counts) == spec.total_count
+
+    def test_custom_bin_count(self, hist_csv) -> None:
+        spec = load_hist_data(hist_csv, "score", bins=5)
+        assert len(spec.bin_counts) == 5
+        assert len(spec.bin_edges) == 6
+
+    def test_stats(self, hist_csv) -> None:
+        spec = load_hist_data(hist_csv, "score")
+        assert 80 < spec.mean < 90
+        assert 80 < spec.median < 90
+        assert spec.stddev > 0
+
+    def test_where_filter(self, hist_csv) -> None:
+        spec = load_hist_data(hist_csv, "score", wheres=[("grade", "A")])
+        assert spec.total_count == 6  # alice, eve, heidi, kevin, nancy, tina
+        assert spec.null_count == 0
+
+    def test_missing_column(self, hist_csv) -> None:
+        with pytest.raises(KeyError, match="not_a_col"):
+            load_hist_data(hist_csv, "not_a_col")
+
+    def test_single_value(self, tmp_path) -> None:
+        csv_content = "val\n5\n5\n5\n"
+        p = tmp_path / "single.csv"
+        p.write_text(csv_content)
+        spec = load_hist_data(p, "val")
+        assert len(spec.bin_counts) == 1
+        assert spec.bin_counts[0] == 3
+        assert spec.stddev == 0.0
+
+    def test_head_limit(self, hist_csv) -> None:
+        spec = load_hist_data(hist_csv, "score", max_rows=5)
+        # First 5 rows: alice(95.5), bob(82), charlie(71.3), dave(empty), eve(90.1)
+        assert spec.total_count == 4
+        assert spec.null_count == 1

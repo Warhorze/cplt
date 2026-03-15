@@ -11,7 +11,7 @@ from typing import Iterator, Literal, NoReturn
 
 from rich import print as rprint
 
-from cplt.models import BarSpec, Dot, LineSpec, Segment
+from cplt.models import BarSpec, Dot, HistSpec, LineSpec, Segment
 
 DATETIME_FORMATS = [
     "%Y-%m-%d %H:%M:%S.%f",
@@ -578,4 +578,107 @@ def load_line_data(
         y_series=series,
         title=title,
         x_is_date=x_is_date,
+    )
+
+
+def load_hist_data(
+    path: str | Path,
+    column: str,
+    *,
+    bins: int | None = None,
+    max_rows: int | None = None,
+    title: str = "cplt",
+    wheres: list[tuple[str, str]] | None = None,
+    where_nots: list[tuple[str, str]] | None = None,
+    case_sensitive: bool = False,
+) -> HistSpec:
+    """Load numeric values from a CSV column and compute histogram bins.
+
+    Args:
+        path: Path to the CSV file.
+        column: Numeric column to histogram.
+        bins: Number of bins (auto if None).
+        max_rows: Limit CSV rows read.
+        title: Chart title.
+    """
+    import math
+    import statistics
+
+    values: list[float] = []
+    null_count = 0
+
+    with open(path, newline="") as f:
+        reader = csv.DictReader(f)
+        rows: Iterator[dict[str, str]] = reader
+        if wheres or where_nots:
+            rows = filter_rows(
+                rows, wheres=wheres, where_nots=where_nots, case_sensitive=case_sensitive
+            )
+        for i, row in enumerate(rows, start=1):
+            _ensure_well_formed_row(row, i + 1)
+            if i == 1:
+                _ensure_columns_exist([column], row)
+            if max_rows is not None and i > max_rows:
+                break
+            raw = row[column].strip()
+            if not raw:
+                null_count += 1
+                continue
+            try:
+                values.append(float(raw))
+            except ValueError:
+                null_count += 1
+
+    if not values:
+        return HistSpec(title=title, column=column, null_count=null_count)
+
+    total_count = len(values)
+    mean = statistics.mean(values)
+    median = statistics.median(values)
+    stddev = statistics.pstdev(values)
+
+    # Auto bin count: sqrt(n) clamped to [5, 30]
+    if bins is None:
+        n_bins = max(5, min(30, int(math.sqrt(total_count))))
+    else:
+        n_bins = bins
+
+    lo = min(values)
+    hi = max(values)
+
+    # Edge case: all same value → single bin
+    if lo == hi:
+        return HistSpec(
+            bin_edges=[lo, lo],
+            bin_counts=[total_count],
+            total_count=total_count,
+            null_count=null_count,
+            mean=mean,
+            median=median,
+            stddev=stddev,
+            title=title,
+            column=column,
+        )
+
+    # Equal-width binning
+    bin_width = (hi - lo) / n_bins
+    bin_edges = [lo + i * bin_width for i in range(n_bins)] + [hi]
+    bin_counts = [0] * n_bins
+
+    for v in values:
+        idx = int((v - lo) / bin_width)
+        if idx >= n_bins:
+            idx = n_bins - 1
+        bin_counts[idx] += 1
+
+    return HistSpec(
+        bin_edges=bin_edges,
+        bin_counts=bin_counts,
+        total_count=total_count,
+        null_count=null_count,
+        mean=mean,
+        median=median,
+        stddev=stddev,
+        title=title,
+        column=column,
     )

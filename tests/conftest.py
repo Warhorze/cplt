@@ -76,6 +76,38 @@ def numeric_csv(tmp_path: Path) -> Path:
     return p
 
 
+HIST_CSV = """\
+name,score,grade
+alice,95.5,A
+bob,82.0,B
+charlie,71.3,C
+dave,,D
+eve,90.1,A
+frank,88.2,B
+grace,76.4,C
+heidi,91.0,A
+ivan,85.7,B
+judy,79.3,C
+kevin,93.2,A
+lisa,87.6,B
+mallory,68.9,C
+nancy,94.1,A
+oscar,72.8,C
+pete,not_a_number,F
+quincy,80.0,B
+rose,86.5,B
+sam,77.1,C
+tina,92.4,A
+"""
+
+
+@pytest.fixture
+def hist_csv(tmp_path: Path) -> Path:
+    p = tmp_path / "hist.csv"
+    p.write_text(HIST_CSV)
+    return p
+
+
 @pytest.fixture
 def real_csv() -> Path:
     """Path to the real sample data file."""
