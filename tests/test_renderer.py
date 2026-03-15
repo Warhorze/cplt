@@ -7,8 +7,8 @@ from datetime import datetime
 from typing import Any
 
 import cplt.renderer as renderer
-from cplt.models import BarSpec, Dot, LineSpec, PlotSpec, Segment
-from cplt.renderer import render, render_bar, render_line
+from cplt.models import BarSpec, Dot, HistSpec, LineSpec, PlotSpec, Segment
+from cplt.renderer import render, render_bar, render_hist, render_line
 
 
 def test_render_includes_all_unique_txt_labels_per_sub_row() -> None:
@@ -274,3 +274,20 @@ def test_render_dots_calls_scatter(monkeypatch) -> None:
     out = render(spec, build=True)
     assert out is not None
     assert len(scatter_calls) >= 1
+
+
+def test_render_hist_build() -> None:
+    spec = HistSpec(
+        bin_edges=[0.0, 25.0, 50.0, 75.0, 100.0],
+        bin_counts=[3, 7, 5, 2],
+        total_count=17,
+        null_count=1,
+        mean=45.0,
+        median=42.0,
+        stddev=20.0,
+        title="test hist",
+        column="score",
+    )
+    out = render_hist(spec, build=True)
+    assert out is not None
+    assert "test hist" in out
