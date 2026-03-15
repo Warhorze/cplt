@@ -33,6 +33,14 @@ jobs:
       - run: uv sync --extra dev
       - run: uv run pyright src/
 
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+      - run: uv sync --extra dev
+      - run: bash scripts/run_cli_smoke.sh
+
   test:
     runs-on: ubuntu-latest
     strategy:
