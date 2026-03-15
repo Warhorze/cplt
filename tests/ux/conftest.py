@@ -211,6 +211,44 @@ def high_card_bubble_csv(tmp_path: Path) -> Path:
 
 
 # ---------------------------------------------------------------------------
+# Hist CSV: 20 rows
+# - Numeric score column with known distribution
+# - 1 empty value, 1 non-numeric (tests null handling)
+# - grade column for --where filtering
+# ---------------------------------------------------------------------------
+HIST_CSV = """\
+name,score,grade
+alice,95.5,A
+bob,82.0,B
+charlie,71.3,C
+dave,,D
+eve,90.1,A
+frank,88.2,B
+grace,76.4,C
+heidi,91.0,A
+ivan,85.7,B
+judy,79.3,C
+kevin,93.2,A
+lisa,87.6,B
+mallory,68.9,C
+nancy,94.1,A
+oscar,72.8,C
+pete,not_a_number,F
+quincy,80.0,B
+rose,86.5,B
+sam,77.1,C
+tina,92.4,A
+"""
+
+
+@pytest.fixture
+def ux_hist_csv(tmp_path: Path) -> Path:
+    p = tmp_path / "hist.csv"
+    p.write_text(HIST_CSV)
+    return p
+
+
+# ---------------------------------------------------------------------------
 # Dict fixture for parameterized format matrix
 # ---------------------------------------------------------------------------
 @pytest.fixture
@@ -220,6 +258,7 @@ def ux_csvs(
     ux_line_csv: Path,
     ux_bubble_csv: Path,
     ux_summarise_csv: Path,
+    ux_hist_csv: Path,
 ) -> dict[str, Path]:
     return {
         "timeline": timeline_csv,
@@ -227,6 +266,7 @@ def ux_csvs(
         "line": ux_line_csv,
         "bubble": ux_bubble_csv,
         "summarise": ux_summarise_csv,
+        "hist": ux_hist_csv,
     }
 
 
