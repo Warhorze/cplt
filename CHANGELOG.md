@@ -40,6 +40,16 @@
 - UX test suite with combination matrix coverage
 - "Ready for Release" checklist in DEVELOPERS.md
 
+## v0.3.0 (2026-03-15)
+
+### Feat
+
+- smarter summarise with category threshold, histograms & ID detection (#4)
+
+### Fix
+
+- **ci**: replace mypy with pyright in typecheck job
+
 ## v0.2.0 (2026-03-14)
 
 ### Feat

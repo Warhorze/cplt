@@ -19,10 +19,10 @@ uv run ruff format src/ tests/ # format
 
 ## Development workflow
 
-- **ALWAYS use red/green (TDD) development**: write a failing test first, then write the minimal code to make it pass, then refactor. No production code without a failing test driving it.
+- **ALWAYS use red/green (TDD) development**: change API structure (if required), write a failing test first, check if test fail for correct reason, then write the minimal code to make it pass, then refactor. No production code without a failing test driving it.
 - **After tests pass, run the actual code** and visually inspect results (e.g. generate real CLI output, open exported files). If you catch issues, add a failing test for the issue first, then fix it (red/green again).
 - **Always enter plan mode for feature work.** If a plan already exists, update it with new findings or feedback before implementing. The plan needs to be update after a feature is deliverd.11
--- **Ensure the linting checks succeed when saying a feature is done**, run ruff and pyright.1
+-- **Ensure the linting checks succeed when saying a feature is done**, run ruff and pyright.
 - **When manually testing CLI output**, always use `--format compact` instead of the default visual plotext output. The compact format is token-efficient and readable by LLMs.
 -- **Always use atomic conventional git commits** Except for formatting/linting/assets these can be combined
 
