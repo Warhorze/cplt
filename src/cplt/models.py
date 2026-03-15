@@ -50,6 +50,19 @@ class LineSpec:
 
 
 @dataclass
+class HistSpec:
+    bin_edges: list[float] = field(default_factory=list)
+    bin_counts: list[int] = field(default_factory=list)
+    total_count: int = 0
+    null_count: int = 0
+    mean: float = 0.0
+    median: float = 0.0
+    stddev: float = 0.0
+    title: str = "cplt"
+    column: str = ""
+
+
+@dataclass
 class PlotSpec:
     segments: list[Segment] = field(default_factory=list)
     vlines: list[VLine] = field(default_factory=list)
