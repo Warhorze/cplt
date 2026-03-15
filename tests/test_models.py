@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from cplt.models import BarSpec, Dot, LineSpec, PlotSpec, Segment, VLine
+from cplt.models import BarSpec, Dot, HistSpec, LineSpec, PlotSpec, Segment, VLine
 
 
 class TestSegment:
@@ -167,3 +167,36 @@ class TestLineSpec:
         assert len(spec.x_values) == 2
         assert len(spec.y_series) == 2
         assert spec.x_is_date is True
+
+
+class TestHistSpec:
+    def test_defaults(self) -> None:
+        spec = HistSpec()
+        assert spec.bin_edges == []
+        assert spec.bin_counts == []
+        assert spec.total_count == 0
+        assert spec.null_count == 0
+        assert spec.title == "cplt"
+        assert spec.column == ""
+
+    def test_with_data(self) -> None:
+        spec = HistSpec(
+            bin_edges=[0.0, 10.0, 20.0, 30.0],
+            bin_counts=[5, 10, 3],
+            total_count=18,
+            null_count=2,
+            mean=15.0,
+            median=14.0,
+            stddev=7.5,
+            title="test hist",
+            column="score",
+        )
+        assert len(spec.bin_edges) == len(spec.bin_counts) + 1
+        assert spec.total_count == 18
+        assert spec.column == "score"
+
+    def test_bin_edge_count_invariant(self) -> None:
+        edges = [0.0, 25.0, 50.0, 75.0, 100.0]
+        counts = [3, 7, 5, 2]
+        spec = HistSpec(bin_edges=edges, bin_counts=counts)
+        assert len(spec.bin_edges) == len(spec.bin_counts) + 1
