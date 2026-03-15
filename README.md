@@ -52,11 +52,19 @@ Deep completion for `--where` filters: discover available columns, then see matc
 
 Quick column profiling — types, nulls, uniques, and smart distribution views at a glance. Low-cardinality columns get percentage breakdowns, numerics get sparkline histograms, and ID columns are detected automatically.
 
+```bash
+cplt summarise -f data/titanic.csv
+```
+
 ![Summarise output](assets/images/summarise.png)
 
 ### Timeline / Gantt
 
 Visualise project schedules as Gantt-style ranges with color-coded status and a "today" marker.
+
+```bash
+cplt timeline -f data/projects.csv --x start_date --x end_date --y project --color status
+```
 
 ![Timeline chart output](assets/images/timeline.png)
 
@@ -64,17 +72,29 @@ Visualise project schedules as Gantt-style ranges with color-coded status and a 
 
 Count values in a column, filter with `--where`, and label the bars.
 
+```bash
+cplt bar -f data/titanic.csv -c Embarked
+```
+
 ![Bar chart output](assets/images/bar.png)
 
 ### Line Chart
 
 Plot numeric trends over time with `--head` to limit rows and `--title` for context.
 
+```bash
+cplt line -f data/temperatures.csv --x Date --y Temp --head 40
+```
+
 ![Line chart output](assets/images/line.png)
 
 ### Bubble Matrix
 
 Spot missing data patterns across columns. Rows are labeled, columns are presence/absence dots, colored by group.
+
+```bash
+cplt bubble -f data/titanic.csv --cols Cabin --cols Age --y Name --head 12
+```
 
 ![Bubble matrix output](assets/images/bubble.png)
 

@@ -73,7 +73,7 @@ class TestSummariseCrossStage:
         )
         assert result.exit_code == 0
         # "notes" has many unique values but "id" has 15 unique → should show as ID
-        assert "(all unique)" in result.stdout
+        assert "all unique" in result.stdout
 
     def test_category_custom_threshold(self, ux_summarise_csv: Path) -> None:
         """--category 20: columns with <=20 unique values become categorical."""
@@ -88,7 +88,7 @@ class TestSummariseCrossStage:
         )
         assert result.exit_code == 0
         # With threshold=20, columns with 14-15 unique values become categorical
-        # So we should see percentage distributions instead of "(all unique)"
+        # So we should see percentage distributions instead of "all unique"
         out = result.stdout
         assert "%" in out
 
