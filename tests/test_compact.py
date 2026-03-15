@@ -8,6 +8,7 @@ from cplt.bubble import BubbleSpec
 from cplt.compact import (
     compact_bar,
     compact_bubble,
+    compact_hist,
     compact_line,
     compact_summarise,
     compact_timeline,
@@ -782,3 +783,60 @@ class TestCompactSummariseSmartDistribution:
         header_line = [ln for ln in lines if "Column" in ln and "Type" in ln]
         assert header_line
         assert "Rows" not in header_line[0]
+
+
+class TestCompactHist:
+    def test_header(self) -> None:
+        from cplt.models import HistSpec
+
+        spec = HistSpec(
+            bin_edges=[0.0, 25.0, 50.0, 75.0, 100.0],
+            bin_counts=[3, 7, 5, 2],
+            total_count=17,
+            null_count=1,
+            mean=45.0,
+            median=42.0,
+            stddev=20.0,
+            title="my hist",
+            column="score",
+        )
+        out = compact_hist(spec)
+        assert out.startswith("[COMPACT:hist] my hist")
+
+    def test_contains_sparkline(self) -> None:
+        from cplt.models import HistSpec
+
+        spec = HistSpec(
+            bin_edges=[0.0, 50.0, 100.0],
+            bin_counts=[3, 7],
+            total_count=10,
+            null_count=0,
+            mean=60.0,
+            median=55.0,
+            stddev=25.0,
+            title="test",
+            column="val",
+        )
+        out = compact_hist(spec)
+        # Should contain at least one sparkline character
+        spark_chars = set("▁▂▃▄▅▆▇█")
+        assert any(c in spark_chars for c in out)
+
+    def test_contains_stats(self) -> None:
+        from cplt.models import HistSpec
+
+        spec = HistSpec(
+            bin_edges=[0.0, 50.0, 100.0],
+            bin_counts=[3, 7],
+            total_count=10,
+            null_count=2,
+            mean=60.0,
+            median=55.0,
+            stddev=25.0,
+            title="test",
+            column="val",
+        )
+        out = compact_hist(spec)
+        assert "n=10" in out
+        assert "null=2" in out
+        assert "mean=60" in out

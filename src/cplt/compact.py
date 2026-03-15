@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections import defaultdict
 
 from cplt.bubble import BubbleSpec, GroupedBubbleSpec, column_fill_rates
-from cplt.models import BarSpec, Dot, LineSpec, PlotSpec, Segment
+from cplt.models import BarSpec, Dot, HistSpec, LineSpec, PlotSpec, Segment
 from cplt.summarise import TOP_N_VALUES, ColumnSummary
 
 
@@ -216,6 +216,45 @@ def compact_bar(spec: BarSpec, width: int = 40) -> str:
         val_str = str(int(value)) if value == int(value) else str(value)
         lines.append(f"{padded}  |{rle_encode(row_chars)}| {val_str}")
 
+    lines.append("---")
+    return "\n".join(lines)
+
+
+def compact_hist(spec: HistSpec) -> str:
+    """Render a HistSpec as compact sparkline output."""
+    lines: list[str] = []
+    lines.append(f"[COMPACT:hist] {spec.title}")
+
+    if not spec.bin_counts:
+        lines.append("---")
+        lines.append("(no data)")
+        lines.append("---")
+        return "\n".join(lines)
+
+    lines.append(
+        f"column: {spec.column} | n={spec.total_count} null={spec.null_count} "
+        f"bins={len(spec.bin_counts)}"
+    )
+    lines.append("---")
+
+    # Build sparkline from bin counts
+    spark_chars = "▁▂▃▄▅▆▇█"
+    max_bin = max(spec.bin_counts)
+    sparkline = []
+    for b in spec.bin_counts:
+        if max_bin == 0:
+            idx = 0
+        else:
+            idx = int(b / max_bin * (len(spark_chars) - 1) + 0.5)
+            idx = max(0, min(len(spark_chars) - 1, idx))
+        sparkline.append(spark_chars[idx])
+
+    lo = spec.bin_edges[0]
+    hi = spec.bin_edges[-1]
+    lines.append(f"{''.join(sparkline)} {lo:.4g} .. {hi:.4g}")
+    lines.append(
+        f"mean={spec.mean:.4g} median={spec.median:.4g} stddev={spec.stddev:.4g}"
+    )
     lines.append("---")
     return "\n".join(lines)
 
