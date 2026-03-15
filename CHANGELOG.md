@@ -40,6 +40,21 @@
 - UX test suite with combination matrix coverage
 - "Ready for Release" checklist in DEVELOPERS.md
 
+## v0.4.0 (2026-03-15)
+
+### Feat
+
+- **cli**: add hist command
+- **compact**: add compact_hist sparkline output
+- **renderer**: add render_hist for plotext histogram
+- **reader**: add load_hist_data for histogram binning
+- **models**: add HistSpec dataclass
+- **theme**: add unified RAINBOW_PALETTE module
+
+### Refactor
+
+- **theme**: unify color palettes across renderer, bubble, and summarise
+
 ## v0.3.1 (2026-03-15)
 
 ### Refactor
