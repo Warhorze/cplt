@@ -391,3 +391,30 @@ def test_bar_labels_option_is_accepted(bar_csv) -> None:
 
     assert result.exit_code == 0
     assert "[COMPACT:bar]" in result.stdout
+
+
+class TestHistCommand:
+    def test_compact_output(self, hist_csv) -> None:
+        result = runner.invoke(
+            app,
+            ["hist", "-f", str(hist_csv), "-c", "score", "--format", "compact"],
+        )
+        assert result.exit_code == 0, result.stdout
+        assert "[COMPACT:hist]" in result.stdout
+        assert "n=18" in result.stdout
+
+    def test_missing_column_error(self, hist_csv) -> None:
+        result = runner.invoke(
+            app,
+            ["hist", "-f", str(hist_csv), "-c", "nonexistent", "--format", "compact"],
+        )
+        assert result.exit_code == 1
+        assert "nonexistent" in result.stdout
+
+    def test_bins_option(self, hist_csv) -> None:
+        result = runner.invoke(
+            app,
+            ["hist", "-f", str(hist_csv), "-c", "score", "--bins", "3", "--format", "compact"],
+        )
+        assert result.exit_code == 0, result.stdout
+        assert "bins=3" in result.stdout
