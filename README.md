@@ -14,6 +14,7 @@ Most terminal plotting tools handle bars and lines, but not timeline ranges from
 - `timeline` for Gantt-style range plots
 - `bar` for value-count distribution
 - `line` for numeric trends over time or sequence
+- `hist` for numeric column histograms
 - `bubble` for presence/absence matrices
 - `summarise` for fast column profiling
 
@@ -87,6 +88,14 @@ cplt line -f data/temperatures.csv --x Date --y Temp --head 40
 ```
 
 ![Line chart output](assets/images/line.png)
+
+### Histogram
+
+Plot the distribution of a numeric column with automatic binning and statistics overlay.
+
+```bash
+cplt hist -f data/titanic.csv -c Age --bins 10
+```
 
 ### Bubble Matrix
 
